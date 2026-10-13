@@ -141,7 +141,7 @@ def test_matcher_uses_resolver_before_web_and_searches_by_technical_profile(tmp_
     assert lookup.calls == 0
     assert hybrid.calls
     retrieval_query, limit, _ = hybrid.calls[0]
-    assert limit == 20
+    assert limit == 200
     assert "TEMPER" not in retrieval_query.upper()
     assert "Ду125" in retrieval_query
     assert result.query_interpretation["competitor_resolution"]["status"] in {
