@@ -96,6 +96,9 @@ def exact_product_identity_anchors(query: str) -> list[str]:
         if re.search(r"[a-zа-я]", token, re.IGNORECASE) and re.search(r"\d", token):
             add(token)
 
+    for match in _NUMERIC_SUFFIX_VARIANT.finditer(text):
+        add(f"{match.group(1)}{match.group(2)}")
+
     for match in re.finditer(
         r"(?i)(?<![a-zа-я0-9])(?:[a-zа-я]{1,5}[-\s]?)?\d{5,}(?![a-zа-я0-9])",
         text,
