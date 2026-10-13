@@ -361,3 +361,19 @@ def test_temper_max_schema_is_conservative_when_catalog_is_ambiguous(tmp_path):
     assert universal_flanged.attributes()["joining_type"] == "flanged"
     assert universal_flanged.attributes()["bore_type"] == "full"
     assert universal_flanged.attributes().get("working_medium") is None
+
+
+
+def test_also_welded_prefix_does_not_force_full_bore(tmp_path):
+    resolver = CompetitorResolver(settings(tmp_path))
+
+    result = resolver.resolve(
+        "Кран шаровой под приварку стандартнопроходной "
+        "КШ.П.Р.032.40-01 ALSO"
+    )
+
+    assert result.status == "CATALOG_DESIGNATION_RESOLVED"
+    assert result.attributes()["dn"] == 32
+    assert result.attributes()["pn_min_mpa"] == 4.0
+    assert result.attributes()["joining_type"] == "welded"
+    assert result.attributes()["bore_type"] == "reduced"
