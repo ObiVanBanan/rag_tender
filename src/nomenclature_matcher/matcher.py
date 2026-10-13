@@ -12,6 +12,7 @@ from .query_constraints import (
     canonical_product_type,
     evaluate_product,
     product_snapshot,
+    technical_compatibility,
 )
 from .query_signals import (
     explicit_dn_from_query,
@@ -131,6 +132,104 @@ class NomenclatureMatcher:
             for index, candidate in enumerate(candidates, 1)
             if evaluate_product(self._candidate_as_product(candidate), parsed).matches
         ]
+
+    def _technical_prefilter_candidates(
+        self,
+        candidates: list[SearchCandidate],
+        *,
+        soft_constraints: dict | None,
+        hard_constraints: dict | None,
+        limit: int,
+    ) -> tuple[list[SearchCandidate], dict]:
+        """Rank a wide RRF pool by deterministic technical compatibility.
+
+        Explicit hard constraints are applied before truncation. Resolver/query
+        facts are soft: known conflicts hurt rank, unknown candidate facts are
+        neutral. GOLD/benchmark information is never consulted.
+        """
+        if not candidates:
+            return [], {
+                "applied": True,
+                "pool_size": 0,
+                "hard_eligible_count": 0,
+                "selected_ids": [],
+                "rows": [],
+            }
+
+        parsed_soft = (
+            QueryConstraints.model_validate(soft_constraints)
+            if soft_constraints is not None
+            else None
+        )
+        parsed_hard = (
+            QueryConstraints.model_validate(hard_constraints)
+            if hard_constraints is not None
+            else None
+        )
+
+        rows = []
+        hard_eligible = []
+        for original_rank, candidate in enumerate(candidates, 1):
+            product = self._candidate_as_product(candidate)
+            hard_decision = (
+                evaluate_product(product, parsed_hard)
+                if parsed_hard is not None
+                else None
+            )
+            hard_ok = hard_decision.matches if hard_decision is not None else True
+            compatibility = (
+                technical_compatibility(product, parsed_soft)
+                if parsed_soft is not None
+                else {"matches": 0, "mismatches": 0, "unknown": 0, "checks": {}}
+            )
+            row = {
+                "original_rank": original_rank,
+                "ld_id": candidate.ld_id,
+                "hard_eligible": hard_ok,
+                "matches": compatibility["matches"],
+                "mismatches": compatibility["mismatches"],
+                "unknown": compatibility["unknown"],
+                "checks": compatibility["checks"],
+                "rrf_score": candidate.rrf_score,
+            }
+            rows.append(row)
+            if hard_ok:
+                hard_eligible.append((candidate, row))
+
+        # Preserve second-chance behavior if the wide pool has no hard-eligible
+        # candidate at all. rerank_candidates() will run the existing fallback.
+        if not hard_eligible:
+            selected = candidates[:limit]
+            return selected, {
+                "applied": True,
+                "pool_size": len(candidates),
+                "hard_eligible_count": 0,
+                "selected_ids": [candidate.ld_id for candidate in selected],
+                "rows": rows,
+                "fallback": "no_hard_eligible_candidates",
+            }
+
+        ranked = sorted(
+            hard_eligible,
+            key=lambda item: (
+                item[1]["mismatches"],
+                -item[1]["matches"],
+                item[1]["unknown"],
+                item[1]["original_rank"],
+            ),
+        )
+        selected = [candidate for candidate, _ in ranked[:limit]]
+        selected_ids = {candidate.ld_id for candidate in selected}
+        for row in rows:
+            row["selected"] = row["ld_id"] in selected_ids
+
+        return selected, {
+            "applied": True,
+            "pool_size": len(candidates),
+            "hard_eligible_count": len(hard_eligible),
+            "selected_ids": [candidate.ld_id for candidate in selected],
+            "rows": rows,
+        }
 
     def _second_chance_candidates(
         self,
@@ -833,24 +932,39 @@ class NomenclatureMatcher:
             detailed_trace = bool(
                 getattr(self.settings, "match_trace_detailed_enabled", False)
             )
+            pool_limit = max(
+                self.settings.hybrid_rerank_limit,
+                int(getattr(self.settings, "hybrid_prefilter_pool_limit", 200)),
+            )
             if detailed_trace and hasattr(self.hybrid_retriever, "search_with_trace"):
-                candidates, retriever_debug = self.hybrid_retriever.search_with_trace(
+                wide_candidates, retriever_debug = self.hybrid_retriever.search_with_trace(
                     retrieval_query,
-                    self.settings.hybrid_rerank_limit,
+                    pool_limit,
                     canonical_query=canonical_query,
                 )
                 interpretation_payload["retrieval_trace"]["retriever"] = retriever_debug
             else:
-                candidates = self.hybrid_retriever.search(
+                wide_candidates = self.hybrid_retriever.search(
                     retrieval_query,
-                    self.settings.hybrid_rerank_limit,
+                    pool_limit,
                     canonical_query=canonical_query,
                 )
+
+            candidates, prefilter_debug = self._technical_prefilter_candidates(
+                wide_candidates,
+                soft_constraints=interpretation.constraints.model_dump(),
+                hard_constraints=hard_constraints,
+                limit=self.settings.hybrid_rerank_limit,
+            )
+            interpretation_payload["retrieval_trace"]["technical_prefilter"] = (
+                prefilter_debug
+            )
             log_match_trace(
                 "retrieval_completed",
                 enabled=bool(getattr(self.settings, "match_trace_enabled", True)),
                 strategy=retrieval_strategy,
                 candidate_count=len(candidates),
+                prefilter_pool_count=len(wide_candidates),
                 retrieval_query=trim_text(retrieval_query, 500),
                 alternate_query=trim_text(canonical_query, 500),
             )
