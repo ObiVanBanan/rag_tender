@@ -215,6 +215,43 @@ Acceptance questions:
 
 Do not change reranker prompt until E08 is measured.
 
+### E08 result and initial GOLD audit (frozen-100, seed 53)
+
+Commit: `32ff3fb`
+
+Metrics:
+- top1: **34%** (E07-CAT: 30%)
+- acceptable in wide RRF pool: **93%** (E07-CAT: 92%)
+- acceptable after technical prefilter / in reranker candidates: **84%** (E07-CAT: 62%)
+- `RRF_TRUNCATION`: **0** (E07-CAT: 30)
+- `TECHNICAL_PREFILTER_DROP`: **9**
+- `MODALITY_POOL_MISS`: **7** (E07-CAT: 8)
+- `RERANK_NOT_SELECTED`: **50** (E07-CAT: 31)
+
+Case transitions E07-CAT → E08:
+- 9 prior failures became passes;
+- 5 prior passes regressed; all five are ALSO `КШ.ФПА` queries;
+- 86 cases retained their pass/fail status.
+
+Initial GOLD audit (diagnostic, not a complete semantic adjudication):
+- all **3,279** unique acceptable LD IDs in the 15,885-query frozen benchmark exist in the current LD CSV;
+- in the E08 frozen-100 sample, **4/100** cases have no acceptable ID matching the parsed hard constraints: one bore-type conflict and three control conflicts where `под редуктор/электропривод` was reduced to the single hard value `electric`;
+- the bore conflict is a possible query/GOLD disagreement and needs source review; the control cases are ambiguous-query parsing issues, not confirmed bad labels;
+- TEMPER `99220015 MAX` and `99020015 MAX` each select a technically compatible LD candidate outside the current acceptable-ID set (`16999` and `2916`, respectively). These are possible missing GOLD alternatives and require source/mapping adjudication.
+
+Remaining bottleneck:
+- **50/100** cases reach reranking with at least one acceptable candidate but still miss top-1;
+- in 17 of these, an acceptable candidate is among the first three technical-prefilter candidates; the reranker returns an acceptable ID second or third in 7 cases, while 43 cases have no acceptable ID in its selected top three;
+- six failures have an acceptable candidate at technical-prefilter rank 1, yet the reranker chooses another ID.
+
+Next inspection:
+1. adjudicate the four hard-constraint conflicts and the two TEMPER MAX candidate omissions against source records and original mapping rows;
+2. inspect why the reranker overrides the top technical candidate, focusing on actuator/control and product-series variants;
+3. review the five ALSO `КШ.ФПА` regressions as one cohort;
+4. inspect the seven remaining `MODALITY_POOL_MISS` cases only after the GOLD alternatives are confirmed.
+
+Trace: `docs/experiments/traces/E08-wide-prefilter-seed53.json` (DEV labels only, no LD candidate IDs). Full candidate/GOLD details remain local at `.tmp/e08-wide-prefilter-full-gold.json` and must not be committed.
+
 ## Promotion rule
 
 Do not run the final unseen holdout merely because top1 is above the old decoder baseline on frozen-100.
