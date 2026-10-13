@@ -479,3 +479,88 @@ def product_snapshot(product: LDProduct, constraints: QueryConstraints | None = 
     if constraints is not None:
         snapshot["checks"] = asdict(evaluate_product(product, constraints))["checks"]
     return snapshot
+
+
+
+def technical_compatibility(
+    product: LDProduct,
+    constraints: QueryConstraints,
+) -> dict[str, Any]:
+    """Score known structured facts without turning soft facts into hard filters.
+
+    Unknown candidate facts are neutral. A known conflict counts as a mismatch.
+    The caller can sort by fewer mismatches, then more matches, then RRF rank.
+    """
+    checks: dict[str, str] = {}
+    matches = 0
+    mismatches = 0
+    unknown = 0
+
+    def compare(field: str, expected: Any, actual: Any, predicate=None) -> None:
+        nonlocal matches, mismatches, unknown
+        if expected in (None, "", []):
+            return
+        if actual in (None, "", []):
+            unknown += 1
+            checks[field] = "unknown"
+            return
+        ok = predicate(actual, expected) if predicate is not None else actual == expected
+        if ok:
+            matches += 1
+            checks[field] = "match"
+        else:
+            mismatches += 1
+            checks[field] = f"mismatch:{actual!r}!={expected!r}"
+
+    compare("product_type", constraints.product_type, candidate_product_type(product))
+    compare("dn", constraints.dn, candidate_dn(product))
+    compare(
+        "pn_min_mpa",
+        constraints.pn_min_mpa,
+        candidate_pn_mpa(product),
+        lambda actual, expected: actual + 1e-9 >= expected,
+    )
+    compare("joining_type", constraints.joining_type, candidate_joining_type(product))
+    compare("thread_type", constraints.thread_type, candidate_thread_type(product))
+
+    if constraints.working_medium is not None:
+        media = _medium_values(product)
+        if not media:
+            unknown += 1
+            checks["working_medium"] = "unknown"
+        elif _norm(constraints.working_medium) in media:
+            matches += 1
+            checks["working_medium"] = "match"
+        else:
+            mismatches += 1
+            checks["working_medium"] = (
+                f"mismatch:{media!r}!={_norm(constraints.working_medium)!r}"
+            )
+
+    compare("valve_type", constraints.valve_type, candidate_valve_type(product))
+    compare("body_material", constraints.body_material, candidate_material(product))
+
+    if constraints.body_material_grade is not None:
+        material_text = candidate_material_text(product)
+        if not material_text:
+            unknown += 1
+            checks["body_material_grade"] = "unknown"
+        elif _exact_token_match(material_text, constraints.body_material_grade):
+            matches += 1
+            checks["body_material_grade"] = "match"
+        else:
+            mismatches += 1
+            checks["body_material_grade"] = (
+                f"mismatch:{_norm(material_text)!r}!="
+                f"{_norm(constraints.body_material_grade)!r}"
+            )
+
+    compare("bore_type", constraints.bore_type, candidate_bore_type(product))
+    compare("control", constraints.control, candidate_control(product))
+
+    return {
+        "matches": matches,
+        "mismatches": mismatches,
+        "unknown": unknown,
+        "checks": checks,
+    }

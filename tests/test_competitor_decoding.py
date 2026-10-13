@@ -16,6 +16,7 @@ def settings():
         deepseek_model="deepseek-v4-flash",
         deepseek_timeout_seconds=20,
         match_trace_enabled=False,
+        competitor_decoder_baseline_enabled=True,
     )
 
 
@@ -217,7 +218,7 @@ def test_matcher_uses_decoded_technical_query_as_primary_retrieval_query():
     assert result.status == "NOT_FOUND"
     assert hybrid.calls
     retrieval_query, limit, _ = hybrid.calls[0]
-    assert limit == 20
+    assert limit == 200
     assert "Ду100" in retrieval_query
     assert "Ру2,5МПа" in retrieval_query
     assert "Приварное" in retrieval_query
