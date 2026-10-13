@@ -82,3 +82,30 @@ def test_public_trace_keeps_stage_labels_but_never_gold_ids():
     assert "acceptable_ld_ids" not in serialized
     assert public["benchmark_outcome"]["failure_stage"] == "RETRIEVAL_MISS"
     assert public["benchmark_outcome"]["acceptable_in_pretruncate_pool"] is True
+
+
+
+def test_diagnostics_marks_technical_prefilter_drop():
+    case = {"query": "competitor example", "acceptable_ld_ids": [42]}
+    result = _result(
+        {
+            "retriever": {
+                "rrf_pool": [
+                    {"rank": 1, "ld_id": 10},
+                    {"rank": 21, "ld_id": 42},
+                ]
+            },
+            "technical_prefilter": {
+                "applied": True,
+                "selected_ids": [10],
+            },
+            "initial_candidate_ids": [10],
+            "rerank_candidate_ids": [10],
+            "selected_ld_ids": [999],
+        }
+    )
+
+    diagnostics = _diagnostics(case, result, "FAIL_WRONG_LD")
+
+    assert diagnostics["failure_stage"] == "RETRIEVAL_MISS"
+    assert diagnostics["failure_substage"] == "TECHNICAL_PREFILTER_DROP"
