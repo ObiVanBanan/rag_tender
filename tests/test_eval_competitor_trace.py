@@ -80,6 +80,9 @@ def test_public_trace_keeps_stage_labels_but_never_gold_ids():
 
     serialized = repr(public)
     assert "acceptable_ld_ids" not in serialized
+    assert "returned_ld_id" not in serialized
+    assert "rerank_candidate_ids" not in serialized
+    assert '"ld_id"' not in serialized
     assert public["benchmark_outcome"]["failure_stage"] == "RETRIEVAL_MISS"
     assert public["benchmark_outcome"]["acceptable_in_pretruncate_pool"] is True
 
