@@ -344,6 +344,26 @@ def _public_case_trace(case: dict, result, diagnostics: dict) -> dict:
                 "second_chance_candidate_ids"
             ),
             "second_chance_retriever": retrieval.get("second_chance_retriever"),
+            "technical_prefilter": {
+                "applied": bool(
+                    (retrieval.get("technical_prefilter") or {}).get("applied")
+                ),
+                "pool_size": (retrieval.get("technical_prefilter") or {}).get(
+                    "pool_size"
+                ),
+                "hard_eligible_count": (
+                    retrieval.get("technical_prefilter") or {}
+                ).get("hard_eligible_count"),
+                "selected_count": len(
+                    (retrieval.get("technical_prefilter") or {}).get(
+                        "selected_ids"
+                    )
+                    or []
+                ),
+                "fallback": (retrieval.get("technical_prefilter") or {}).get(
+                    "fallback"
+                ),
+            },
             "rerank_candidate_ids": retrieval.get("rerank_candidate_ids"),
         },
         "reranker": {
@@ -438,11 +458,14 @@ def _diagnostics(case: dict, result, verdict: str) -> dict:
         failure_substage = "RETRIEVAL_NOT_RUN"
     elif not acceptable_in_initial:
         failure_stage = "RETRIEVAL_MISS"
-        failure_substage = (
-            "RRF_TRUNCATION"
-            if acceptable_in_pretruncate
-            else "MODALITY_POOL_MISS"
-        )
+        if acceptable_in_pretruncate:
+            failure_substage = (
+                "TECHNICAL_PREFILTER_DROP"
+                if (retrieval.get("technical_prefilter") or {}).get("applied")
+                else "RRF_TRUNCATION"
+            )
+        else:
+            failure_substage = "MODALITY_POOL_MISS"
     elif not acceptable_in_rerank:
         failure_stage = "FILTER_DROP"
         failure_substage = (
