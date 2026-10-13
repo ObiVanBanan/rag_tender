@@ -511,7 +511,7 @@
               "value": null
             },
             {
-              "regex": "П",
+              "regex": "^(?:ФП|ПП)(?:\\.|$)",
               "value": "full"
             },
             {
@@ -536,7 +536,7 @@
         "source_type": "official_series_page",
         "identity_level": "FAMILY_LEVEL",
         "evidence_scope": "nomenclature_schema",
-        "evidence_text": "Official ALSO series pages publish the ball-valve designation structure; official product pages confirm DN, PN, connection type, bore and material execution codes."
+        "evidence_text": "Official ALSO series pages publish the ball-valve designation structure; connection prefix П denotes welded connection and must not itself be treated as a full-bore marker. Full bore is inferred only from explicit full-bore body codes."
       }
     }
   ]
