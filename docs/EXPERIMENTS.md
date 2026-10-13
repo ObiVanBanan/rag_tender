@@ -1,6 +1,64 @@
 # Experiments
 
-Short decision history for frozen-100 DEV runs. Per-case traces and full outputs stay in `.tmp` or their original evaluation artifacts.
+Short decision history for frozen-100 DEV runs. Per-case traces and full GOLD-bearing outputs stay in `.tmp`; commit-safe DEV traces live under `docs/experiments/traces/`.
+
+## Current checkpoint
+
+Branch: `codex/competitor-resolver-v2`  
+Current HEAD: `b733910`  
+Best measured DEV result: **E06**
+
+Decoder baseline:
+- top1: 26%
+- initial recall: 66%
+- rerank recall: 67%
+
+Current resolver-only best:
+- top1: **30%**
+- initial recall: **63%**
+- rerank recall: **63%**
+- catalog-resolved strategy: **91/100**
+- runtime web: **OFF**
+
+The architecture is no longer blocked by source understanding in the same way as E04. The remaining failures are split between:
+- `RETRIEVAL_MISS`: 37
+- `RERANK_SELECTION`: 32
+- `FILTER_DROP`: 1
+- success: 30
+
+The exact causes inside those buckets were **not known from E06**, so stage-wise tracing was added before attempting more tuning.
+
+## What is already decided
+
+| Topic | Decision | Evidence |
+|---|---|---|
+| Legacy decoder | Benchmark/control only; not production runtime | E01–E03 |
+| Exact vs family identity | Must be separated | E02 regression |
+| Catalog-first resolver | Keep | E04 + E06 |
+| TEMPER/MARSHAL/ALSO schemas | Keep | E04 + E06 |
+| Runtime web | Disabled/deferred | E05, ADR-001 |
+| GOLD leakage | Never expose acceptable LD IDs to resolver/retrieval | all resolver-v2 work |
+| Final unseen holdout | Do not touch yet | current evaluation policy |
+| Next optimization | Must be chosen from stage trace, not intuition | instrumentation milestone I01 |
+
+## Ideas considered but not yet proven
+
+These are **not implemented conclusions** yet:
+
+- increasing candidate limit / keeping a larger RRF pool;
+- filtering before final top-k truncation;
+- changing dense/BM25/RRF weights or retrieval query representation;
+- structured candidate facts for reranker;
+- deterministic compatibility scoring before LLM rerank;
+- replacing or cascading the reranker;
+- TEMPER MAX coverage;
+- BROEN catalog coverage;
+- reintroducing web with a better provider;
+- running the final 1000/unseen holdout.
+
+Do not describe any of the above as a confirmed bottleneck or fix until E07 localizes the current failures.
+
+---
 
 ## E01 — Competitor decoder baseline
 Commit: `08e2497`
@@ -53,5 +111,103 @@ Setup: frozen-100, seed 53, fresh KB, decoder OFF, runtime web OFF, workers 1.
 Hypothesis/change: generic data-driven designation schemas for MARSHAL and ALSO restore candidate recall without manufacturer-specific matcher logic.
 Metrics: top1 30%; initial recall 63%; rerank recall 63%; catalog-resolved strategy 91/100; web skipped 100/100. MARSHAL initial 30/42, top1 13/42; ALSO 27/47, 13/47; TEMPER 6/8, 4/8.
 Failure split: `RETRIEVAL_MISS` 37; `RERANK_SELECTION` 32; `FILTER_DROP` 1; success 30.
-Conclusion: initial recall rose from 22% to 63%, close to the 66% decoder baseline; top1 rose from 8% to 30%. Candidate coverage is now strong enough to expose downstream selection failures.
-Decision/next: keep runtime web off and retain the generic schemas. Analyze the 32 rerank-selection failures separately; leave the final unseen holdout untouched.
+Conclusion: initial recall rose from 22% to 63%, close to the 66% decoder baseline; top1 rose from 8% to 30%. Catalog-first source understanding is now viable.
+Decision/next: **do not guess** whether retrieval or reranking is the next bottleneck. Add stage-wise tracing and classify E06-style failures first.
+
+---
+
+## I01 — Stage-wise trace instrumentation
+Current HEAD: `b733910`
+Type: instrumentation milestone, **not a quality experiment**.
+
+Why:
+E06 only told us that 37 cases were `RETRIEVAL_MISS` and 32 were `RERANK_SELECTION`. It did not tell us whether a retrieval miss meant:
+- absent from dense/BM25 pool;
+- present in the merged pool but truncated before top-k;
+- removed by hard constraints;
+- lost in second-chance retrieval.
+
+Added diagnostics:
+- resolver status and canonical facts;
+- dense hits and BM25 hits;
+- merged RRF pool before top-k truncation;
+- initial top-k candidate snapshots;
+- hard-filter checks;
+- second-chance retrieval funnel;
+- reranker input/status/reason/selections;
+- exact git HEAD in the trace.
+
+Benchmark failure substages:
+- `MODALITY_POOL_MISS`
+- `RRF_TRUNCATION`
+- `HARD_FILTER:<field>`
+- `RERANK_NOT_SELECTED`
+
+Storage policy:
+- full GOLD-bearing trace → `.tmp/`, never commit;
+- DEV-safe trace without acceptable/GOLD IDs → `docs/experiments/traces/`;
+- final unseen holdout traces must not be committed.
+
+No ranking/retrieval behavior is intentionally changed by I01.
+
+---
+
+## E07 — Failure localization with stage trace — NEXT
+
+Status: **pending run**
+
+Setup:
+- same frozen-100 DEV;
+- seed 53;
+- fresh KB;
+- workers 1;
+- decoder OFF;
+- runtime web OFF;
+- current trace-enabled resolver-v2.
+
+Command:
+
+```powershell
+uv run python scripts/eval_competitor_analogs.py \
+  --sample 100 \
+  --seed 53 \
+  --workers 1 \
+  --output .tmp/e07-full-gold.json \
+  --public-trace-output docs/experiments/traces/E07-seed53.json
+```
+
+E07 is diagnostic first. Do not optimize during this run.
+
+Questions E07 must answer:
+
+1. Of the retrieval misses, how many are:
+   - `MODALITY_POOL_MISS`;
+   - `RRF_TRUNCATION`;
+   - hard-filter/second-chance failures?
+
+2. Of the rerank failures:
+   - where does the first acceptable candidate sit in reranker input;
+   - what candidate did the LLM select instead;
+   - which technical fields distinguish them?
+
+3. Are the remaining unresolved source products materially affecting recall, or is the next bottleneck already downstream of resolver?
+
+Decision after E07:
+
+- if `RRF_TRUNCATION` dominates → test larger candidate pool / filter-before-truncate;
+- if `MODALITY_POOL_MISS` dominates → work on retrieval representation/index/query generation;
+- if `HARD_FILTER` dominates → fix constraint provenance/evaluation;
+- if `RERANK_NOT_SELECTED` dominates → test structured candidate facts / deterministic compatibility / reranker changes;
+- if source-resolution misses dominate → extend catalog coverage before downstream tuning.
+
+Only after one of those is demonstrated by the trace should E08 change matching behavior.
+
+## Promotion rule
+
+Do not run the final unseen holdout merely because top1 is above the old decoder baseline on frozen-100.
+
+Promote only after:
+1. E07 localizes the dominant remaining failure;
+2. at least one targeted fix is validated on DEV without regression;
+3. the candidate is frozen;
+4. then run the untouched final holdout / final 1000 once.
