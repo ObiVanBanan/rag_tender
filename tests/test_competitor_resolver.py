@@ -312,3 +312,52 @@ def test_also_unknown_connection_code_keeps_joining_unknown(tmp_path):
     assert result.attributes()["dn"] == 100
     assert result.attributes()["pn_min_mpa"] == 1.6
     assert result.attributes().get("joining_type") is None
+
+
+
+def test_temper_max_catalog_schema_resolves_without_identity_collapse(tmp_path):
+    resolver = CompetitorResolver(settings(tmp_path))
+
+    threaded = resolver.resolve("TEMPER 99020015 MAX")
+    assert threaded.status == "CATALOG_SCHEMA_RESOLVED"
+    assert threaded.identity_anchor == "99020015max"
+    assert threaded.identity_key == "temper:99020015max"
+    assert threaded.attributes()["dn"] == 15
+    assert threaded.attributes()["pn_min_mpa"] == 4.0
+    assert threaded.attributes()["joining_type"] == "threaded"
+    assert threaded.attributes()["bore_type"] == "full"
+    assert threaded.attributes()["working_medium"] == "газ"
+    assert threaded.attributes()["valve_type"] == "gas"
+    assert threaded.attributes().get("body_material_grade") is None
+
+    welded = resolver.resolve("TEMPER 99220015 MAX")
+    assert welded.status == "CATALOG_SCHEMA_RESOLVED"
+    assert welded.identity_anchor == "99220015max"
+    assert welded.attributes()["dn"] == 15
+    assert welded.attributes()["pn_min_mpa"] == 4.0
+    assert welded.attributes()["joining_type"] == "welded"
+    assert welded.attributes()["bore_type"] == "full"
+    assert welded.attributes()["working_medium"] == "газ"
+
+    # The unsuffixed article is a different product and must not hit the MAX KB row.
+    plain = resolver.resolve("TEMPER 99020015")
+    assert plain.status == "MISS"
+    assert plain.resolved is False
+
+
+def test_temper_max_schema_is_conservative_when_catalog_is_ambiguous(tmp_path):
+    resolver = CompetitorResolver(settings(tmp_path))
+
+    large_welded = resolver.resolve("TEMPER 99220300 MAX")
+    assert large_welded.status == "CATALOG_SCHEMA_RESOLVED"
+    assert large_welded.attributes()["dn"] == 300
+    assert large_welded.attributes().get("pn_min_mpa") is None
+    assert large_welded.attributes()["joining_type"] == "welded"
+
+    universal_flanged = resolver.resolve("TEMPER 99320065 MAX")
+    assert universal_flanged.status == "CATALOG_SCHEMA_RESOLVED"
+    assert universal_flanged.attributes()["dn"] == 65
+    assert universal_flanged.attributes()["pn_min_mpa"] == 1.6
+    assert universal_flanged.attributes()["joining_type"] == "flanged"
+    assert universal_flanged.attributes()["bore_type"] == "full"
+    assert universal_flanged.attributes().get("working_medium") is None
