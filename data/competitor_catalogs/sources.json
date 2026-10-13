@@ -26,6 +26,11 @@
           "url": "https://alsoarm.ru/catalog/dlya-gazoobraznykh-sred-seriya-gas/",
           "source_type": "official_catalog",
           "trust": "official"
+        },
+        {
+          "url": "https://alsoarm.ru/about/media/news/obnovlyen-katalog-also-dlya-gazoobraznykh-sred/",
+          "source_type": "official_catalog_release_note",
+          "trust": "official"
         }
       ]
     },
@@ -45,6 +50,16 @@
           "url": "https://temper.ru/catalog/1-stalnaa-armatura-stal-vodnaa-seria?view=full",
           "source_type": "official_catalog",
           "trust": "official"
+        },
+        {
+          "url": "https://temper.ru/en/catalog/87-steel-reinforcement-gas-series-specialnaa-seria-max?view=full",
+          "source_type": "official_catalog",
+          "trust": "official"
+        },
+        {
+          "url": "https://temper.ru/en/catalog/86-steel-reinforcement-universal-series-specialnaa-seria-max?page=2&view=full",
+          "source_type": "official_catalog",
+          "trust": "official"
         }
       ]
     },
@@ -58,8 +73,13 @@
       ],
       "sources": [
         {
-          "url": "https://www.broen.com/documentation/district-energy/brochures-and-documentation/",
-          "source_type": "official_documentation",
+          "url": "https://broen.ru/produktsiya/sharovye-krany/broen-ballomaks/katalog/",
+          "source_type": "official_catalog_index",
+          "trust": "official"
+        },
+        {
+          "url": "https://broen.ru/produktsiya/sharovye-krany/broen-ballomaks/prays-list/",
+          "source_type": "official_price_list_index",
           "trust": "official"
         }
       ]
@@ -195,6 +215,153 @@
             "identity_level": "FAMILY_LEVEL",
             "evidence_scope": "nomenclature_schema",
             "evidence_text": "TEMPER 299: full-bore flanged/welded execution derived from the 292 family."
+          }
+        }
+      }
+    },
+    {
+      "manufacturer": "TEMPER",
+      "article_regex": "^(?P<series>980|982|983|990|992|993)20(?P<dn>\\d{3})max$",
+      "series_rules": {
+        "980": {
+          "product_type": "ball_valve",
+          "joining_type": "threaded",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "max_dn": 100,
+              "pn_min_mpa": 2.5
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/product/kran-sarovoj-standartnoprohodnoj-specialnaa-seria-max-rezbovoj-3",
+            "source_type": "official_product_page",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 980: standard-bore threaded family; article contains series + fixed 20 + DN. Official table publishes DN/PN. Material grade is intentionally not inferred from the fixed 20 digits."
+          }
+        },
+        "982": {
+          "product_type": "ball_valve",
+          "joining_type": "welded",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "working_medium": "газ",
+          "valve_type": "gas",
+          "pn_rules": [
+            {
+              "max_dn": 32,
+              "pn_min_mpa": 4
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/2-gas-serie?page=6&per-page=15&view=full",
+            "source_type": "official_catalog",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 982: gas standard-bore welded family. Only PN ranges directly visible in the official source are encoded; other DN values remain PN-unknown."
+          }
+        },
+        "983": {
+          "product_type": "ball_valve",
+          "joining_type": "flanged",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "working_medium": "газ",
+          "valve_type": "gas",
+          "pn_rules": [
+            {
+              "max_dn": 25,
+              "pn_min_mpa": 4
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/2-gas-serie?page=6&per-page=15&view=full",
+            "source_type": "official_catalog",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 983: gas standard-bore flanged family. Conservative PN coverage is encoded only where the official table is explicit."
+          }
+        },
+        "990": {
+          "product_type": "ball_valve",
+          "joining_type": "threaded",
+          "bore_type": "full",
+          "body_material": "steel",
+          "working_medium": "газ",
+          "valve_type": "gas",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "max_dn": 100,
+              "pn_min_mpa": 2.5
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/product/kran-sarovoj-gazovyj-polnoprohodnoj-specialnaa-seria-max-rezbovoj",
+            "source_type": "official_product_page",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 990: gas full-bore threaded family. MAX is part of exact identity because the same numeric article also exists outside the MAX execution."
+          }
+        },
+        "992": {
+          "product_type": "ball_valve",
+          "joining_type": "welded",
+          "bore_type": "full",
+          "body_material": "steel",
+          "working_medium": "газ",
+          "valve_type": "gas",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "max_dn": 250,
+              "pn_min_mpa": 2.5
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/catalog/product/kran-sarovoj-gazovyj-polnoprohodnoj-specialnaa-seria-max-privarnoj",
+            "source_type": "official_product_page",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 992: gas full-bore welded family. DN300+ is published as PN16/25, so the schema deliberately leaves PN unknown there instead of inventing one value."
+          }
+        },
+        "993": {
+          "product_type": "ball_valve",
+          "joining_type": "flanged",
+          "bore_type": "full",
+          "body_material": "steel",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "pn_min_mpa": 1.6
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/1-universalnaa-seria?page=11&view=full",
+            "source_type": "official_catalog",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 993: universal full-bore flanged family. Working medium and exact steel grade are not inferred from article digits."
           }
         }
       }
