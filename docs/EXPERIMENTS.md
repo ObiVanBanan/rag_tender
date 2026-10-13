@@ -6,7 +6,7 @@ Short decision history for frozen-100 DEV runs. Per-case traces and full GOLD-be
 
 Branch: `codex/competitor-resolver-v2`  
 Current HEAD: `b733910`  
-Best measured DEV result: **E06**
+Best measured DEV result: **E07-CAT**
 
 Decoder baseline:
 - top1: 26%
@@ -15,9 +15,10 @@ Decoder baseline:
 
 Current resolver-only best:
 - top1: **30%**
-- initial recall: **63%**
-- rerank recall: **63%**
-- catalog-resolved strategy: **91/100**
+- initial recall: **62%**
+- rerank recall: **62%**
+- pre-truncation pool recall: **92%**
+- catalog-resolved strategy: **93/100**
 - runtime web: **OFF**
 
 The architecture is no longer blocked by source understanding in the same way as E04. The remaining failures are split between:
@@ -151,77 +152,68 @@ No ranking/retrieval behavior is intentionally changed by I01.
 
 ---
 
-## E07-CAT — Catalog Expansion v1 + stage trace — NEXT
+## E07-CAT — Catalog Expansion v1 + stage trace
 
-Status: **patch ready; benchmark pending**
+Commit: `4152bcb`
+Setup: frozen-100, seed 53, fresh KB, decoder OFF, runtime web OFF, workers 1.
 
-Why this experiment moved ahead of a pure diagnostic rerun:
-- E04 and E06 already showed a large positive effect from catalog coverage;
-- the user explicitly chose to continue the catalog-first hypothesis;
-- stage-wise tracing remains enabled, so this run still localizes the remaining downstream failures.
+Hypothesis/change:
+- preserve TEMPER MAX as distinct exact identity;
+- add TEMPER MAX catalog schemas;
+- use stage-wise trace to localize downstream failures.
 
-Behavioral changes are restricted to the source-understanding layer:
-- preserve numeric suffix variants such as `99020015 MAX` as a distinct exact identity `99020015max`;
-- add official TEMPER MAX catalog schemas for `980/982/983/990/992/993`;
-- do **not** infer material grade from the fixed `20` digits in MAX articles;
-- keep ambiguous PN values unknown (for example TEMPER 992 DN300+ published as PN16/25);
-- refresh official ALSO/BROEN catalog entry points without adding unverified BROEN parsing rules;
-- no retrieval, RRF, hard-filter or reranker behavior is changed.
+Metrics:
+- top1: **30%**
+- acceptable in pre-truncation RRF pool: **92%**
+- initial recall after top-20: **62%**
+- rerank recall: **62%**
+- catalog-resolved strategy: **93/100**
 
-Known DEV gap targeted directly:
-- `TEMPER 99020015 MAX`
-- `TEMPER 99220015 MAX`
+Failure split:
+- `RRF_TRUNCATION`: **30**
+- `RERANK_NOT_SELECTED`: **31**
+- `MODALITY_POOL_MISS`: **8**
+- `HARD_FILTER:bore_type`: **1**
+- success: **30**
 
-Important identity finding:
-`99020015` and `99020015 MAX` are distinct official TEMPER products, so the previous numeric-only identity would have allowed KB collision.
-
-Run setup:
-- same frozen-100 DEV;
-- seed 53;
-- fresh KB;
-- workers 1;
-- decoder OFF;
-- runtime web OFF;
-- stage trace ON.
-
-Command:
-
-```powershell
-uv run python scripts/eval_competitor_analogs.py \
-  --sample 100 \
-  --seed 53 \
-  --workers 1 \
-  --output .tmp/e07-cat-full-gold.json \
-  --public-trace-output docs/experiments/traces/E07-CAT-seed53.json
-```
-
-Primary comparison vs E06:
-- catalog-resolved strategy: 91/100 → ?
-- initial recall: 63% → ?
-- rerank recall: 63% → ?
-- top1: 30% → ?
-- unresolved source products: ? → ?
-
-Secondary trace questions:
-- remaining `MODALITY_POOL_MISS`;
-- remaining `RRF_TRUNCATION`;
-- hard-filter drops;
-- `RERANK_NOT_SELECTED`.
+Key findings:
+- catalog expansion resolved more source products (91 → 93) but did not change top1;
+- the dominant retrieval loss is now measured: 30 cases have an acceptable LD in the full RRF pool but lose it before the top-20 reranker input;
+- 31 more cases reach reranker and still lose selection;
+- one ALSO case exposed a schema bug: welded prefix `П` was incorrectly interpreted as full-bore in `КШ.П.Р...`.
 
 Decision:
-- keep Catalog Expansion v1 only if source coverage improves without regressing overall DEV quality;
-- choose the next matching-layer change from the post-expansion trace, not from intuition.
+- keep Catalog Expansion v1;
+- next intervention targets the measured RRF/top-20 bottleneck;
+- fix ALSO bore semantics;
+- do not change embeddings or LLM prompt in the same experiment.
 
-## E08 — Targeted downstream fix — PENDING E07-CAT
+## E08 — Wide RRF technical prefilter — PATCH READY, BENCHMARK PENDING
 
-Choose exactly one intervention from the trace:
-- RRF truncation dominates → candidate-pool/filter-before-truncate experiment;
-- modality pool miss dominates → retrieval/query/index experiment;
-- hard-filter dominates → constraint provenance/evaluator fix;
-- rerank-not-selected dominates → structured candidate facts / deterministic compatibility / reranker experiment;
-- source-resolution misses still dominate → continue catalog ingestion.
+Behavioral change:
+- retrieve up to 200 candidates from the already-produced RRF pool;
+- apply explicit hard constraints **before** final top-k truncation;
+- rank hard-eligible candidates deterministically using structured technical compatibility with the canonical resolver/query profile;
+- unknown candidate facts are neutral;
+- known technical conflicts hurt rank;
+- ties preserve the original RRF order;
+- send only top-20 to the existing LLM reranker.
 
-Do not bundle retrieval, reranker and schema changes into one experiment.
+Also:
+- fix ALSO `КШ.П.Р...` so welded prefix `П` does not imply full bore;
+- keep explicit full-bore body codes such as `ФП` / `ПП`.
+
+E08 trace adds:
+- `TECHNICAL_PREFILTER_DROP` when an acceptable LD existed in the wide pool but the new prefilter failed to keep it in top-20.
+
+Acceptance questions:
+1. Does acceptable-in-initial rise materially above E07-CAT 62%?
+2. Does top1 improve above 30%?
+3. How many of the old 30 `RRF_TRUNCATION` cases become reachable?
+4. Does `TECHNICAL_PREFILTER_DROP` stay low enough to justify the new layer?
+5. Does the ALSO schema fix remove the known `КШ.П.Р` source-understanding error?
+
+Do not change reranker prompt until E08 is measured.
 
 ## Promotion rule
 
