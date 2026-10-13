@@ -33,3 +33,13 @@ def test_dn_pn_notation_is_not_product_identity():
     assert "dn6550" not in anchors
     assert "pn25" not in anchors
     assert "2цф001" in anchors
+
+
+
+def test_temper_max_suffix_is_part_of_exact_identity():
+    max_anchors = exact_product_identity_anchors("TEMPER 99020015 MAX")
+    plain_anchors = exact_product_identity_anchors("TEMPER 99020015")
+
+    assert max_anchors[0] == "99020015max"
+    assert "99020015" in max_anchors
+    assert "99020015max" not in plain_anchors
