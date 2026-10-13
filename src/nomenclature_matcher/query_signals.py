@@ -11,6 +11,9 @@ _TECH_NOTATION = re.compile(
 _MIXED_MODEL = re.compile(r"(?i)(?<![a-zа-я0-9])[a-zа-я0-9][a-zа-я0-9._/-]{3,}(?![a-zа-я0-9])")
 _BRAND_NUMBER = re.compile(r"(?i)\b([a-z]{2,20})\s+([0-9]{2,4})\b")
 _LONG_NUMBER = re.compile(r"(?<!\d)\d{5,}(?!\d)")
+_NUMERIC_SUFFIX_VARIANT = re.compile(
+    r"(?i)(?<![a-zа-я0-9])(\d{5,})\s+(max)(?![a-zа-я0-9])"
+)
 _EXACT_COMPOSITE_MODEL = re.compile(
     r"(?i)(?<![a-zа-я0-9])"
     r"([a-zа-я0-9]+(?:[.\-/][a-zа-я0-9()]+){1,})"
