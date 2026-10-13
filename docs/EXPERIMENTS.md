@@ -51,7 +51,6 @@ These are **not implemented conclusions** yet:
 - structured candidate facts for reranker;
 - deterministic compatibility scoring before LLM rerank;
 - replacing or cascading the reranker;
-- TEMPER MAX coverage;
 - BROEN catalog coverage;
 - reintroducing web with a better provider;
 - running the final 1000/unseen holdout.
@@ -152,18 +151,38 @@ No ranking/retrieval behavior is intentionally changed by I01.
 
 ---
 
-## E07 — Failure localization with stage trace — NEXT
+## E07-CAT — Catalog Expansion v1 + stage trace — NEXT
 
-Status: **pending run**
+Status: **patch ready; benchmark pending**
 
-Setup:
+Why this experiment moved ahead of a pure diagnostic rerun:
+- E04 and E06 already showed a large positive effect from catalog coverage;
+- the user explicitly chose to continue the catalog-first hypothesis;
+- stage-wise tracing remains enabled, so this run still localizes the remaining downstream failures.
+
+Behavioral changes are restricted to the source-understanding layer:
+- preserve numeric suffix variants such as `99020015 MAX` as a distinct exact identity `99020015max`;
+- add official TEMPER MAX catalog schemas for `980/982/983/990/992/993`;
+- do **not** infer material grade from the fixed `20` digits in MAX articles;
+- keep ambiguous PN values unknown (for example TEMPER 992 DN300+ published as PN16/25);
+- refresh official ALSO/BROEN catalog entry points without adding unverified BROEN parsing rules;
+- no retrieval, RRF, hard-filter or reranker behavior is changed.
+
+Known DEV gap targeted directly:
+- `TEMPER 99020015 MAX`
+- `TEMPER 99220015 MAX`
+
+Important identity finding:
+`99020015` and `99020015 MAX` are distinct official TEMPER products, so the previous numeric-only identity would have allowed KB collision.
+
+Run setup:
 - same frozen-100 DEV;
 - seed 53;
 - fresh KB;
 - workers 1;
 - decoder OFF;
 - runtime web OFF;
-- current trace-enabled resolver-v2.
+- stage trace ON.
 
 Command:
 
@@ -172,42 +191,45 @@ uv run python scripts/eval_competitor_analogs.py \
   --sample 100 \
   --seed 53 \
   --workers 1 \
-  --output .tmp/e07-full-gold.json \
-  --public-trace-output docs/experiments/traces/E07-seed53.json
+  --output .tmp/e07-cat-full-gold.json \
+  --public-trace-output docs/experiments/traces/E07-CAT-seed53.json
 ```
 
-E07 is diagnostic first. Do not optimize during this run.
+Primary comparison vs E06:
+- catalog-resolved strategy: 91/100 → ?
+- initial recall: 63% → ?
+- rerank recall: 63% → ?
+- top1: 30% → ?
+- unresolved source products: ? → ?
 
-Questions E07 must answer:
+Secondary trace questions:
+- remaining `MODALITY_POOL_MISS`;
+- remaining `RRF_TRUNCATION`;
+- hard-filter drops;
+- `RERANK_NOT_SELECTED`.
 
-1. Of the retrieval misses, how many are:
-   - `MODALITY_POOL_MISS`;
-   - `RRF_TRUNCATION`;
-   - hard-filter/second-chance failures?
+Decision:
+- keep Catalog Expansion v1 only if source coverage improves without regressing overall DEV quality;
+- choose the next matching-layer change from the post-expansion trace, not from intuition.
 
-2. Of the rerank failures:
-   - where does the first acceptable candidate sit in reranker input;
-   - what candidate did the LLM select instead;
-   - which technical fields distinguish them?
+## E08 — Targeted downstream fix — PENDING E07-CAT
 
-3. Are the remaining unresolved source products materially affecting recall, or is the next bottleneck already downstream of resolver?
+Choose exactly one intervention from the trace:
+- RRF truncation dominates → candidate-pool/filter-before-truncate experiment;
+- modality pool miss dominates → retrieval/query/index experiment;
+- hard-filter dominates → constraint provenance/evaluator fix;
+- rerank-not-selected dominates → structured candidate facts / deterministic compatibility / reranker experiment;
+- source-resolution misses still dominate → continue catalog ingestion.
 
-Decision after E07:
-
-- if `RRF_TRUNCATION` dominates → test larger candidate pool / filter-before-truncate;
-- if `MODALITY_POOL_MISS` dominates → work on retrieval representation/index/query generation;
-- if `HARD_FILTER` dominates → fix constraint provenance/evaluation;
-- if `RERANK_NOT_SELECTED` dominates → test structured candidate facts / deterministic compatibility / reranker changes;
-- if source-resolution misses dominate → extend catalog coverage before downstream tuning.
-
-Only after one of those is demonstrated by the trace should E08 change matching behavior.
+Do not bundle retrieval, reranker and schema changes into one experiment.
 
 ## Promotion rule
 
 Do not run the final unseen holdout merely because top1 is above the old decoder baseline on frozen-100.
 
 Promote only after:
-1. E07 localizes the dominant remaining failure;
-2. at least one targeted fix is validated on DEV without regression;
-3. the candidate is frozen;
-4. then run the untouched final holdout / final 1000 once.
+1. E07-CAT is measured;
+2. the dominant remaining failure is localized from its stage trace;
+3. at least one targeted fix is validated on DEV without regression;
+4. the candidate is frozen;
+5. then run the untouched final holdout / final 1000 once.
