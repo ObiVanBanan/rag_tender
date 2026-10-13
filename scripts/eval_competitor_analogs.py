@@ -291,38 +291,19 @@ def _filter_failure_fields(
 
 
 def _public_case_trace(case: dict, result, diagnostics: dict) -> dict:
-    """Build a DEV-safe trace without acceptable/GOLD identifiers."""
+    """Build a commit-safe DEV trace without LD candidate identities."""
     interpretation = result.query_interpretation or {}
     retrieval = interpretation.get("retrieval_trace") or {}
-    returned_ld_id = result.ld_product.ld_id if result.ld_product is not None else None
+    retriever = retrieval.get("retriever") or {}
+    prefilter = retrieval.get("technical_prefilter") or {}
     return {
         "case_id": hashlib.sha256(case["query"].encode("utf-8")).hexdigest()[:16],
         "query": case["query"],
         "actual_status": result.status,
-        "returned_ld_id": returned_ld_id,
         "benchmark_outcome": {
             "verdict": diagnostics.get("verdict"),
             "failure_stage": diagnostics.get("failure_stage"),
             "failure_substage": diagnostics.get("failure_substage"),
-            "acceptable_in_pretruncate_pool": bool(
-                diagnostics.get("acceptable_in_pretruncate_pool")
-            ),
-            "acceptable_in_initial_retrieval": bool(
-                diagnostics.get("acceptable_in_initial_retrieval")
-            ),
-            "acceptable_in_rerank_candidates": bool(
-                diagnostics.get("acceptable_in_rerank_candidates")
-            ),
-            "acceptable_selected": bool(diagnostics.get("acceptable_selected")),
-            "best_acceptable_pretruncate_rank": diagnostics.get(
-                "best_acceptable_pretruncate_rank"
-            ),
-            "best_acceptable_initial_rank": diagnostics.get(
-                "best_acceptable_initial_rank"
-            ),
-            "best_acceptable_rerank_rank": diagnostics.get(
-                "best_acceptable_rerank_rank"
-            ),
             "filter_failure_fields": diagnostics.get("filter_failure_fields") or [],
         },
         "source_understanding": {
@@ -335,45 +316,28 @@ def _public_case_trace(case: dict, result, diagnostics: dict) -> dict:
             "source_query": retrieval.get("source_query"),
             "retrieval_query": retrieval.get("retrieval_query"),
             "alternate_query": retrieval.get("alternate_query"),
-            "retriever": retrieval.get("retriever"),
-            "initial_candidate_snapshots": retrieval.get(
-                "initial_candidate_snapshots"
-            ),
-            "second_chance_used": retrieval.get("second_chance_used"),
-            "second_chance_candidate_ids": retrieval.get(
-                "second_chance_candidate_ids"
-            ),
-            "second_chance_retriever": retrieval.get("second_chance_retriever"),
+            "dense_hit_count": len(retriever.get("dense_hits") or []),
+            "bm25_hit_count": len(retriever.get("bm25_hits") or []),
+            "rrf_pool_size": retriever.get("rrf_pool_size"),
+            "retriever_final_limit": retriever.get("final_limit"),
             "technical_prefilter": {
-                "applied": bool(
-                    (retrieval.get("technical_prefilter") or {}).get("applied")
-                ),
-                "pool_size": (retrieval.get("technical_prefilter") or {}).get(
-                    "pool_size"
-                ),
-                "hard_eligible_count": (
-                    retrieval.get("technical_prefilter") or {}
-                ).get("hard_eligible_count"),
-                "selected_count": len(
-                    (retrieval.get("technical_prefilter") or {}).get(
-                        "selected_ids"
-                    )
-                    or []
-                ),
-                "fallback": (retrieval.get("technical_prefilter") or {}).get(
-                    "fallback"
-                ),
+                "applied": bool(prefilter.get("applied")),
+                "pool_size": prefilter.get("pool_size"),
+                "hard_eligible_count": prefilter.get("hard_eligible_count"),
+                "selected_count": len(prefilter.get("selected_ids") or []),
+                "fallback": prefilter.get("fallback"),
             },
-            "rerank_candidate_ids": retrieval.get("rerank_candidate_ids"),
+            "second_chance_used": retrieval.get("second_chance_used"),
+            "second_chance_candidate_count": len(
+                retrieval.get("second_chance_candidate_ids") or []
+            ),
+            "rerank_candidate_count": retrieval.get("rerank_candidate_count"),
         },
         "reranker": {
-            "query": retrieval.get("rerank_query"),
             "status": retrieval.get("reranker_status"),
-            "reason": retrieval.get("reranker_reason"),
-            "selected": retrieval.get("reranker_selected") or [],
+            "selected_count": len(retrieval.get("selected_ld_ids") or []),
         },
     }
-
 
 def _assert_public_trace_has_no_gold(payload) -> None:
     forbidden = {
@@ -384,6 +348,13 @@ def _assert_public_trace_has_no_gold(payload) -> None:
         "acceptable_in_initial_ids",
         "acceptable_in_rerank_ids",
         "acceptable_selected_ids",
+        "returned_ld_id",
+        "selected_ld_ids",
+        "rerank_candidate_ids",
+        "initial_candidate_ids",
+        "second_chance_candidate_ids",
+        "ld_id",
+        "candidate_id",
     }
 
     def walk(value):
