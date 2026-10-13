@@ -214,7 +214,6 @@ class NomenclatureMatcher:
             key=lambda item: (
                 item[1]["mismatches"],
                 -item[1]["matches"],
-                item[1]["unknown"],
                 item[1]["original_rank"],
             ),
         )
