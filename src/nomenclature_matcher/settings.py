@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     reranker_system_prompt_path: str = "src/nomenclature_matcher/prompts/reranker_system.md"
     hybrid_dense_limit: int = 50
     hybrid_bm25_limit: int = 50
+    hybrid_prefilter_pool_limit: int = 200
     hybrid_rerank_limit: int = 20
     rrf_k: int = 60
     rerank_candidate_limit: int = 20
