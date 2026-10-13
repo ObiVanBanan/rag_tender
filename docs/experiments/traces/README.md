@@ -12,19 +12,18 @@ For each DEV query:
 
 - resolver status and canonical facts;
 - retrieval query / alternate query;
-- dense and BM25 candidate ranks;
-- the full merged RRF pool **before final top-k truncation**;
-- initial top-k candidates;
-- hard-filter checks for those candidates;
-- reranker input IDs;
-- reranker status, reasons and selections;
+- dense/BM25 hit counts;
+- merged RRF pool size before final top-k truncation;
+- technical-prefilter counts;
+- hard-filter failure field names;
+- reranker status and selected-count only;
 - benchmark-derived stage labels such as:
   - `MODALITY_POOL_MISS`
   - `RRF_TRUNCATION`
   - `HARD_FILTER:<field>`
   - `RERANK_NOT_SELECTED`
 
-It may contain the DEV query and candidate LD IDs.
+It may contain the DEV query, but it must not contain LD candidate identities.
 
 ## What must never be committed
 
@@ -58,3 +57,10 @@ The inspected frozen-100 is a **DEV benchmark**, so stage labels are allowed in
 this directory. Never generate or commit a public trace for the final unseen
 holdout. Final holdout evidence stays outside the repository until champion
 evaluation is complete.
+
+
+## Candidate-level diagnostics
+
+Candidate IDs, candidate names/articles, exact acceptable ranks and reranker selections
+stay in the full GOLD-bearing `.tmp` trace. Upload that file directly for analysis
+when needed; do not commit it to the repository.
