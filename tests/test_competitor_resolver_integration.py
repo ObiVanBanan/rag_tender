@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from nomenclature_matcher.competitor_resolver import CompetitorResolver
 from nomenclature_matcher.matcher import NomenclatureMatcher
+from nomenclature_matcher.models import SearchCandidate
 from nomenclature_matcher.query_interpreter import DeepSeekQueryInterpreter
 
 
@@ -12,6 +13,7 @@ def settings(tmp_path):
         competitor_kb_path=str(tmp_path / "competitor.sqlite3"),
         competitor_catalog_registry_path="data/competitor_catalogs/sources.json",
         hybrid_rerank_limit=20,
+        hybrid_prefilter_pool_limit=200,
         query_interpreter_enabled=False,
         deepseek_api_key="x",
         deepseek_base_url="https://api.deepseek.com/v1",
@@ -258,3 +260,69 @@ def test_matcher_uses_catalog_resolver_for_also_without_web(tmp_path):
         result.query_interpretation["retrieval_trace"]["strategy"]
         == "competitor_resolved_technical_plus_catalog"
     )
+
+
+
+def test_technical_prefilter_promotes_structurally_compatible_candidate(tmp_path):
+    cfg = settings(tmp_path)
+    matcher = NomenclatureMatcher(None, None, cfg)
+
+    noisy = SearchCandidate(
+        ld_id=1,
+        name="Кран шаровый LD Ду50 Ру4,0МПа фланцевый полнопроходной",
+        article="BAD",
+        score=0.03,
+        dn="50",
+        pn="4,0",
+        joining_type="Фланцевое",
+        rrf_score=0.03,
+    )
+    compatible = SearchCandidate(
+        ld_id=2,
+        name="Кран шаровый LD Ду32 Ру4,0МПа приварной стандартнопроходной",
+        article="GOOD",
+        score=0.01,
+        dn="32",
+        pn="4,0",
+        joining_type="Приварное",
+        rrf_score=0.01,
+    )
+
+    soft = {
+        "product_type": "ball_valve",
+        "dn": 32,
+        "pn_min_mpa": 4.0,
+        "joining_type": "welded",
+        "thread_type": None,
+        "working_medium": None,
+        "valve_type": None,
+        "valve_designation": None,
+        "body_material": None,
+        "body_material_grade": None,
+        "bore_type": "reduced",
+        "control": None,
+        "catalog_scope": "in_scope",
+        "ambiguous": False,
+        "comment": "",
+    }
+    hard = {
+        **soft,
+        "dn": None,
+        "pn_min_mpa": None,
+        "joining_type": None,
+        "bore_type": None,
+    }
+
+    selected, debug = matcher._technical_prefilter_candidates(
+        [noisy, compatible],
+        soft_constraints=soft,
+        hard_constraints=hard,
+        limit=1,
+    )
+
+    assert [candidate.ld_id for candidate in selected] == [2]
+    assert debug["pool_size"] == 2
+    assert debug["hard_eligible_count"] == 2
+    by_id = {row["ld_id"]: row for row in debug["rows"]}
+    assert by_id[2]["mismatches"] < by_id[1]["mismatches"]
+    assert by_id[2]["selected"] is True
