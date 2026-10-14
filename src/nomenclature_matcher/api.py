@@ -46,12 +46,14 @@ class MatchRequest(BaseModel):
 
 class ProductMatch(BaseModel):
     input: str
-    status: Literal["MATCHED", "NOT_FOUND", "ERROR"]
+    status: Literal["MATCHED", "NOT_FOUND", "INSUFFICIENT_PARAMETERS", "ERROR"]
     matched_name: str | None = None
     matched_article: str | None = None
     score: float | None = None
     confidence: float | None = None
     error_code: str | None = None
+    missing_fields: list[str] | None = None
+    reason: str | None = None
 
 
 class MatchResponse(BaseModel):
@@ -190,7 +192,7 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
                 trace_enabled=trace_enabled,
             )
             not_found_count = sum(
-                item.status == "NOT_FOUND" for item in response.results
+                item.status in {"NOT_FOUND", "INSUFFICIENT_PARAMETERS"} for item in response.results
             )
             error_count = sum(item.status == "ERROR" for item in response.results)
             log_match_trace(
