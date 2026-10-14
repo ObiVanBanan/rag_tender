@@ -201,7 +201,7 @@ class DemoFeedbackStore:
                 ", ".join(str(x) for x in mismatched) +
                 ". Для ручного выбора нужно подтвердить техническое исключение."
             )
-        if (not strict or any(x.get("status") != "MATCH" for x in strict)) and not acknowledge_unknown:
+        if (not strict or any(x.get("status") not in {"MATCH","MISMATCH"} for x in strict)) and not acknowledge_unknown:
             raise ReviewConflict("Не все обязательные характеристики подтверждены. Требуется подтверждение ручной проверки.")
         # Human judgement is recorded separately; never re-label the RAG engine.
         return int(selected["ld_id"])
