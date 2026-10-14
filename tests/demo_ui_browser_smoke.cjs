@@ -135,6 +135,23 @@ async function run(){
  assert.equal(vm.runInContext("liveResults[0].candidates.length",context),3);
  assert(ids.get("results").textContent.includes("LD-8001"),"Manual selection restored");
  assert(ids.get("results-summary").textContent.includes("Сохранённый слепок"));
- console.log("DOM smoke passed: top10 choice -> persisted snapshot -> offline restore.");
+ // The user's seven-line batch must persist seven distinct answers, not merely
+ // the first query string nor an aggregate count.
+ responsePayload.results=Array.from({length:7},(_,i)=>({
+   ...responsePayload.results[0],input:"Спецификация, позиция "+(i+1)
+ }));
+ ids.get("query").value=responsePayload.results.map(x=>x.input).join("\n");
+ await vm.runInContext("run()",context);
+ const afterSeven=JSON.parse(store.get(key));
+ assert.equal(afterSeven[0].products.length,7);
+ assert.equal(afterSeven[0].results.length,7);
+ assert(afterSeven[0].results.every(x=>x.recommended[0].article==="LD-8000"));
+ assert(!store.get(key).includes("review_token"));
+ vm.runInContext("renderHistory()",context);
+ const latest=traverse(ids.get("history-list"),n=>n.tagName==="button"&&n.className==="history-item");
+ await latest.click();
+ assert.equal(vm.runInContext("liveResults.length",context),7);
+ assert.equal(vm.runInContext("activeReview",context),null);
+ console.log("DOM smoke passed: top10 choice -> persisted snapshot -> offline restore; 7 of 7 items preserved.");
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});
