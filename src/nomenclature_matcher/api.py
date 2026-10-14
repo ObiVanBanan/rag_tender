@@ -97,12 +97,21 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
         password = str(getattr(settings, "public_demo_password", "") or "")
         username = str(getattr(settings, "public_demo_username", "demo") or "demo")
         production = getattr(settings, "app_env", "development") == "production"
+        stat_page = request.url.path in {"/demo/stats", "/v1/demo/stats"}
+        admin_username = str(getattr(settings, "public_demo_admin_username", "ld-admin") or "ld-admin")
+        admin_password = str(getattr(settings, "public_demo_admin_password", "") or "")
         if request.url.path not in {"/health/live", "/health/ready"}:
             if production and not password:
                 return JSONResponse(status_code=503, content={"detail": "Demo authentication is not configured"})
-            if password and not valid_basic_auth(
+            is_demo = bool(password) and valid_basic_auth(
                 request.headers.get("authorization"), username=username, password=password
-            ):
+            )
+            is_admin = bool(admin_password) and valid_basic_auth(
+                request.headers.get("authorization"), username=admin_username, password=admin_password
+            )
+            if stat_page and not is_admin:
+                return JSONResponse(status_code=403, content={"detail": "Admin access required"})
+            if password and not (is_demo or is_admin):
                 return JSONResponse(
                     status_code=401, content={"detail": "Authentication required"},
                     headers={"WWW-Authenticate": 'Basic realm="LD Tender Demo"'},
