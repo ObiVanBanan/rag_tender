@@ -10,7 +10,7 @@ from nomenclature_matcher.public_auth import RequestLimiter, valid_basic_auth
 class Runtime:
     settings = SimpleNamespace(
         app_env="production", public_demo_username="demo",
-        public_demo_password="example-test-password", public_demo_rpm=2,
+        public_demo_password="example-test-password", public_demo_rpm=3,
         public_demo_max_batch_size=1, api_max_batch_size=100,
         match_trace_enabled=False,
     )
