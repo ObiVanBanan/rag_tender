@@ -322,6 +322,76 @@
       .ld-top-ten{padding:13px;}
     }
 
+    /* Reference alignment: compact LD workspace and table-first results. */
+    body{background:#f7f8f9;color:#17191c;}
+    .top{height:52px;border-bottom:0;background:#1c2229;}
+    .top-inner,main,footer{max-width:1450px;}
+    .top-inner{padding:0 28px;}
+    .brand-mark{width:48px;height:38px;background:transparent;color:#ffcd00;border-radius:0;font-size:34px;}
+    .brand-name{font-size:12px;letter-spacing:0;text-transform:uppercase;}
+    .brand-name span{display:none;}
+    .brand-caption{font-size:9px;letter-spacing:.3px;color:#fff;}
+    .nav-link{color:#e2e5e9;padding:16px 12px;border-radius:0;font-size:12px;}
+    .nav-link.active{background:transparent;color:#ffcd00;border-bottom:3px solid #ffcd00;}
+    main{padding:0 28px 50px;}
+    .hero{padding:22px 5px 18px;align-items:center;}
+    .hero .eyebrow{display:none;}
+    .hero h1{font-size:28px;letter-spacing:-.7px;}
+    h1 .accent::after{display:none;}
+    .hero p{font-size:12px;line-height:1.5;margin-top:3px;max-width:800px;}
+    .hero-note{max-width:335px;margin:0;padding:10px 13px;border:0;border-radius:8px;background:#fff2c6;color:#665718;font-size:11px;line-height:1.45;}
+    .workspace{display:block;}
+    .aside{display:none;}
+    .entry{padding:14px 16px;border-radius:12px;box-shadow:0 8px 24px #1111;}
+    .entry-top{margin-bottom:8px;}
+    .entry-top h2{font-size:13px;}
+    .entry-top .subnote{display:none;}
+    .input-area label{font-size:11px;}
+    textarea{min-height:120px;padding:12px 14px 27px;border-radius:8px;font-size:12px;line-height:1.55;background:#fcfcfc;}
+    .actions{margin-top:9px;}
+    .secondary{padding:9px 12px;font-size:11px;border-radius:7px;}
+    .primary{padding:11px 17px;min-height:40px;border-radius:7px;font-size:12px;}
+    .entry-hint{margin-top:8px;font-size:10px;}
+    .examples{padding:9px 2px 0;}
+    .examples-label,.sample{font-size:10px;}
+    .sample{padding:6px 10px;}
+    .results-section{margin-top:22px;}
+    .results-titlebar{align-items:center;margin-bottom:10px;}
+    .results-titlebar .eyebrow{display:none;}
+    .results-titlebar h2{font-size:21px;}
+    .results-titlebar .muted{background:#edf2f6;border-radius:20px;padding:6px 10px;}
+    .tray{transform:scale(.88);transform-origin:right center;}
+    .results-list{border-radius:9px;}
+    .results-header,.result-grid{grid-template-columns:minmax(230px,1.1fr) minmax(250px,1.2fr) minmax(130px,.65fr) 150px;gap:12px;}
+    .results-header{padding:10px 15px;background:#f0f3f6;color:#505761;letter-spacing:0;text-transform:none;font-size:10px;}
+    .result-grid{padding:11px 15px;align-items:center;}
+    .query-name,.result-name{font-size:11px;line-height:1.4;}
+    .row-num{min-width:20px;color:#77818c;}
+    .status{border-radius:18px;padding:6px 10px;font-size:10px;}
+    .status::before{width:7px;height:7px;}
+    .open-detail{padding:2px 0;font-size:10px;color:#0753b7;}
+    .result-row.expanded>.result-grid{background:#fff8df;box-shadow:inset 3px 0 #ffcd00;}
+    .detail-panel.ld-review-panel{background:#fff;border-top-color:#f0d675;padding:15px;}
+    .ld-review-layout{grid-template-columns:minmax(0,1fr) minmax(250px,300px);gap:14px;}
+    .ld-parameter-side{border-radius:9px;padding:14px;}
+    .ld-recommendation{border-color:#eacb48;border-radius:9px;}
+    .ld-product-hero{grid-template-columns:150px minmax(0,1fr);padding:14px;gap:14px;}
+    .ld-product-visual{min-height:130px;}
+    .ld-product-visual svg{height:112px;}
+    .ld-top-ten{padding:14px;border-radius:9px;}
+    .ld-candidate-table td{padding:9px 7px;}
+    footer{padding:18px 28px 25px;font-size:10px;}
+    @media(max-width:760px){
+      main{padding-left:16px;padding-right:16px;}
+      .top-inner{padding:0 14px;}
+      .hero{padding:18px 2px 14px;}
+      .hero-note{display:none;}
+      .results-header{display:none;}
+      .result-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:12px;}
+      .status-cell{grid-column:1/-1;}
+      .ld-review-layout{grid-template-columns:1fr;}
+    }
+
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       .history-shade, .history-pane, .primary, .open-detail svg { transition: none; }
