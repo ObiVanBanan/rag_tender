@@ -223,6 +223,13 @@ def canonical_joining_type(text: Any) -> str | None:
 
 
 def candidate_joining_type(product: LDProduct) -> str | None:
+    # A welded-on flange still provides a flange connection to the mating
+    # assembly. Do not generalize this rule to welded-end ball valves.
+    name = _norm(product.name)
+    if (candidate_product_type(product) == "flange"
+            and "фланец" in name
+            and ("приварн" in name or "под втулку" in name)):
+        return "flanged"
     values = [product.joining_type, *_property_values(product, "Присоединение"), product.name]
     for value in values:
         canonical = canonical_joining_type(value)
@@ -263,6 +270,12 @@ def canonical_material(text: Any) -> str | None:
     value = _norm(text)
     if not value:
         return None
+    # The PND is the mating sleeve, not the steel flange's body material.
+    # Keep this exceptional interpretation restricted to flange-to-sleeve names.
+    if ("фланец" in value and "под втулку" in value
+            and ("пнд" in value or "полиэтилен" in value)
+            and ("сталь" in value or "стальн" in value)):
+        return "steel"
     if "нерж" in value or "нержав" in value:
         return "stainless_steel"
     if "латун" in value:
