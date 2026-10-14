@@ -28,6 +28,7 @@ from .observability import (
     set_request_id,
 )
 from .production import ProductionRuntime, build_production_runtime, match_products
+from .public_auth import RequestLimiter, valid_basic_auth
 
 logger = logging.getLogger(__name__)
 
@@ -85,8 +86,31 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    limiter = RequestLimiter()
+
     @app.middleware("http")
     async def request_context_middleware(request: Request, call_next):
+        # Health probes stay reachable; production fails closed without credentials.
+        settings = request.app.state.runtime.settings
+        password = str(getattr(settings, "public_demo_password", "") or "")
+        username = str(getattr(settings, "public_demo_username", "demo") or "demo")
+        production = getattr(settings, "app_env", "development") == "production"
+        if request.url.path not in {"/health/live", "/health/ready"}:
+            if production and not password:
+                return JSONResponse(status_code=503, content={"detail": "Demo authentication is not configured"})
+            if password and not valid_basic_auth(
+                request.headers.get("authorization"), username=username, password=password
+            ):
+                return JSONResponse(
+                    status_code=401, content={"detail": "Authentication required"},
+                    headers={"WWW-Authenticate": 'Basic realm="LD Tender Demo"'},
+                )
+            if request.method == "POST" and request.url.path.startswith("/v1/") and (production or password):
+                if not limiter.allow(int(getattr(settings, "public_demo_rpm", 60))):
+                    return JSONResponse(
+                        status_code=429, content={"detail": "Too many requests"},
+                        headers={"Retry-After": "60"},
+                    )
         request_id = resolve_request_id(request.headers.get("X-Request-ID"))
         request.state.request_id = request_id
         token = set_request_id(request_id)
@@ -136,7 +160,7 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
     @app.post("/v1/match", response_model=MatchResponse)
     def match(payload: MatchRequest, request: Request):
         runtime: ProductionRuntime = request.app.state.runtime
-        if len(payload.products) > runtime.settings.api_max_batch_size:
+        if len(payload.products) > min(runtime.settings.api_max_batch_size, int(getattr(runtime.settings, 'public_demo_max_batch_size', 10))):
             raise HTTPException(
                 status_code=413,
                 detail=(
