@@ -431,6 +431,7 @@ class DecisionRequest(ReviewTarget):
     action: Literal["ACCEPTED","REJECTED","SELECTED_OTHER"]
     selected_ld_id: int | None = None
     acknowledge_unknown: bool = False
+    acknowledge_mismatch: bool = False
 
 
 def _handle_review_error(exc: Exception) -> None:
@@ -477,7 +478,7 @@ def decide_result(payload: DecisionRequest, request: Request) -> dict[str, Any]:
         return _store(request).decide(
             payload.request_id,payload.item_index,payload.review_token,
             payload.revision,payload.action,payload.selected_ld_id,
-            payload.acknowledge_unknown)
+            payload.acknowledge_unknown,payload.acknowledge_mismatch)
     except (ReviewNotFound,ReviewConflict,ValueError) as exc:
         _handle_review_error(exc)
 
