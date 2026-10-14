@@ -103,6 +103,31 @@ def stage_of_failure(response: dict, acceptable: set[int]) -> str:
     return "UNKNOWN"
 
 
+def technical_rejection_evidence(response: dict, acceptable: set[int]) -> list[dict]:
+    """Explain which known-positive products were pruned (locally, never to LLM).
+
+    Hard filter decisions are from catalog facts. Soft mismatches suggest a
+    cause but do not on their own prove a hard constraint failure.
+    """
+    trace = (((response.get("debug") or {}).get("query_interpretation") or {})
+             .get("retrieval_trace") or {})
+    rows = (trace.get("technical_prefilter") or {}).get("rows") or []
+    evidence = []
+    for row in rows:
+        if not (_ids([row]) & acceptable):
+            continue
+        checks = row.get("checks") or {}
+        evidence.append({
+            "ld_id":row.get("ld_id"),
+            "wide_rrf_rank":row.get("original_rank"),
+            "hard_eligible":row.get("hard_eligible"),
+            "soft_conflicts":{field:description for field,description in checks.items()
+                              if str(description).startswith("mismatch:")},
+            "selected_by_prefilter":row.get("selected"),
+        })
+    return evidence
+
+
 def classify(case: dict, response: dict) -> dict:
     acceptable = _ids(case.get("acceptable_ld_ids") or case.get("known_positive_ids") or [])
     found = predicted_ld_id(response)
@@ -131,6 +156,7 @@ def classify(case: dict, response: dict) -> dict:
                          "POLICY_REFUSAL" if verdict == "INTENTIONAL_SPARSE_REFUSAL" else
                          stage_of_failure(response, acceptable),
         "debug_reason": str((response.get("debug") or {}).get("reason") or ""),
+        "gold_candidate_filter_evidence": technical_rejection_evidence(response, acceptable),
         "constraint_source": (response.get("debug") or {}).get("query_interpretation"),
     }
 
