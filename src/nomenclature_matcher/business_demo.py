@@ -46,6 +46,7 @@ VALUES = {
     "flanged": "Фланцевое", "welded": "Приварное",
     "threaded": "Резьбовое", "wafer": "Межфланцевое",
     "compression": "Компрессионное",
+    "nipple": "Штуцерное", "welded_nipple": "Приварное/штуцерное",
     "male_female": "НР/ВР", "female_female": "ВР/ВР", "male_male": "НР/НР",
     "steel": "Сталь", "brass": "Латунь", "full": "Полнопроходной",
     "pe_stub": "Под ПНД-втулку", "flat_welded": "Плоский приварной",
