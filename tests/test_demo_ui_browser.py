@@ -166,3 +166,41 @@ def test_admin_statistics_charts_in_real_browser():
         ARTIFACT.mkdir(exist_ok=True)
         page.screenshot(path=str(ARTIFACT/"demo-statistics.png"),full_page=True)
         browser.close()
+
+
+
+def test_connection_dropdown_edits_are_sent_for_both_stutser_variants():
+    """The user's missing dropdown item must work in an actual browser."""
+    import copy
+    for kind in ("nipple", "welded_nipple"):
+        payload=copy.deepcopy(mock_result())
+        edits=[]
+        with sync_playwright() as host:
+            browser=host.chromium.launch(headless=True)
+            page=browser.new_page(viewport={"width":1440,"height":960})
+            page.route(URL+"/demo",lambda route:route.fulfill(
+                status=200,content_type="text/html; charset=utf-8",
+                body=(ROOT/"business_demo.html").read_text(encoding="utf-8")))
+            page.route("**/v1/demo/match",lambda route:route.fulfill(
+                status=200,content_type="application/json",body=json.dumps(payload)))
+
+            def handle_correct(route):
+                body=route.request.post_data_json
+                edits.append(body)
+                result=copy.deepcopy(payload["results"][0])
+                result["editable_constraints"]["joining_type"]=kind
+                route.fulfill(status=200,content_type="application/json",body=json.dumps({
+                    "revision":1,"decision":"PENDING","result":result,
+                }))
+            page.route("**/v1/demo/correct",handle_correct)
+            page.goto(URL+"/demo")
+            page.locator("#query").fill(payload["results"][0]["input"])
+            page.locator("#go").click()
+            page.locator(".result-row").first.wait_for()
+            select=page.locator("#edit-0-joining_type")
+            select.select_option(kind)
+            assert select.input_value()==kind
+            page.locator(".ld-parameter-side").get_by_role("button",name="Применить и подобрать заново").click()
+            page.wait_for_function("document.querySelector('#edit-0-joining_type')?.value === "+json.dumps(kind))
+            assert edits and edits[0]["changes"]["joining_type"]==kind
+            browser.close()
