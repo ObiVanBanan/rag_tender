@@ -110,7 +110,10 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
                 request.headers.get("authorization"), username=admin_username, password=admin_password
             )
             if stat_page and not is_admin:
-                return JSONResponse(status_code=403, content={"detail": "Admin access required"})
+                return JSONResponse(
+                    status_code=401, content={"detail": "Admin authentication required"},
+                    headers={"WWW-Authenticate": 'Basic realm="LD Tender Admin"'},
+                )
             if password and not (is_demo or is_admin):
                 return JSONResponse(
                     status_code=401, content={"detail": "Authentication required"},
