@@ -263,6 +263,8 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
             )
             return JSONResponse(status_code=500, content=response_payload)
 
+    from .business_demo import router as business_demo_router
+    app.include_router(business_demo_router)
     return app
 
 
