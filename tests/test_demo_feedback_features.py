@@ -162,8 +162,8 @@ def test_demo_session_edit_action_and_admin_only_metrics():
         assert batch["review_token"] and batch["results"][0]["status"]=="INSUFFICIENT_PARAMETERS"
         target=dict(request_id=batch["request_id"],review_token=batch["review_token"],
                     item_index=0,revision=0)
-        assert client.get("/demo/stats").status_code==403
-        assert client.get("/v1/demo/stats").status_code==403
+        assert client.get("/demo/stats").status_code==401
+        assert client.get("/v1/demo/stats").status_code==401
         assert client.get("/v1/demo/stats",headers=admin_header()).status_code==200
         assert client.get("/demo/stats",headers=admin_header()).status_code==200
 
