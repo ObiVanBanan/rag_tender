@@ -9,7 +9,8 @@ import pytest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 from compare_regression_outputs import (  # noqa: E402
-    allowed_sparse_refusal, classify, compare, evaluate, stage_of_failure
+    allowed_sparse_refusal, classify, compare, evaluate, stage_of_failure,
+    technical_rejection_evidence
 )
 from run_evolution_ab import load_cases, HISTORIC_REF  # noqa: E402
 
@@ -103,3 +104,24 @@ def test_historic_tender20_source_is_exact_git_revision(tmp_path):
     (baseline/"data/tender_queries_v1_harness_cases.json").write_text(json.dumps(payload))
     with pytest.raises(ValueError,match="instead of 20"):
         load_cases("tender20",baseline)
+
+
+def test_evidence_attributes_offline_technical_conflicts_to_known_candidate():
+    trace = {
+        "technical_prefilter": {"rows": [
+            {"ld_id":7, "original_rank":4,"hard_eligible":False,
+             "checks":{"body_material":"mismatch:polyethylene vs steel",
+                       "dn":"match"},"selected":False},
+            {"ld_id":15, "hard_eligible":True,
+             "checks":{"body_material":"match"},"selected":True},
+        ]},
+        "initial_candidate_ids":[15],
+        "rerank_candidate_ids":[15],
+    }
+    res=response("Фланец стальной Ду80 под втулку ПНД Ду90",status="NOT_FOUND",
+                 selected=None,trace=trace,candidates=[15])
+    evidence=technical_rejection_evidence(res,{7})
+    assert len(evidence)==1
+    assert evidence[0]["hard_eligible"] is False
+    assert "body_material" in evidence[0]["soft_conflicts"]
+    assert "dn" not in evidence[0]["soft_conflicts"]
