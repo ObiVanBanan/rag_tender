@@ -169,7 +169,7 @@ def candidate_flange_kind(product: LDProduct) -> str | None:
     if spec is not None:
         return spec.kind
     if ("плоск" in name and "привар" in name) or (
-        "33259" in name and re.search(r"(?:^|[-\\s])01(?:[-\\s]|$)", name)
+        "33259" in name and re.search(r"(?:^|[-\s])01(?:[-\s]|$)", name)
     ):
         return "flat_welded"
     return None
@@ -335,7 +335,7 @@ def candidate_material(product: LDProduct) -> str | None:
             if "нерж" in normalized or "нержав" in normalized:
                 return "stainless_steel"
             if "сталь" in normalized or "стальной" in normalized or re.search(
-                r"(?<![a-zа-я0-9])ст\\.?\\s*(?:20л?|09г2с)(?![a-zа-я0-9])",
+                r"(?<![a-zа-я0-9])ст\.?\s*(?:20л?|09г2с)(?![a-zа-я0-9])",
                 normalized,
             ):
                 return "steel"
@@ -518,7 +518,7 @@ def evaluate_product(product: LDProduct, constraints: QueryConstraints) -> Match
         actual_material_text = candidate_material_text(product)
         grade_ok = _exact_token_match(actual_material_text, expected_grade) or bool(
             re.search(
-                rf"(?<![a-zа-я0-9])ст\\.?\\s*{re.escape(expected_grade)}(?![a-zа-я0-9])",
+                rf"(?<![a-zа-я0-9])ст\.?\s*{re.escape(expected_grade)}(?![a-zа-я0-9])",
                 _norm(actual_material_text),
             )
         )
