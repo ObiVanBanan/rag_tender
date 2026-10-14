@@ -12,6 +12,7 @@ from collections import Counter
 from pathlib import Path
 
 from nomenclature_matcher.query_signals import (
+    explicit_dn_from_query, explicit_pn_mpa_from_query,
     explicit_technical_signal_count, has_product_identity,
 )
 
@@ -51,6 +52,10 @@ def allowed_sparse_refusal(query: str, response: dict) -> bool:
         and str(reason).startswith("QUERY_REJECTED")
         and not has_product_identity(query)
         and explicit_technical_signal_count(query) <= 1
+        # The legacy technical-signal regex does not count joined "PN16"
+        # notation. DN50 PN16 is a sufficiently specified query, never sparse.
+        and not (explicit_dn_from_query(query) is not None
+                 and explicit_pn_mpa_from_query(query) is not None)
         and (
             "Недостаточно различающих характеристик" in reason
             or "Недостаточно" in str(interpretation.get("reason", ""))
