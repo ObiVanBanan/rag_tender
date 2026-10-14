@@ -33,6 +33,7 @@ from .qdrant_store import QdrantStore
 from .query_interpreter import DeepSeekQueryInterpreter
 from .reranker import DeepSeekReranker
 from .settings import Settings
+from .demo_feedback import initialize_review_schema
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class PostgresRequestHistory:
                 )
                 """
             )
+            initialize_review_schema(conn)
             conn.execute("DROP VIEW IF EXISTS rag_match_items")
             conn.execute(
                 """
