@@ -270,6 +270,9 @@
     .ld-missing-line{font-weight:780;color:#725414!important;}
     .ld-review-buttons{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:13px 0 24px;}
     .ld-review-buttons .primary,.ld-review-buttons .secondary{min-height:39px;padding:9px 15px;}
+    .history-open-snapshot{display:block;color:#756212;font-weight:800;font-size:11px;margin-top:10px;}
+    .history-item strong{font-size:13px;}
+    .history-item .subtle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .ld-archive-note{font-size:11px;color:#a16e28;}
     .ld-top-ten{padding:20px 19px;background:#fff;border-radius:12px;border:1px solid #e8e8e3;}
     .ld-top-ten>.subtle{display:block;margin-bottom:14px;}
@@ -840,6 +843,7 @@
           result=await postReview("/v1/demo/decision",{...payload,acknowledge_unknown:true});
         }
         rowStates[index]={...rowStates[index],...result};
+        updateHistorySnapshot();
         repaintReview(index);
       } catch(e) { alert(e.message || "Не удалось сохранить выбор."); }
     }
@@ -891,6 +895,7 @@
           const result=await postReview("/v1/demo/correct",{...reviewHeaders(index),changes});
           liveResults[index]=result.result;
           rowStates[index]={...rowStates[index],revision:result.revision,decision:result.decision,edited:true,selected_ld_id:null};
+          updateHistorySnapshot();
           repaintReview(index);
         } catch(e) {err.textContent=e.message||"Ошибка повторного подбора.";}
         finally {btn.disabled=false;}
@@ -1155,11 +1160,15 @@
       });
       add(section, grid, detail); return section;
     }
-    function renderResponse(payload) {
+    function renderResponse(payload,options={}) {
       const results = Array.isArray(payload.results) ? payload.results : [];
-      activeReview={request_id:payload.request_id,review_token:payload.review_token};
+      activeReview=options.archived?null:{
+        request_id:payload.request_id,review_token:payload.review_token
+      };
       liveResults=results;
-      rowStates=results.map(()=>({revision:0,decision:"PENDING",selected_ld_id:null}));
+      rowStates=Array.isArray(payload.states)&&payload.states.length===results.length
+        ? payload.states.map(x=>({...x}))
+        : results.map(()=>({revision:0,decision:"PENDING",selected_ld_id:null,edited:false}));
       const list = el("div", null, "results-list");
       const header = el("div", null, "results-header");
       ["Исходная номенклатура", "Предложенный аналог LD", "Артикул", "Статус"].forEach(s => header.append(el("span", s)));
@@ -1196,7 +1205,7 @@
         const data = await response.json();
         if (!Array.isArray(data.results)) throw Error("Получен некорректный ответ сервиса.");
         renderResponse(data);
-        saveHistory(products);
+        saveHistory(products,data);
       } catch (error) {
         showError(error.message || "Не удалось выполнить подбор.");
       } finally {
