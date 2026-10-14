@@ -43,7 +43,7 @@ def test_real_database_review_events_and_stats_are_durable():
             store.get(request_id,0,"invalid-token")
 
         picked=store.decide(request_id,0,token,0,"SELECTED_OTHER",22)
-        assert picked=={"revision":1,"decision":"SELECTED_OTHER","selected_ld_id":22}
+        assert picked=={"revision":1,"decision":"SELECTED_OTHER","selected_ld_id":22,"manual_mismatch":False}
         with pytest.raises(ReviewConflict):
             store.decide(request_id,0,token,0,"REJECTED")
 
