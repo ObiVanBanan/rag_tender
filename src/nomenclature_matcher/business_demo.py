@@ -403,6 +403,22 @@ class CorrectionRequest(ReviewTarget):
     changes: dict[str, Any] = Field(min_length=1, max_length=13)
 
 
+class AppendItemRequest(BaseModel):
+    request_id: str = Field(min_length=8, max_length=128)
+    review_token: str = Field(min_length=30, max_length=128)
+    expected_count: int = Field(ge=1, le=100)
+    query: str = Field(default="", max_length=2000)
+    fields: dict[str, Any] = Field(default_factory=dict, max_length=13)
+
+    @field_validator("query")
+    @classmethod
+    def clean_query(cls, value: str) -> str:
+        # Only one item per API call; prevent multi-line batch injection.
+        if "\n" in value or "\r" in value:
+            raise ValueError("Добавить можно только одну позицию за раз.")
+        return value.strip()
+
+
 class DecisionRequest(ReviewTarget):
     action: Literal["ACCEPTED","REJECTED","SELECTED_OTHER"]
     selected_ld_id: int | None = None
@@ -443,6 +459,60 @@ def correct_result(payload: CorrectionRequest, request: Request) -> dict[str, An
         decision=store.revise(payload.request_id,payload.item_index,payload.review_token,
                               payload.revision,result,edits)
         return decision
+    except (ReviewNotFound,ReviewConflict,ValueError) as exc:
+        _handle_review_error(exc)
+
+
+@router.post("/v1/demo/append")
+def append_demo_item(payload: AppendItemRequest, request: Request) -> dict[str, Any]:
+    """One incremental search, no recomputation of prior items.
+
+    The raw tender description is preserved for audit. A structured request
+    uses the same query synthesis and safety gate as user corrections.
+    """
+    store = _store(request)
+    # Ensure session and expected length match before calling paid providers.
+    try:
+        store.assert_can_append(payload.request_id, payload.review_token, payload.expected_count)
+        fields = validate_edits(payload.fields) if payload.fields else {}
+        if not payload.query and not fields:
+            raise ValueError("Введите товар или заполните его характеристики.")
+        if fields:
+            # Editing is a deliberate replacement of technical constraints:
+            # all user-entered fields are explicit; never concatenate
+            # contradictory unvalidated source fragments to bypass hard gates.
+            base = editable_constraints(payload.query,{})
+            base.update(fields)
+            base = {key:value for key,value in base.items() if value is not None}
+            query = render_corrected_query(payload.query,base)
+        else:
+            query = payload.query
+        if not query:
+            raise ValueError("Нужно указать товар для подбора.")
+        started = perf_counter()
+        try:
+            match = request.app.state.runtime.matcher.match_one_hybrid_with_rerank(query)
+            result = build_demo_item(match,(perf_counter()-started)*1000)
+        except Exception:
+            result = {
+                "input": query, "status": "ERROR",
+                "message": "Сервис подбора временно недоступен.",
+                "normalized_query": query, "parameters": [],
+                "recommended": [], "other_candidates": [], "top_candidates": [],
+                "editable_constraints": fields,
+            }
+        # Keep original input visible, and the normalized technical
+        # specification available for further correction.
+        if payload.query:
+            result["source_input"] = payload.query
+            result["input"] = payload.query
+        else:
+            result["source_input"] = query
+        if fields:
+            result["corrected_query"] = query
+            result["editable_constraints"] = base
+        return store.append(payload.request_id,payload.review_token,
+                            payload.expected_count,result)
     except (ReviewNotFound,ReviewConflict,ValueError) as exc:
         _handle_review_error(exc)
 
