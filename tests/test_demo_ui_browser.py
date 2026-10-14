@@ -125,7 +125,7 @@ def test_reference_ui_in_real_browser():
         assert history and len(history[0]["results"])==2
         assert history[0]["states"][0]["decision"]=="SELECTED_OTHER"
         assert "review_token" not in json.dumps(history)
-        assert "ФПНД-080.16-ст20-1080001" in json.dumps(history)
+        assert "ФПНД-080.16-ст20-1080001" in json.dumps(history,ensure_ascii=False)
         assert "metrics" not in json.dumps(history)
         ARTIFACT.mkdir(exist_ok=True)
         page.screenshot(path=str(ARTIFACT/"demo-reference-review.png"),full_page=True)
