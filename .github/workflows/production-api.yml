@@ -24,6 +24,8 @@ on:
       - "src/nomenclature_matcher/query_signals.py"
       - "src/nomenclature_matcher/query_constraints.py"
       - "tests/test_flange_rescue_guarded.py"
+      - "tests/test_compare_eval_reports.py"
+      - "scripts/compare_eval_reports.py"
       - "src/nomenclature_matcher/query_interpreter.py"
       - "src/nomenclature_matcher/competitor_decoding.py"
       - "src/nomenclature_matcher/competitor_resolver.py"
@@ -83,6 +85,7 @@ jobs:
           tests/test_eval_competitor_trace.py
           tests/test_query_signals_exact_identity.py
           tests/test_flange_rescue_guarded.py
+          tests/test_compare_eval_reports.py
           tests/test_query_constraints.py
           tests/test_query_canonicalization.py
           tests/test_web_search_mcp.py
