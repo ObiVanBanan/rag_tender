@@ -29,7 +29,7 @@ PUBLIC_DEMO_USERNAME=demo
 PUBLIC_DEMO_PASSWORD=...                
 PUBLIC_DEMO_RPM=60
 PUBLIC_DEMO_MAX_BATCH_SIZE=10
-API_PORT=127.0.0.1:8000
+API_PUBLISH_BIND=127.0.0.1:8000
 WEB_SEARCH_ENABLED=false
 ```
 
@@ -42,7 +42,7 @@ docker compose ps
 curl -f http://127.0.0.1:8000/health/ready
 ```
 
-**Почему `API_PORT=127.0.0.1:8000`:** строка compose `"${API_PORT:-8000}:8000"` иначе по умолчанию публикует порт напрямую в Интернет.
+**Почему `API_PUBLISH_BIND=127.0.0.1:8000`:** строка compose `"${API_PORT:-8000}:8000"` иначе по умолчанию публикует порт напрямую в Интернет.
 
 ## HTTPS reverse proxy с Caddy на хосте
 
