@@ -12,6 +12,7 @@ from .query_canonicalization import build_constraint_rendered_query
 from .query_constraints import QueryConstraints
 from .query_signals import (
     explicit_dn_from_query,
+    flange_sleeve_dn_pair,
     explicit_joining_type_from_query,
     explicit_pn_mpa_from_query,
     explicit_working_medium_from_query,
@@ -295,6 +296,13 @@ class DeepSeekQueryInterpreter:
         explicit_dn = explicit_dn_from_query(query)
         if explicit_dn is not None:
             constraints["dn"] = explicit_dn
+
+        # In a steel flange / HDPE sleeve request the HDPE material describes
+        # the *sleeve*, not the flange. Correct only this anchored construction;
+        # non-flange interpretation and the specificity gate remain unchanged.
+        if (flange_sleeve_dn_pair(query) is not None
+                and re.search(r"сталь|стальн", query.lower().replace("ё", "е"))):
+            constraints["body_material"] = "steel"
 
         explicit_pn = explicit_pn_mpa_from_query(query)
         if explicit_pn is not None:

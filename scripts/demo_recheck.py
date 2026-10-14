@@ -6,7 +6,9 @@ For constraint-based equivalents, use the project's strict evaluator instead.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import os
 import statistics
 import time
 from pathlib import Path
@@ -64,7 +66,7 @@ def summarize(rows: list[dict]) -> dict:
     }
 
 
-def replay(cases: list[dict], *, url: str, timeout: float) -> list[dict]:
+def replay(cases: list[dict], *, url: str, timeout: float, authorization: str | None = None) -> list[dict]:
     results = []
     for case in cases:
         started = time.perf_counter()
@@ -72,7 +74,8 @@ def replay(cases: list[dict], *, url: str, timeout: float) -> list[dict]:
             request = Request(
                 url, method="POST",
                 data=json.dumps({"products": [case["query"]]}, ensure_ascii=False).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
+                headers=({"Content-Type": "application/json", "Authorization": authorization}
+                         if authorization else {"Content-Type": "application/json"}),
             )
             with urlopen(request, timeout=timeout) as response:
                 raw = json.load(response)
@@ -92,11 +95,21 @@ def main() -> None:
     p.add_argument("--url", default="http://localhost:8000/v1/demo/match")
     p.add_argument("--out", type=Path, default=Path("demo_quality_report.json"))
     p.add_argument("--timeout", type=float, default=120)
+    p.add_argument("--username", default=os.getenv("PUBLIC_DEMO_USERNAME", "demo"))
+    p.add_argument("--password-env", default="PUBLIC_DEMO_PASSWORD",
+                   help="Environment variable containing HTTP Basic password")
     args = p.parse_args()
     cases = json.loads(args.cases.read_text(encoding="utf-8"))
     if not isinstance(cases, list) or not all(isinstance(c, dict) and c.get("query") for c in cases):
         p.error("--cases must be a JSON list with nonempty query fields")
-    rows = replay(cases, url=args.url, timeout=args.timeout)
+    password = os.getenv(args.password_env)
+    authorization = None
+    if password:
+        if not args.url.startswith(("https://", "http://127.0.0.1:", "http://localhost:")):
+            p.error("Refusing to transmit demo password over plaintext remote HTTP")
+        encoded = base64.b64encode(f"{args.username}:{password}".encode("utf-8")).decode("ascii")
+        authorization = "Basic " + encoded
+    rows = replay(cases, url=args.url, timeout=args.timeout, authorization=authorization)
     report = {
         "source": str(args.cases), "endpoint": args.url,
         "quality_protocol": "human-verified exact-top1, alternative LD IDs accepted",
