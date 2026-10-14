@@ -543,7 +543,7 @@ main{max-width:1510px;padding:0 34px 78px}
         results:liveResults.map(publicSnapshotItem),
         rowStates:rowStates.map(s=>({
           revision:s.revision,decision:s.decision,edited:!!s.edited,
-          selected_ld_id:s.selected_ld_id
+          selected_ld_id:s.selected_ld_id,manual_mismatch:!!s.manual_mismatch
         }))
       };
       if(forceNew || !activeHistoryId)activeHistoryId=snapshot.id;
