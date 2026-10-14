@@ -258,7 +258,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
           </button>
         </div>
-        <p class="entry-hint" id="upload-hint">До 10 позиций за запуск. Excel: можно скопировать столбец и вставить сюда. Файл CSV / TXT обрабатывается в браузере.</p>
+        <p class="entry-hint" id="upload-hint">До 10 позиций за запуск. Excel: скопируйте столбец и вставьте сюда. CSV / TXT читается в браузере. История сохраняется только на этом устройстве — её можно очистить.</p>
         <div id="error" class="inline-error" role="alert" aria-live="assertive"></div>
       </section>
 
@@ -306,7 +306,7 @@
   </footer>
 
   <div id="history-shade" class="history-shade" aria-hidden="true"></div>
-  <aside id="history-pane" class="history-pane" role="dialog" aria-modal="true" aria-labelledby="history-title" aria-hidden="true" tabindex="-1">
+  <aside id="history-pane" class="history-pane" role="dialog" aria-modal="true" aria-labelledby="history-title" aria-hidden="true" tabindex="-1" inert>
     <div class="history-head">
       <h2 id="history-title">История запросов</h2>
       <button id="history-close" class="icon-btn" type="button" aria-label="Закрыть историю">×</button>
@@ -353,8 +353,8 @@
       byId("error").style.display = message ? "block" : "none";
     }
 
-    // Local history is strictly opt-in by action of running a query, and
-    // saved as original query strings only, never results / credentials.
+    // Local history saves original query strings after a successful run.
+    // Never store result payloads, gold labels, scores or credentials.
     function readHistory() {
       try {
         const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
@@ -408,12 +408,14 @@
       returnFocus = document.activeElement;
       renderHistory(); document.body.classList.add("history-visible");
       byId("history-open").setAttribute("aria-expanded", "true");
+      byId("history-pane").removeAttribute("inert");
       byId("history-pane").setAttribute("aria-hidden", "false");
       byId("history-pane").focus();
     }
     function closeHistory() {
       document.body.classList.remove("history-visible");
       byId("history-open").setAttribute("aria-expanded", "false");
+      byId("history-pane").setAttribute("inert", "");
       byId("history-pane").setAttribute("aria-hidden", "true");
       if (returnFocus && returnFocus.isConnected) returnFocus.focus();
     }
@@ -547,7 +549,7 @@
           const cmp = main.comparison || {};
           const rows = cmp.rows || [];
           const strictIssues = rows.filter(x => x.strict && x.status !== "MATCH");
-          if (strictIssues.length) {
+          if (!rows.length || strictIssues.length) {
             detail.append(el("div", "Не все обязательные параметры подтверждены каталогом. Перед закупкой необходима ручная проверка.", "detail-alert"));
           } else {
             detail.append(el("div", "Кандидат прошёл доступные проверки. Подтвердите применимость изделия к вашей спецификации перед закупкой.", "detail-alert detail-ok"));
