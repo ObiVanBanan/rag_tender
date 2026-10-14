@@ -115,7 +115,7 @@ def test_invalid_or_oversized_append_fails_before_matcher():
         before=len(runtime.queries)
         for patch,status in [
             ({"query":""},422),
-            ({"query":"Кран Ду20\\nКран Ду30"},422),
+            ({"query":"Кран Ду20\nКран Ду30"},422),
             ({"query":"Кран Ду20","fields":{"joining_type":"fictional"}},422),
             ({"query":"Кран Ду20","fields":{"dn":-1}},422),
             ({"fields":{"dn":20}},422),
