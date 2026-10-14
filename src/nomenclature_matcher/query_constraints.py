@@ -195,20 +195,27 @@ def candidate_flange_bore_mm(product: LDProduct) -> int | None:
     Bore Ø108 is NOT the pipe OD Ø90. Keep the two measurements separate.
     Do not treat nominal DN, PN, or the article's numeric suffix as bore.
     """
+    bores = []
     for value in _property_values(
         product, "Внутренний диаметр", "Внутренний диаметр, мм",
-        "Диаметр внутренний", "Диаметр отверстия", "Внутренний Ø",
+        "Внутр. диаметр", "Внутр. диаметр, мм",
+        "Диаметр внутренний", "Диаметр внутреннего отверстия",
+        "Внутренний Ø",
     ):
         number = _first_number(value)
         if number is not None and number.is_integer():
-            return int(number)
+            bores.append(int(number))
     match = re.search(
         r"(?<![a-zа-я0-9])(?:внутр\.?|вн\.?)\s*"
         r"(?:(?:диаметр|диам\.?|[dд])\s*)?"
         r"(?:[øØ⌀]\s*)?(\d{2,4})\s*(?:мм)?(?!\d)",
         _norm(product.name),
     )
-    return int(match.group(1)) if match else None
+    if match:
+        bores.append(int(match.group(1)))
+    # "Диаметр отверстия" may be a BOLT hole, never a flange bore.
+    # If title and technical property disagree, do not invent a dimension.
+    return bores[0] if bores and len(set(bores)) == 1 else None
 
 
 def candidate_stub_dn(product: LDProduct) -> int | None:
