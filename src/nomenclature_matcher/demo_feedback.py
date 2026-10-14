@@ -142,7 +142,8 @@ class DemoFeedbackStore:
     def decide(self, request_id: str, index: int, token: str,
                expected_revision: int, action: str,
                selected_ld_id: int | None = None,
-               acknowledge_unknown: bool = False) -> dict[str, Any]:
+               acknowledge_unknown: bool = False,
+               acknowledge_mismatch: bool = False) -> dict[str, Any]:
         with self.pool.connection() as conn:
             with conn.transaction():
                 row=self._locked_row(conn,request_id,index,token)
@@ -152,7 +153,7 @@ class DemoFeedbackStore:
                 if action == "REJECTED":
                     selection=None
                 else:
-                    selection=self._candidate(result,action,selected_ld_id,acknowledge_unknown)
+                    selection=self._candidate(result,action,selected_ld_id,acknowledge_unknown,acknowledge_mismatch)
                 conn.execute(
                     """UPDATE demo_review_rows
                        SET revision=revision+1, decision=%s, selected_ld_id=%s,
@@ -166,14 +167,17 @@ class DemoFeedbackStore:
                     (request_id,index,action,Jsonb({
                         "selected_ld_id":selection,
                         "acknowledge_unknown":acknowledge_unknown,
+                        "acknowledge_mismatch":acknowledge_mismatch,
                     })),
                 )
                 return {"revision":expected_revision+1, "decision":action,
-                        "selected_ld_id":selection}
+                        "selected_ld_id":selection,
+                        "manual_mismatch":bool(action=="SELECTED_OTHER" and acknowledge_mismatch)}
 
     @staticmethod
     def _candidate(result: dict[str, Any], action: str,
-                   selected_ld_id: int | None, acknowledge_unknown: bool) -> int:
+                   selected_ld_id: int | None, acknowledge_unknown: bool,
+                   acknowledge_mismatch: bool = False) -> int:
         if action not in {"ACCEPTED","SELECTED_OTHER"}:
             raise ReviewConflict("Неизвестное действие.")
         recommended = result.get("recommended") or []
@@ -189,9 +193,15 @@ class DemoFeedbackStore:
                 raise ReviewConflict("Выбираемый товар отсутствует среди доступных альтернатив.")
         rows=(selected.get("comparison") or {}).get("rows") or []
         strict = [x for x in rows if x.get("strict")]
-        if any(x.get("status") == "MISMATCH" for x in strict):
-            raise ReviewConflict("Есть расхождение с обязательными характеристиками.")
-        if (not strict or any(x.get("status") != "MATCH" for x in strict)) and not acknowledge_unknown:
+        mismatched=[x.get("label",x.get("key","параметр")) for x in strict
+                    if x.get("status") == "MISMATCH"]
+        if mismatched and (action!="SELECTED_OTHER" or not acknowledge_mismatch):
+            raise ReviewConflict(
+                "Есть расхождение с обязательными характеристиками: " +
+                ", ".join(str(x) for x in mismatched) +
+                ". Для ручного выбора нужно подтвердить техническое исключение."
+            )
+        if (not strict or any(x.get("status") not in {"MATCH","MISMATCH"} for x in strict)) and not acknowledge_unknown:
             raise ReviewConflict("Не все обязательные характеристики подтверждены. Требуется подтверждение ручной проверки.")
         # Human judgement is recorded separately; never re-label the RAG engine.
         return int(selected["ld_id"])
@@ -215,9 +225,23 @@ class DemoFeedbackStore:
             ).fetchone()
             timeline=conn.execute(
                 """SELECT date_trunc('day',s.created_at)::date AS day, count(*),
-                          count(*) FILTER (WHERE d.initial_status='MATCHED')
+                          count(*) FILTER (WHERE d.initial_status='MATCHED'),
+                          count(*) FILTER (WHERE d.initial_status='NOT_FOUND'),
+                          count(*) FILTER (WHERE d.initial_status='INSUFFICIENT_PARAMETERS'),
+                          count(*) FILTER (WHERE d.initial_status='ERROR')
                    FROM demo_review_rows d JOIN demo_review_sessions s USING(request_id)
                    WHERE s.created_at >= now() - (%s * interval '1 day')
+                   GROUP BY 1 ORDER BY 1""",
+                (days,),
+            ).fetchall()
+            feedback_timeline=conn.execute(
+                """SELECT date_trunc('day',e.created_at)::date AS day,
+                          count(*) FILTER (WHERE e.event_type='ACCEPTED'),
+                          count(*) FILTER (WHERE e.event_type='REJECTED'),
+                          count(*) FILTER (WHERE e.event_type='SELECTED_OTHER'),
+                          count(*) FILTER (WHERE e.event_type='PARAMETERS_CORRECTED')
+                   FROM demo_review_events e
+                   WHERE e.created_at >= now() - (%s * interval '1 day')
                    GROUP BY 1 ORDER BY 1""",
                 (days,),
             ).fetchall()
@@ -234,7 +258,12 @@ class DemoFeedbackStore:
             "period_days":days,
             "counts":dict(zip(keys,map(int,totals))),
             "timeline":[{"day":str(x[0]),"processed":int(x[1]),
-                         "auto_matched":int(x[2])} for x in timeline],
+                         "auto_matched":int(x[2]),"not_found":int(x[3]),
+                         "insufficient":int(x[4]),"errors":int(x[5])}
+                        for x in timeline],
+            "feedback_timeline":[{"day":str(x[0]),"accepted":int(x[1]),
+                                  "rejected":int(x[2]),"selected_other":int(x[3]),
+                                  "corrected":int(x[4])} for x in feedback_timeline],
             "events":{str(name):int(count) for name,count in actions},
             "note":"Частоты действий пользователей, не точность алгоритма. Группы действий пересекаются.",
         }

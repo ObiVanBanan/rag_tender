@@ -2,107 +2,235 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#1d1d1b">
-<title>Статистика сервиса — LD Аналоги</title>
+<meta name="theme-color" content="#1b2026"><title>Статистика сервиса — LD Аналоги</title>
 <style>
-:root{font-family:"Segoe UI",Inter,Arial,sans-serif;background:#f6f7f5;color:#232321}
-*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}
+:root{font-family:"Segoe UI",Inter,Arial,sans-serif;background:#f5f7f8;color:#232a2d;font-size:14px}
+*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}button,select{font:inherit}
 .shell{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
-aside{background:#1c1d1d;color:white;padding:26px 16px}
-.brand{display:flex;align-items:center;gap:11px;padding:0 10px 32px;font-weight:850;font-size:17px}
-.brand strong{font-size:24px;color:#ffcd00}
-.menu a,.menu span{display:block;border-radius:8px;padding:13px 16px;font-size:14px;color:#c5c5be;margin:5px 0}
-.menu .active{background:#ffcd00;color:#1a1a18;font-weight:800}
-main{padding:42px clamp(18px,4vw,60px);max-width:1500px;width:100%}
-h1{font-size:clamp(26px,3vw,34px);letter-spacing:-.8px;margin:0 0 5px}
-.sub{color:#85857c;font-size:13px;line-height:1.6}
-.head{display:flex;justify-content:space-between;gap:16px;align-items:start;margin-bottom:30px}
-select{background:white;border:1px solid #deded6;border-radius:9px;padding:12px;font:inherit;font-size:13px}
-.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
-.card,.block{background:#fff;border:1px solid #e9e9e4;border-radius:13px;padding:20px}
-.card label{font-size:12px;color:#6b6c66;font-weight:700;display:block;margin-bottom:18px}
-.card strong{font-size:30px;letter-spacing:-1px;display:block}
-.card .mini{font-size:11px;color:#88867b;margin-top:9px}
-.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin:15px 0}
-h2{font-size:16px;margin:0 0 16px}
-.timeline{height:200px;display:flex;gap:7px;align-items:end;border-bottom:1px solid #dadad5;padding:4px 0}
-.timeline .bar{flex:1;min-width:5px;background:#ffcd00;border-radius:4px 4px 0 0;min-height:2px}
-.details{font-size:13px;color:#66675e;line-height:2}
-.details strong{float:right;color:#252522}
-.note{font-size:12px;color:#7a786c;line-height:1.65;margin-top:18px;border-left:3px solid #ffcd00;padding-left:12px}
-.empty{color:#aaa9a1;padding:42px;text-align:center}
-@media(max-width:1050px){.cards{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}}
-@media(max-width:650px){.shell{display:block}aside{padding:15px}.brand{padding:0 10px 10px}.menu{display:flex;gap:5px}.menu a{padding:10px}.head{flex-direction:column}.cards{grid-template-columns:repeat(2,1fr)}}
+aside{background:#1b2027;color:#fff;padding:30px 17px}
+.brand{display:flex;align-items:center;gap:12px;padding:0 12px 35px;font-size:18px;font-weight:800}
+.brand strong{color:#ffcd00;font-size:31px;letter-spacing:-2px}
+.brand small{font-size:10px;color:#9ea6ad;font-weight:500;letter-spacing:1px}
+.menu a{display:flex;align-items:center;gap:10px;border-radius:8px;padding:13px 14px;color:#c5cbd0;margin:5px 0;font-size:13px}
+.menu .active{background:#ffcd00;color:#222;font-weight:800}
+main{padding:35px clamp(18px,3vw,48px);max-width:1610px;width:100%}
+h1{font-size:clamp(26px,2.7vw,35px);letter-spacing:-.8px;margin:0 0 6px}
+.sub{color:#77818a;font-size:12px;line-height:1.65}
+.head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:28px}
+.select-control{display:flex;align-items:center;gap:9px;color:#69747d;font-size:12px;font-weight:700}
+select{background:white;border:1px solid #dfe4e8;border-radius:9px;padding:11px;font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px}
+.card,.block{background:white;border:1px solid #e6e9eb;border-radius:12px}
+.card{padding:19px 19px 17px}
+.card label{font-size:12px;color:#637078;font-weight:740;display:block;min-height:32px}
+.card strong{font-size:31px;letter-spacing:-1.2px;display:block;margin-top:13px}
+.card .mini{font-size:11px;color:#9a9e9f;margin-top:8px;line-height:1.5}
+.card.feature{border-top:4px solid #ffcd00}
+.card.feature strong{margin-top:9px}
+.graph-grid{display:grid;grid-template-columns:minmax(0,1.48fr) minmax(290px,1fr);gap:14px;margin:15px 0}
+.block{padding:23px 23px 19px;min-width:0}
+.block h2{font-size:16px;margin:0;letter-spacing:-.3px}
+.block .meta{display:flex;justify-content:space-between;align-items:start;gap:15px;margin-bottom:16px}
+.chart{width:100%;min-height:210px}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#6b7479;margin-top:14px}
+.legend span{display:inline-flex;gap:7px;align-items:center}
+.legend b{width:9px;height:9px;border-radius:3px;display:inline-block}
+.donut-layout{display:flex;gap:18px;align-items:center;justify-content:space-around;min-height:210px}
+.donut{width:195px;flex:none;max-width:48%}
+.donut svg{display:block;width:100%;height:auto}
+.donut-legend{min-width:160px;flex:1}
+.donut-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;font-size:12px}
+.donut-row i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+.donut-row strong{font-weight:850}
+.feedback-bars{display:flex;align-items:end;gap:8px;height:203px;padding:10px 0 22px;border-bottom:1px solid #e5e8ea}
+.day-column{display:flex;flex:1;min-width:6px;height:100%;flex-direction:column;justify-content:end;position:relative}
+.day-segment{display:block;min-height:1px}
+.day-column:focus-visible{outline:2px solid #4d7ec2}
+.day-hint{display:block;text-align:center;font-size:9px;color:#929da2;margin-top:6px;white-space:nowrap}
+.stat-message{color:#93999b;text-align:center;padding:60px 6px;font-size:13px}
+.note{font-size:11px;color:#777e7f;line-height:1.75;border-left:3px solid #ffcd00;padding:4px 0 4px 12px;margin-top:17px}
+#error{border-left-color:#c55f54;color:#924538}
+@media(max-width:1200px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}.graph-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.shell{display:block}aside{padding:12px 17px}.brand{padding:0 10px 5px}.menu{display:flex;gap:8px}.menu a{padding:10px}main{padding:25px 17px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.head{flex-wrap:wrap}.block{padding:15px}.donut-layout{flex-wrap:wrap}}
+@media(max-width:400px){.cards{grid-template-columns:1fr 1fr;gap:7px}.card{padding:13px}.card strong{font-size:26px}.donut-layout{justify-content:center}}
 </style>
 </head>
 <body>
 <div class="shell">
 <aside>
-<div class="brand"><strong>LD</strong><span>Аналоги<br><small style="font-weight:400;color:#999">Администрирование</small></span></div>
-<nav class="menu"><a href="/demo">Подбор</a><a class="active" href="/demo/stats" aria-current="page">Статистика</a></nav>
+<div class="brand"><strong>LD</strong><span>Аналоги<br><small>АНАЛИТИКА СЕРВИСА</small></span></div>
+<nav class="menu"><a href="/demo">⌕ Подбор</a><a class="active" href="/demo/stats" aria-current="page">▥ Статистика</a></nav>
 </aside>
 <main>
-<div class="head"><div><h1>Статистика и качество сервиса</h1><p class="sub">Как используется подбор аналогов и что пользователи изменяют в результатах</p></div>
-<label><span class="sub">Период&nbsp;</span><select id="period" aria-label="Период статистики"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="366">Год</option></select></label></div>
-<div id="error" role="alert" class="note" hidden></div>
-<div class="cards">
-<div class="card"><label>Обработано позиций</label><strong id="processed">—</strong><div class="mini">Не количество файлов</div></div>
-<div class="card"><label>Найдено автоматически</label><strong id="auto_matched">—</strong><div class="mini">Результат алгоритма</div></div>
+<div class="head">
+  <div><h1>Статистика и качество сервиса</h1><p class="sub">Бизнес-аналитика подбора аналогов LD и обратной связи пользователей</p></div>
+  <label class="select-control">Период <select id="period" aria-label="Период статистики"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="366">Год</option></select></label>
+</div>
+<p id="error" role="alert" class="note" hidden></p>
+<section class="cards" aria-label="Общие показатели">
+<div class="card feature"><label>Обработано позиций</label><strong id="processed">—</strong><div class="mini">Строки спецификаций, не файлы</div></div>
+<div class="card feature"><label>Найдено автоматически</label><strong id="auto_matched">—</strong><div class="mini">Результат первоначального RAG</div></div>
 <div class="card"><label>Не найдено</label><strong id="not_found">—</strong><div class="mini">Нет подтверждённого аналога</div></div>
-<div class="card"><label>Нужно уточнение</label><strong id="insufficient">—</strong><div class="mini">Не хватает характеристик</div></div>
-<div class="card"><label>Отклонено пользователями</label><strong id="rejected">—</strong><div class="mini">Решение человека</div></div>
-<div class="card"><label>Принято пользователями</label><strong id="accepted">—</strong><div class="mini">Принят рекомендованный аналог</div></div>
-<div class="card"><label>Выбран другой товар</label><strong id="selected_other">—</strong><div class="mini">Исправлен результат подбора</div></div>
-<div class="card"><label>Изменены характеристики</label><strong id="parameter_edited">—</strong><div class="mini">Уникальные позиции, не клики</div></div>
-<div class="card"><label>Без решения</label><strong id="pending">—</strong><div class="mini">Ожидают проверки</div></div>
-<div class="card"><label>Ошибки сервиса</label><strong id="errors">—</strong><div class="mini">Ошибки в API</div></div>
+<div class="card"><label>Нужно уточнение</label><strong id="insufficient">—</strong><div class="mini">Недостаточно характеристик</div></div>
+<div class="card"><label>Отклонено пользователем</label><strong id="rejected">—</strong><div class="mini">Последний статус решения</div></div>
+<div class="card"><label>Принято пользователем</label><strong id="accepted">—</strong><div class="mini">Принята рекомендация</div></div>
+<div class="card"><label>Выбран другой товар</label><strong id="selected_other">—</strong><div class="mini">Ручная замена аналога</div></div>
+<div class="card"><label>Изменены характеристики</label><strong id="parameter_edited">—</strong><div class="mini">Уникальные исправленные строки</div></div>
+<div class="card"><label>Без решения</label><strong id="pending">—</strong><div class="mini">Ожидает проверки человеком</div></div>
+<div class="card"><label>Ошибки обработки</label><strong id="errors">—</strong><div class="mini">Сбой при подборе</div></div>
+</section>
+<div class="graph-grid">
+  <section class="block" aria-labelledby="trend-title">
+    <div class="meta"><div><h2 id="trend-title">Динамика запросов</h2><p class="sub">Подборы и найденные товары по дням</p></div></div>
+    <div id="trend-chart" class="chart" role="img" aria-label="График динамики обработанных и найденных позиций"></div>
+    <div class="legend"><span><b style="background:#ffcd00"></b>Обработано</span><span><b style="background:#475967"></b>Найдено</span></div>
+  </section>
+  <section class="block" aria-labelledby="outcome-title">
+    <div class="meta"><div><h2 id="outcome-title">Распределение результатов</h2><p class="sub">Статус первого ответа алгоритма</p></div></div>
+    <div class="donut-layout"><div id="outcome-donut" class="donut" role="img" aria-label="Диаграмма распределения исходов"></div><div id="outcome-legend" class="donut-legend"></div></div>
+  </section>
+  <section class="block" aria-labelledby="feedback-title">
+    <div class="meta"><div><h2 id="feedback-title">Обратная связь пользователей</h2><p class="sub">Принятие, отказ, выбор другого изделия и правка параметров по дням</p></div></div>
+    <div id="feedback-chart" class="chart" role="img" aria-label="Столбчатый график событий пользовательской обратной связи"></div>
+    <div class="legend"><span><b style="background:#ffcd00"></b>Принято</span><span><b style="background:#465761"></b>Отклонено</span><span><b style="background:#a4b1b9"></b>Другой аналог</span><span><b style="background:#e5b479"></b>Исправлены параметры</span></div>
+  </section>
+  <section class="block" aria-labelledby="review-title">
+    <div class="meta"><div><h2 id="review-title">Решения пользователей</h2><p class="sub">Текущее решение по каждой позиции</p></div></div>
+    <div class="donut-layout"><div id="review-donut" class="donut" role="img" aria-label="Диаграмма решений пользователей"></div><div id="review-legend" class="donut-legend"></div></div>
+  </section>
 </div>
-<div class="grid">
-<section class="block"><h2>Динамика обработанных позиций</h2><div id="timeline" class="timeline" aria-label="Распределение по дням"></div><p class="sub" id="timeline-caption">Загружаем данные…</p></section>
-<section class="block"><h2>События обратной связи</h2><div id="events" class="details"></div><p class="sub">Сколько раз пользователи исправляли и подтверждали решения. Повторные изменения отражены в событиях.</p></section>
-</div>
-<p class="note">Это показатели использования сервиса, а не тестовая точность RAG. Число автоматически найденных товаров не является числом верных аналогов. У одного результата могут быть и исправление параметров, и ручной выбор.</p>
-</main>
-</div>
+<p class="note">Число найденных товаров не является точностью RAG. Статусы первоначального поиска и решения пользователей — разные измерения. Исправления учитываются отдельно и могут пересекаться с принятием или отклонением. Данные берутся из PostgreSQL, а не из демонстрационных значений.</p>
+</main></div>
 <script>
 "use strict";
-const byId=id=>document.getElementById(id);
-const digits=new Intl.NumberFormat("ru-RU");
+const el=id=>document.getElementById(id);
+const fmt=new Intl.NumberFormat("ru-RU");
+const NS="http://www.w3.org/2000/svg";
+function sv(tag,attrs={},text){
+ const n=document.createElementNS(NS,tag);
+ for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));
+ if(text!==undefined)n.textContent=String(text);
+ return n;
+}
+function chartMessage(host,message){
+ host.replaceChildren();const p=document.createElement("p");p.className="stat-message";p.textContent=message;host.append(p);
+}
+function dateKeys(days){
+ const out=[];
+ const today=new Date();today.setUTCHours(0,0,0,0);
+ for(let i=days-1;i>=0;i--) {
+   const d=new Date(today.getTime()-i*86400000);out.push(d.toISOString().slice(0,10));
+ }
+ return out;
+}
+function svgLine(host,records,days){
+ const dataMap=new Map((records||[]).map(r=>[r.day,r]));
+ const values=dateKeys(days).map(day=>({day,processed:dataMap.get(day)?.processed||0,auto_matched:dataMap.get(day)?.auto_matched||0}));
+ if(!values.some(x=>x.processed)){chartMessage(host,"За выбранный период запросов пока нет.");return;}
+ const W=620,H=240,left=42,top=16,right=14,bottom=30;
+ const max=Math.max(1,...values.map(x=>x.processed));
+ const X=i=>left+i*(W-left-right)/Math.max(1,values.length-1);
+ const Y=v=>top+(max-v)/max*(H-top-bottom);
+ const svg=sv("svg",{viewBox:"0 0 620 240",preserveAspectRatio:"xMidYMid meet"});
+ [0,.25,.5,.75,1].forEach(t=>{
+   const y=Y(max*t);svg.append(sv("line",{x1:left,y1:y,x2:W-right,y2:y,stroke:"#e8ecee","stroke-width":1}));
+   svg.append(sv("text",{x:left-8,y:y+4,fill:"#919ca1","font-size":10,"text-anchor":"end"},Math.round(max*t)));
+ });
+ const line=key=>values.map((row,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(row[key]).toFixed(1)).join(" ");
+ const area=line("processed")+" L"+X(values.length-1)+" "+Y(0)+" L"+X(0)+" "+Y(0)+" Z";
+ svg.append(sv("path",{d:area,fill:"#fff5ca",stroke:"none"}));
+ svg.append(sv("path",{d:line("processed"),fill:"none",stroke:"#ffcd00","stroke-width":3,"strokeLinejoin":"round"}));
+ svg.append(sv("path",{d:line("auto_matched"),fill:"none",stroke:"#465963","stroke-width":2.5,"strokeLinejoin":"round"}));
+ const indexes=[0,Math.floor((values.length-1)/2),values.length-1];
+ [...new Set(indexes)].forEach(i=>svg.append(sv("text",{
+   x:X(i),y:H-6,fill:"#8b969a","font-size":11,"text-anchor":i===0?"start":i===values.length-1?"end":"middle"
+ },values[i].day.slice(5))));
+ host.replaceChildren(svg);
+}
+function donut(host,legendHost,series){
+ host.replaceChildren();legendHost.replaceChildren();
+ const total=series.reduce((a,b)=>a+b.value,0);
+ if(!total){chartMessage(host,"Пока нет данных.");return;}
+ const svg=sv("svg",{viewBox:"0 0 190 190"});
+ const rad=65,circ=2*Math.PI*rad;let offset=0;
+ svg.append(sv("circle",{cx:95,cy:95,r:rad,fill:"none",stroke:"#edf0f2","stroke-width":24}));
+ series.forEach(part=>{
+   if(!part.value)return;
+   const share=part.value/total,segment=circ*share;
+   svg.append(sv("circle",{cx:95,cy:95,r:rad,fill:"none",stroke:part.color,"stroke-width":24,
+     "stroke-dasharray":segment+" "+(circ-segment),"stroke-dashoffset":-offset,
+     transform:"rotate(-90 95 95)"}));
+   offset+=segment;
+ });
+ svg.append(sv("text",{x:95,y:91,fill:"#263038","font-size":27,"font-weight":850,"text-anchor":"middle"},fmt.format(total)));
+ svg.append(sv("text",{x:95,y:113,fill:"#849099","font-size":11,"text-anchor":"middle"},"позиций"));
+ host.append(svg);
+ series.forEach(part=>{
+   const row=document.createElement("div");row.className="donut-row";
+   const left=document.createElement("span");const bullet=document.createElement("i");
+   bullet.style.background=part.color;
+   left.append(bullet,document.createTextNode(part.name));row.append(left);
+   const value=document.createElement("strong");value.textContent=fmt.format(part.value)+" · "+Math.round(part.value/total*100)+"%";
+   row.append(value);legendHost.append(row);
+ });
+}
+function feedbackBars(host,records,days){
+ host.replaceChildren();
+ const map=new Map((records||[]).map(r=>[r.day,r]));
+ const values=dateKeys(days).map(day=>({day,...(map.get(day)||{})}));
+ const keys=[["accepted","#ffcd00"],["rejected","#465761"],["selected_other","#a4b1b9"],["corrected","#e5b479"]];
+ const max=Math.max(0,...values.map(v=>keys.reduce((a,[k])=>a+(v[k]||0),0)));
+ if(!max){chartMessage(host,"Пока никто не оценил результаты.");return;}
+ const svg=sv("svg",{viewBox:"0 0 620 240",preserveAspectRatio:"xMidYMid meet"});
+ const left=38,top=13,H=207,W=620;const usable=W-left-10;
+ [0,.25,.5,.75,1].forEach(f=>{
+   const y=H-(H-top)*f;
+   svg.append(sv("line",{x1:left,y1:y,x2:W-12,y2:y,stroke:"#e8ecee"}));
+   svg.append(sv("text",{x:left-8,y:y+4,fill:"#929ca0","font-size":10,"text-anchor":"end"},Math.round(max*f)));
+ });
+ const space=usable/values.length,bar=Math.max(2,Math.min(24,space-3));
+ values.forEach((v,i)=>{
+   let bottom=H;
+   for(const [key,color] of keys){
+     const h=(v[key]||0)/max*(H-top);
+     if(!h)continue;
+     svg.append(sv("rect",{x:left+i*space+(space-bar)/2,y:bottom-h,width:bar,height:h,fill:color,rx:1}));
+     bottom-=h;
+   }
+ });
+ [0,Math.floor((values.length-1)/2),values.length-1].filter((v,i,a)=>a.indexOf(v)===i).forEach(i=>{
+   svg.append(sv("text",{x:left+i*space+space/2,y:234,"text-anchor":"middle",fill:"#929ca0","font-size":11},values[i].day.slice(5)));
+ });
+ host.append(svg);
+}
 async function refresh(){
- const days=Number(byId("period").value);
- byId("error").hidden=true;
+ const days=Number(el("period").value);
+ el("error").hidden=true;
  try{
-   const res=await fetch("/v1/demo/stats?days="+days,{headers:{"Accept":"application/json"}});
+   const res=await fetch("/v1/demo/stats?days="+days,{headers:{Accept:"application/json"},cache:"no-store"});
    if(!res.ok)throw Error("Не удалось загрузить статистику (HTTP "+res.status+")");
    const data=await res.json();
-   for(const [key,value] of Object.entries(data.counts||{})){
-     const holder=byId(key);if(holder)holder.textContent=digits.format(value);
-   }
-   const timeline=byId("timeline");timeline.replaceChildren();
-   const dates=Array.isArray(data.timeline)?data.timeline:[];
-   if(!dates.length){timeline.textContent="Данные за выбранный период отсутствуют.";return;}
-   const peak=Math.max(1,...dates.map(x=>x.processed));
-   dates.forEach(day=>{
-     const bar=document.createElement("div");bar.className="bar";
-     bar.style.height=Math.max(1,Math.round(day.processed/peak*100))+"%";
-     bar.title=day.day+" — "+day.processed+" обработано, "+day.auto_matched+" найдено";
-     timeline.append(bar);
-   });
-   byId("timeline-caption").textContent=dates[0].day+" — "+dates[dates.length-1].day;
-   const events=byId("events");events.replaceChildren();
-   const names={ACCEPTED:"Принято",REJECTED:"Отклонено",SELECTED_OTHER:"Выбран другой",
-                PARAMETERS_CORRECTED:"Исправлены параметры"};
-   const eventRows=Object.entries(data.events||{});
-   if(!eventRows.length)events.textContent="Событий пока нет.";
-   eventRows.forEach(([key,count])=>{
-     const row=document.createElement("div");
-     row.append(document.createTextNode(names[key]||key));
-     const value=document.createElement("strong");value.textContent=digits.format(count);
-     row.append(value);events.append(row);
-   });
- }catch(e){byId("error").hidden=false;byId("error").textContent=e.message;}
+   const count=data.counts||{};
+   for(const [key,value] of Object.entries(count)){const node=el(key);if(node)node.textContent=fmt.format(value);}
+   svgLine(el("trend-chart"),data.timeline,days);
+   const outcome=[
+     {name:"Подобрано",value:count.auto_matched||0,color:"#ffcd00"},
+     {name:"Не найдено",value:count.not_found||0,color:"#465761"},
+     {name:"Нужно уточнение",value:count.insufficient||0,color:"#a4b1b9"},
+     {name:"Ошибки",value:count.errors||0,color:"#d8a18e"}
+   ];
+   donut(el("outcome-donut"),el("outcome-legend"),outcome);
+   feedbackBars(el("feedback-chart"),data.feedback_timeline,days);
+   donut(el("review-donut"),el("review-legend"),[
+     {name:"Принято",value:count.accepted||0,color:"#ffcd00"},
+     {name:"Отклонено",value:count.rejected||0,color:"#465761"},
+     {name:"Другой аналог",value:count.selected_other||0,color:"#a4b1b9"},
+     {name:"Без решения",value:count.pending||0,color:"#edf0f2"}
+   ]);
+ }catch(e){el("error").hidden=false;el("error").textContent=e.message;}
 }
-byId("period").addEventListener("change",refresh);
+el("period").addEventListener("change",refresh);
 refresh();
 </script>
 </body>

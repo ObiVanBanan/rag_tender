@@ -194,17 +194,56 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
     recommended = []
     chosen = set()
     if match.status == "MATCHED":
-        for s in match.selected or []:
-            c = indexed.get(s.ld_id)
-            if c is not None and c.ld_id not in chosen:
-                recommended.append(as_variant(c, s, interpretation))
-                chosen.add(c.ld_id)
+        # Only the primary result is the system recommendation. Additional
+        # reranker selections belong to the visible, optional review pool.
+        for selected in match.selected or []:
+            candidate = indexed.get(selected.ld_id)
+            if candidate is not None:
+                recommended = [as_variant(candidate, selected, interpretation)]
+                chosen.add(candidate.ld_id)
+                break
         if not recommended and match.ld_product is not None:
             recommended = [as_variant(match.ld_product, interpretation=interpretation)]
             recommended[0]["selection"] = "RECOMMENDED"
             chosen.add(match.ld_product.ld_id)
-    # Limit the user review surface to ten catalogue products in total.
-    alternatives = [as_variant(c, interpretation=interpretation) for c in pool if c.ld_id not in chosen][:max(0, 10-len(recommended))]
+
+    # "Top 10" means at most ten distinct products actually retrieved; never
+    # invent LD IDs or silently substitute arbitrary catalogue products.
+    # Include other reranker selections before retrieval-ordered alternatives.
+    review_pool = []
+    for selected in match.selected or []:
+        candidate = indexed.get(selected.ld_id)
+        if candidate is not None and candidate.ld_id not in chosen:
+            alternate = as_variant(candidate, selected, interpretation)
+            alternate["selection"] = "FOR_REVIEW"
+            review_pool.append(alternate)
+            chosen.add(candidate.ld_id)
+    for candidate in pool:
+        if candidate.ld_id not in chosen:
+            review_pool.append(as_variant(candidate, interpretation=interpretation))
+            chosen.add(candidate.ld_id)
+        if len(review_pool) + len(recommended) >= 10:
+            break
+    alternatives = review_pool[:max(0, 10-len(recommended))]
+    all_candidates = recommended + alternatives
+    for rank, candidate in enumerate(all_candidates, 1):
+        candidate["rank"] = rank
+        rows = (candidate.get("comparison") or {}).get("rows") or []
+        strict = [row for row in rows if row.get("strict")]
+        mismatched = [row["label"] for row in strict if row["status"] == "MISMATCH"]
+        unknown = [row["label"] for row in strict if row["status"] != "MATCH"]
+        candidate["review_gate"] = (
+            "BLOCKED" if mismatched else
+            "NEEDS_MANUAL_CHECK" if (not strict or unknown) else "CHECKS_PASSED"
+        )
+        candidate["review_note"] = (
+            "Не соответствует: " + ", ".join(mismatched)
+            if mismatched else
+            "Не все обязательные параметры подтверждены: " + (
+                ", ".join(unknown) if unknown else "требуется дополнительная проверка"
+            ) if (not strict or unknown)
+            else "Обязательные параметры по каталогу совпадают"
+        )
     status = "ERROR" if match.status == "RERANK_FAILED" else match.status
     reason = str(match.reason or "")
     if status == "ERROR":
@@ -229,6 +268,7 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
         "parameters": parameter_rows(interpretation),
         "recommended": recommended,
         "other_candidates": alternatives,
+        "candidates": all_candidates,
         "metrics": {
             "latency_ms": round(duration_ms, 1),
             "retrieved_count": len(pool),
@@ -391,6 +431,7 @@ class DecisionRequest(ReviewTarget):
     action: Literal["ACCEPTED","REJECTED","SELECTED_OTHER"]
     selected_ld_id: int | None = None
     acknowledge_unknown: bool = False
+    acknowledge_mismatch: bool = False
 
 
 def _handle_review_error(exc: Exception) -> None:
@@ -437,7 +478,7 @@ def decide_result(payload: DecisionRequest, request: Request) -> dict[str, Any]:
         return _store(request).decide(
             payload.request_id,payload.item_index,payload.review_token,
             payload.revision,payload.action,payload.selected_ld_id,
-            payload.acknowledge_unknown)
+            payload.acknowledge_unknown,payload.acknowledge_mismatch)
     except (ReviewNotFound,ReviewConflict,ValueError) as exc:
         _handle_review_error(exc)
 
