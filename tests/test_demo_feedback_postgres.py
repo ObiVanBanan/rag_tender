@@ -54,6 +54,22 @@ def test_real_database_review_events_and_stats_are_durable():
         rejected=store.decide(request_id,0,token,2,"REJECTED")
         assert rejected["decision"]=="REJECTED" and rejected["revision"]==3
 
+        # Append one item after the original decision and correction. The
+        # original result and its event history must remain intact.
+        before=store.get(request_id,0,token)
+        store.assert_can_append(request_id,token,1)
+        new_item={**result,"input":"Кран шаровой штуцерный Ду20 Ру40"}
+        appended=store.append(request_id,token,1,new_item)
+        assert appended["item_index"]==1
+        assert appended["result"]["input"]==new_item["input"]
+        assert store.get(request_id,0,token)==before
+        assert store.get(request_id,1,token)["current_result"]==new_item
+        with pytest.raises(ReviewConflict):
+            store.append(request_id,token,1,new_item)
+        with pytest.raises(ReviewNotFound):
+            store.assert_can_append(request_id,"invalid-token",2)
+        accepted=store.decide(request_id,1,token,0,"ACCEPTED")
+        assert accepted["decision"]=="ACCEPTED"
         counters=store.stats(1)["counts"]
         assert counters["rejected"]>=1
         assert counters["parameter_edited"]>=1
@@ -67,7 +83,8 @@ def test_real_database_review_events_and_stats_are_durable():
                 "SELECT event_type FROM demo_review_events WHERE request_id=%s ORDER BY id",
                 (request_id,)).fetchall()
             assert [e[0] for e in events]==[
-                "SELECTED_OTHER","PARAMETERS_CORRECTED","REJECTED"]
+                "SELECTED_OTHER","PARAMETERS_CORRECTED","REJECTED",
+                "ITEM_ADDED","ACCEPTED"]
     finally:
         with pool.connection() as conn:
             conn.execute("DELETE FROM demo_review_sessions WHERE request_id=%s",(request_id,))
