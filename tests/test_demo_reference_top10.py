@@ -41,7 +41,7 @@ def test_top_ten_candidates_are_distinct_ranked_and_actionable():
     assert len({x["ld_id"] for x in result["candidates"]})==10
     assert result["recommended"][0]["ld_id"]==8000
     assert result["other_candidates"][0]["ld_id"]==8001
-    assert result["other_candidates"][0]["selection"]=="RECOMMENDED"
+    assert result["other_candidates"][0]["selection"]=="FOR_REVIEW"
     assert result["candidates"][1]["review_gate"]=="CHECKS_PASSED"
     assert result["candidates"][8]["review_gate"]=="BLOCKED"
     assert DemoFeedbackStore._candidate(result,"SELECTED_OTHER",8001,False)==8001
