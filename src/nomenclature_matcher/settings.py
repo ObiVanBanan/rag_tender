@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     # Set password before exposing demo to Internet. Production fails closed.
     public_demo_username: str = "demo"
     public_demo_password: str = ""
+    public_demo_admin_username: str = "ld-admin"
+    public_demo_admin_password: str = ""
     public_demo_rpm: int = 60
     public_demo_max_batch_size: int = 10
     product_csv_path: str = "ld_products_full_nomenclature.csv"
