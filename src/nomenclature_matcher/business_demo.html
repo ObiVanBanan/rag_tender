@@ -450,6 +450,7 @@ main{max-width:1510px;padding:0 34px 78px}
     let rowStates = [];
     let activeHistoryId = null;
     let snapshotMode = false;
+    let activeProducts = [];
 
     function el(tag, text, cls) {
       const node = document.createElement(tag);
@@ -580,6 +581,7 @@ main{max-width:1510px;padding:0 34px 78px}
             el("span",summary,"subtle"));
         item.addEventListener("click",()=>{
           byId("query").value=entry.products.join("\n");refreshInputCount();showError("");
+          activeProducts=entry.products.slice();
           closeHistory();
           if(entry.results){
             renderResponse({results:entry.results},{historical:true,states:entry.rowStates||[]});
@@ -809,7 +811,7 @@ main{max-width:1510px;padding:0 34px 78px}
         }
         rowStates[index]={...rowStates[index],...result};
         repaintReview(index);
-        persistHistorySnapshot(readInput());
+        persistHistorySnapshot(activeProducts);
       } catch(e) { alert(e.message || "Не удалось сохранить выбор."); }
     }
     function fieldEditor(d,index) {
@@ -861,7 +863,7 @@ main{max-width:1510px;padding:0 34px 78px}
           liveResults[index]=result.result;
           rowStates[index]={...rowStates[index],revision:result.revision,decision:result.decision,edited:true,selected_ld_id:null};
           repaintReview(index);
-          persistHistorySnapshot(readInput());
+          persistHistorySnapshot(activeProducts);
         } catch(e) {err.textContent=e.message||"Ошибка повторного подбора.";}
         finally {btn.disabled=false;}
       });
@@ -1084,7 +1086,7 @@ main{max-width:1510px;padding:0 34px 78px}
       const results=Array.isArray(payload.results)?payload.results:[];
       snapshotMode=!!opts.historical;
       activeReview=snapshotMode?null:{request_id:payload.request_id,review_token:payload.review_token};
-      activeHistoryId=snapshotMode?null:null;
+      activeHistoryId=null;
       liveResults=results;
       rowStates=results.map((_,i)=>opts.states&&opts.states[i]?
         {...opts.states[i]}:{revision:0,decision:"PENDING",selected_ld_id:null});
@@ -1104,6 +1106,7 @@ main{max-width:1510px;padding:0 34px 78px}
       if (!products.length) return showError("Введите хотя бы одну позицию для подбора.");
       if (products.length > MAX_ITEMS) return showError("Максимум " + MAX_ITEMS + " позиций за один запуск. Уберите лишние строки.");
       if (products.some(p => p.length > MAX_ITEM_LENGTH)) return showError("Одна из позиций превышает 2000 символов.");
+      activeProducts=products.slice();
       isBusy = true;
       const button = byId("go");
       button.disabled = true;
