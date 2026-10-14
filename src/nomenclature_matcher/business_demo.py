@@ -214,7 +214,9 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
     for selected in match.selected or []:
         candidate = indexed.get(selected.ld_id)
         if candidate is not None and candidate.ld_id not in chosen:
-            review_pool.append(as_variant(candidate, selected, interpretation))
+            alternate = as_variant(candidate, selected, interpretation)
+            alternate["selection"] = "FOR_REVIEW"
+            review_pool.append(alternate)
             chosen.add(candidate.ld_id)
     for candidate in pool:
         if candidate.ld_id not in chosen:
