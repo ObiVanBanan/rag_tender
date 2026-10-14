@@ -15,6 +15,7 @@ on:
       - "tests/test_demo_ui_browser.py"
       - "tests/test_demo_feedback_features.py"
       - "tests/test_demo_feedback_postgres.py"
+      - "tests/test_demo_append_item.py"
       - "src/nomenclature_matcher/demo_feedback.py"
       - "src/nomenclature_matcher/business_demo_stats.html"
       - "tests/test_demo_recheck.py"
@@ -103,6 +104,7 @@ jobs:
           tests/test_stutser_joining.py
           tests/test_demo_feedback_features.py
           tests/test_demo_feedback_postgres.py
+          tests/test_demo_append_item.py
           tests/test_demo_recheck.py
           tests/test_export_demo20.py
           tests/test_demo_auth.py
