@@ -75,6 +75,9 @@ const sampleCandidate=(id,primary=false)=>({
  comparison:{rows:[{key:"dn",label:"Диаметр",required:"DN80",catalog:"DN80",
                      status:"MATCH",strict:true}]}
 });
+const risky=sampleCandidate(8002);
+risky.review_gate="BLOCKED";
+risky.review_note="Не соответствует: Номинальный диаметр";
 const responsePayload={
  request_id:"test-session-12345678",review_token:"X".repeat(44),
  results:[{
@@ -83,8 +86,8 @@ const responsePayload={
    editable_constraints:{product_type:"ball_valve",dn:80,pn_min_mpa:1.6},
    parameters:[{label:"Диаметр",value:"DN80"}],missing_fields:[],
    recommended:[sampleCandidate(8000,true)],
-   other_candidates:[sampleCandidate(8001),sampleCandidate(8002)],
-   candidates:[sampleCandidate(8000,true),sampleCandidate(8001),sampleCandidate(8002)]
+   other_candidates:[sampleCandidate(8001),risky],
+   candidates:[sampleCandidate(8000,true),sampleCandidate(8001),risky]
  }]
 };
 let requests=[];
@@ -94,8 +97,11 @@ const fetch=async (url,options)=>{
  if(url==="/v1/demo/decision"){
    const body=JSON.parse(options.body);
    assert.equal(body.action,"SELECTED_OTHER");
-   assert.equal(body.selected_ld_id,8001);
-   return {ok:true,json:async()=>({revision:1,decision:"SELECTED_OTHER",selected_ld_id:8001})};
+   assert([8001,8002].includes(body.selected_ld_id));
+   if(body.selected_ld_id===8002 && !body.acknowledge_mismatch)
+     return {ok:false,status:409,json:async()=>({detail:"Есть расхождение с обязательными характеристиками: Номинальный диаметр"})};
+   return {ok:true,json:async()=>({revision:body.revision+1,decision:"SELECTED_OTHER",
+      selected_ld_id:body.selected_ld_id,manual_mismatch:!!body.acknowledge_mismatch})};
  }
  throw Error("Unexpected network call "+url);
 };
@@ -124,6 +130,16 @@ async function run(){
  assert.equal(snapshots[0].rowStates[0].decision,"SELECTED_OTHER");
  assert.equal(snapshots[0].results[0].recommended[0].article,"LD-8000",
    "Original model recommendation kept alongside user choice");
+ const forced=traverse(ids.get("results"),n=>n.tagName==="button"&&n.textContent==="Выбрать вручную");
+ assert(forced,"Manual selection remains accessible for a visibly mismatching candidate");
+ await forced.click();
+ assert.equal(vm.runInContext("rowStates[0].selected_ld_id",context),8002);
+ assert.equal(vm.runInContext("rowStates[0].manual_mismatch",context),true);
+ snapshots=JSON.parse(store.get(key));
+ assert.equal(snapshots[0].rowStates[0].selected_ld_id,8002);
+ assert.equal(snapshots[0].rowStates[0].manual_mismatch,true);
+ assert(requests.some(x=>x.body&&x.body.includes('"acknowledge_mismatch":true')),
+   "Mismatch exception explicitly confirmed and submitted");
  vm.runInContext("renderHistory()",context);
  const item=traverse(ids.get("history-list"),n=>n.tagName==="button"&&n.className==="history-item");
  assert(item,"history entry exists");
@@ -131,9 +147,10 @@ async function run(){
  await item.click();
  assert.equal(requests.length,countBefore,"Restore doesn't call LLM or backend");
  assert.equal(vm.runInContext("activeReview",context),null,"Historical snapshots read-only");
- assert.equal(vm.runInContext("rowStates[0].selected_ld_id",context),8001);
+ assert.equal(vm.runInContext("rowStates[0].selected_ld_id",context),8002);
+ assert.equal(vm.runInContext("rowStates[0].manual_mismatch",context),true);
  assert.equal(vm.runInContext("liveResults[0].candidates.length",context),3);
- assert(ids.get("results").textContent.includes("LD-8001"),"Manual selection restored");
+ assert(ids.get("results").textContent.includes("LD-8002"),"Manual override restored");
  assert(ids.get("results-summary").textContent.includes("Сохранённый слепок"));
  // The user's seven-line batch must persist seven distinct answers, not merely
  // the first query string nor an aggregate count.
