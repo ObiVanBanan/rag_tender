@@ -378,7 +378,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
           </button>
         </div>
-        <p class="entry-hint" id="upload-hint">До 10 позиций за запуск. Excel: скопируйте столбец и вставьте сюда. CSV / TXT читается в браузере. История сохраняется только на этом устройстве — её можно очистить.</p>
+        <p class="entry-hint" id="upload-hint">До 10 позиций за запуск. Excel: скопируйте столбец и вставьте сюда. CSV / TXT читается в браузере. В историю записываются исходные строки и ответы LD (локально в браузере); её можно очистить.</p>
         <div id="error" class="inline-error" role="alert" aria-live="assertive"></div>
       </section>
 
@@ -445,7 +445,7 @@
       <h2 id="history-title">История запросов</h2>
       <button id="history-close" class="icon-btn" type="button" aria-label="Закрыть историю">×</button>
     </div>
-    <p class="subtle">Хранится только в этом браузере. Нажмите на запрос, чтобы снова вставить номенклатуру в форму.</p>
+    <p class="subtle">Сохраняется снимок каждого запуска: запросы, результаты LD, артикулы и действия. Историю можно просмотреть без нового подбора. Данные хранятся только в этом браузере.</p>
     <div id="history-list" class="history-list"></div>
     <button id="history-clear" type="button" class="history-clear">Очистить историю</button>
   </aside>
@@ -453,7 +453,8 @@
   <script>
     "use strict";
     const byId = id => document.getElementById(id);
-    const HISTORY_KEY = "ld-tender-demo-query-history-v2";
+    const HISTORY_KEY = "ld-tender-demo-snapshots-v3";
+    const OLD_HISTORY_KEY = "ld-tender-demo-query-history-v2";
     const HISTORY_LIMIT = 15;
     const MAX_ITEMS = 10;
     const MAX_ITEM_LENGTH = 2000;
@@ -462,6 +463,9 @@
     let activeReview = null;
     let liveResults = [];
     let rowStates = [];
+    let activeHistoryId = null;
+    let volatileHistory = [];
+    let historyStorageAvailable = true;
 
     function el(tag, text, cls) {
       const node = document.createElement(tag);
@@ -490,54 +494,135 @@
       byId("error").style.display = message ? "block" : "none";
     }
 
-    // Local history saves original query strings after a successful run.
-    // Never store result payloads, gold labels, scores or credentials.
+    // Preserve business-facing match snapshots but NEVER review_token,
+    // score, provider errors, secrets, or hidden benchmark answers.
+    // Restored history is read-only; mutations require a fresh API session.
+    function historyCandidate(candidate) {
+      return {
+        ld_id:candidate.ld_id,name:candidate.name,article:candidate.article,
+        dn:candidate.dn,pn:candidate.pn,joining_type:candidate.joining_type,
+        url:candidate.url,reason:candidate.reason,selection:candidate.selection,
+        technical:candidate.technical||{},comparison:candidate.comparison||{rows:[]}
+      };
+    }
+    function historyResult(item) {
+      const options=(item.top_candidates||
+          [...(item.recommended||[]),...(item.other_candidates||[])]).slice(0,10);
+      return {
+        input:item.input,source_input:item.source_input,status:item.status,
+        message:item.message,missing_fields:item.missing_fields||[],
+        normalized_query:item.normalized_query,
+        corrected_query:item.corrected_query,
+        editable_constraints:item.editable_constraints||{},
+        parameters:item.parameters||[],
+        recommended:(item.recommended||[]).map(historyCandidate),
+        other_candidates:(item.other_candidates||[]).map(historyCandidate),
+        top_candidates:options.map(historyCandidate)
+      };
+    }
     function readHistory() {
       try {
-        const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-        if (!Array.isArray(value)) return [];
-        return value.filter(x => x && Array.isArray(x.products) && x.products.length <= MAX_ITEMS &&
-          x.products.every(p => typeof p === "string" && p.length <= MAX_ITEM_LENGTH))
-          .slice(0, HISTORY_LIMIT);
-      } catch { return []; }
+        const raw=localStorage.getItem(HISTORY_KEY);
+        const values=raw?JSON.parse(raw):[];
+        if (!Array.isArray(values))return [];
+        return values.filter(x=>x&&Array.isArray(x.products)&&Array.isArray(x.results)&&
+          x.products.length<=MAX_ITEMS&&x.products.every(p=>typeof p==="string"&&p.length<=MAX_ITEM_LENGTH)&&
+          x.results.length===x.products.length).slice(0,HISTORY_LIMIT);
+      } catch {
+        historyStorageAvailable=false;
+        return volatileHistory;
+      }
     }
     function writeHistory(rows) {
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(rows.slice(0, HISTORY_LIMIT))); }
-      catch { /* Private mode, blocked storage or full quota: UI still works. */ }
+      const list=rows.slice(0,HISTORY_LIMIT);
+      volatileHistory=list;
+      // Browser localStorage quotas differ; retain newest complete runs
+      // rather than silently failing when multiple 10-row snapshots fill it.
+      try {
+        let remaining=list;
+        while (remaining.length) {
+          try {
+            localStorage.setItem(HISTORY_KEY,JSON.stringify(remaining));
+            historyStorageAvailable=true;break;
+          } catch (error) {
+            if (error && (error.name==="QuotaExceededError"||error.code===22)) {
+              remaining=remaining.slice(0,-1);
+            } else throw error;
+          }
+        }
+        if (!remaining.length) throw Error("QuotaExceededError");
+      } catch {
+        historyStorageAvailable=false;
+        showError("Историю не удалось сохранить в браузере. Она доступна только до закрытия этой вкладки. Проверьте настройки хранения данных.");
+      }
       renderHistory();
     }
-    function saveHistory(products) {
-      const signature = JSON.stringify(products);
-      const rows = readHistory().filter(x => JSON.stringify(x.products) !== signature);
-      rows.unshift({ products: products.slice(), at: new Date().toISOString() });
-      writeHistory(rows);
+    function saveHistory(products,payload) {
+      if (!payload||!Array.isArray(payload.results))return;
+      const id="run-"+Date.now()+"-"+Math.random().toString(36).slice(2,9);
+      activeHistoryId=id;
+      const entry={
+        id,at:new Date().toISOString(),products:products.slice(),
+        results:payload.results.map(historyResult),
+        states:payload.results.map(()=>({revision:0,decision:"PENDING",selected_ld_id:null,edited:false}))
+      };
+      writeHistory([entry,...readHistory()]);
+    }
+    function updateHistorySnapshot() {
+      if (!activeHistoryId)return;
+      const history=readHistory();
+      const entry=history.find(x=>x.id===activeHistoryId);
+      if (!entry)return;
+      entry.results=liveResults.map(historyResult);
+      entry.states=rowStates.map(s=>({
+        revision:s.revision||0,
+        decision:s.decision||"PENDING",
+        selected_ld_id:s.selected_ld_id??null,
+        edited:!!s.edited
+      }));
+      entry.updated_at=new Date().toISOString();
+      writeHistory(history);
+    }
+    function restoreHistory(entry) {
+      byId("query").value=entry.products.join("\n");
+      refreshInputCount();showError("");closeHistory();
+      // Old sessions cannot be mutated without their original capability,
+      // intentionally never written to browser storage.
+      activeHistoryId=null;
+      renderResponse({results:entry.results,states:entry.states,request_id:entry.id},
+                     {archived:true});
     }
     function renderHistory() {
-      const history = readHistory();
-      byId("history-count").textContent = String(history.length);
-      const host = byId("history-list");
+      const stored=readHistory();
+      byId("history-count").textContent=String(stored.length);
+      const host=byId("history-list");
       host.replaceChildren();
-      if (!history.length) {
-        host.append(el("p", "Пока нет запросов. После первого подбора вы сможете быстро вернуть введённую номенклатуру.", "subtle"));
-        byId("history-clear").hidden = true; return;
+      if (!historyStorageAvailable)
+        host.append(el("p","Браузер запрещает постоянное хранение. История будет потеряна при закрытии вкладки.","detail-alert"));
+      if (!stored.length) {
+        let legacy=[];
+        try {legacy=JSON.parse(localStorage.getItem(OLD_HISTORY_KEY)||"[]");} catch {}
+        const message=legacy.length
+          ?"В старой версии сохранялись только строки без ответов. Эти результаты восстановить из браузера нельзя. Запустите поиск заново — новые снимки будут сохранены полностью."
+          :"История пуста. После обработки здесь появятся все позиции вместе с найденными артикулами и статусами.";
+        host.append(el("p",message,"subtle"));
+        byId("history-clear").hidden=true;return;
       }
-      byId("history-clear").hidden = false;
-      history.forEach(entry => {
-        const item = el("button", null, "history-item");
-        item.type = "button";
-        const date = el("time", "");
-        const parsed = new Date(entry.at);
-        date.textContent = Number.isNaN(parsed.getTime()) ? "Недавний запрос" :
-          parsed.toLocaleString("ru-RU", { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" });
-        add(item, date, el("strong", entry.products[0], ""), el("span",
-          entry.products.length === 1 ? "1 позиция" : countLabel(entry.products.length) + " · Нажмите, чтобы повторить",
-          "subtle"));
-        item.addEventListener("click", () => {
-          byId("query").value = entry.products.join("\n");
-          refreshInputCount(); showError("");
-          closeHistory(); byId("query").focus();
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        });
+      byId("history-clear").hidden=false;
+      stored.forEach(entry=>{
+        const item=el("button",null,"history-item");
+        item.type="button";
+        const time=el("time");
+        const date=new Date(entry.at);
+        time.textContent=Number.isNaN(date.getTime())?"Недавний запуск":
+          date.toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+        const found=entry.results.filter(x=>x.status==="MATCHED").length;
+        const decisions=(entry.states||[]).filter(x=>x&&["ACCEPTED","SELECTED_OTHER"].includes(x.decision)).length;
+        add(item,time,
+          el("strong",entry.products.length+" позиций · найдено "+found+" · подтверждено "+decisions),
+          el("span",entry.products[0],"subtle"),
+          el("span","Открыть сохранённые ответы и артикулы →","history-open-snapshot"));
+        item.addEventListener("click",()=>restoreHistory(entry));
         host.append(item);
       });
     }
@@ -569,7 +654,8 @@
       }
     });
     byId("history-clear").addEventListener("click", () => {
-      if (!window.confirm("Удалить все сохранённые запросы из этого браузера?")) return;
+      if (!window.confirm("Удалить сохранённые запросы и все снимки ответов из этого браузера?")) return;
+      activeHistoryId=null;
       writeHistory([]);
     });
 
