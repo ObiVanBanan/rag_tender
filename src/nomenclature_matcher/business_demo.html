@@ -803,12 +803,25 @@ main{max-width:1510px;padding:0 34px 78px}
         let payload={...reviewHeaders(index),action};
         if (ldId!=null) payload.selected_ld_id=ldId;
         let result;
-        try { result=await postReview("/v1/demo/decision",payload); }
-        catch(e) {
-          if (!/не все обязательные характеристики подтверждены/i.test(e.message)) throw e;
-          if (!window.confirm("Проверка не смогла подтвердить все обязательные характеристики. Вы лично проверили применимость изделия и принимаете ответственность за выбор?")) return;
-          result=await postReview("/v1/demo/decision",{...payload,acknowledge_unknown:true});
+        // Manual selection is distinct from an algorithm-approved match.
+        // Every technical exception is explicitly acknowledged and logged.
+        for(let attempt=0;attempt<3;attempt++){
+          try {result=await postReview("/v1/demo/decision",payload);break;}
+          catch(e){
+            if(/расхождение с обязательными характеристиками/i.test(e.message) &&
+               action==="SELECTED_OTHER" && !payload.acknowledge_mismatch){
+              if(!window.confirm(e.message+"\n\nЭто не подтверждённый аналог. Выбрать вручную под свою ответственность?")) return;
+              payload.acknowledge_mismatch=true;continue;
+            }
+            if(/не все обязательные характеристики подтверждены/i.test(e.message) &&
+               !payload.acknowledge_unknown){
+              if(!window.confirm(e.message+"\n\nПодтверждаете ручную проверку совместимости?"))return;
+              payload.acknowledge_unknown=true;continue;
+            }
+            throw e;
+          }
         }
+        if(!result)throw Error("Не удалось подтвердить ручной выбор.");
         rowStates[index]={...rowStates[index],...result};
         repaintReview(index);
         persistHistorySnapshot(activeProducts);
@@ -951,6 +964,7 @@ main{max-width:1510px;padding:0 34px 78px}
         const fields=(d.missing_fields||[]).map(x=>missingLabels[x]||x);
         if(fields.length) info.append(el("div","Не хватает: "+fields.join(", "),"detail-alert"));
       }
+      if(state.manual_mismatch) info.append(el("div","Внимание: это ручной выбор вопреки техническим ограничениям. Совместимость не подтверждена.","detail-alert"));
       if(current){
         const verdict=el("div",(current.review_note||"Требуется проверка характеристик"),
                         current.review_gate==="BLOCKED"?"detail-alert":
@@ -1010,10 +1024,10 @@ main{max-width:1510px;padding:0 34px 78px}
           }else if(currentPrimary) {
             actions.append(el("span","Основной вариант","subtle"));
           }else {
-            const choose=el("button",blocked?"Не подходит":"Выбрать этот LD");
-            choose.type="button";choose.disabled=blocked;
-            if(blocked)choose.title=c.review_note||"Не совпадают обязательные параметры";
-            else choose.addEventListener("click",()=>userDecision(index,"SELECTED_OTHER",c.ld_id));
+            const choose=el("button",blocked?"Выбрать вручную":"Выбрать этот LD");
+            choose.type="button";
+            if(blocked)choose.title="Есть расхождения: допускается только неподтверждённый ручной выбор";
+            choose.addEventListener("click",()=>userDecision(index,"SELECTED_OTHER",c.ld_id));
             actions.append(choose);
           }
           row.append(actions);table.append(row);
@@ -1066,6 +1080,7 @@ main{max-width:1510px;padding:0 34px 78px}
       if (state.decision === "REJECTED") status.append(el("span","Отклонено пользователем","user-status"));
       if (state.decision === "ACCEPTED") status.append(el("span","Принято пользователем","user-status"));
       if (state.decision === "SELECTED_OTHER") status.append(el("span","Выбран другой вариант","user-status"));
+      if (state.manual_mismatch) status.append(el("span","Ручной выбор с техническими расхождениями — не подтверждён","detail-alert"));
       const toggle = el("button", null, "open-detail");
       toggle.type = "button"; toggle.setAttribute("aria-expanded", "false");
       toggle.setAttribute("aria-label", "Подробнее о результате для позиции " + (index + 1));
