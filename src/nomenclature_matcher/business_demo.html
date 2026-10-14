@@ -429,15 +429,17 @@ main{max-width:1510px;padding:0 34px 78px}
       <h2 id="history-title">История запросов</h2>
       <button id="history-close" class="icon-btn" type="button" aria-label="Закрыть историю">×</button>
     </div>
-    <p class="subtle">Хранится только в этом браузере. Нажмите на запрос, чтобы снова вставить номенклатуру в форму.</p>
+    <p class="subtle">Сохранены запрос и результат на момент подбора, включая выбор пользователя. Хранение только в этом браузере. Открытие слепка не запускает поиск повторно.</p>
     <div id="history-list" class="history-list"></div>
+    <p id="history-save-note" class="review-error" role="status" hidden></p>
     <button id="history-clear" type="button" class="history-clear">Очистить историю</button>
   </aside>
 
   <script>
     "use strict";
     const byId = id => document.getElementById(id);
-    const HISTORY_KEY = "ld-tender-demo-query-history-v2";
+    const HISTORY_KEY = "ld-tender-demo-snapshots-v3";
+    const LEGACY_HISTORY_KEY = "ld-tender-demo-query-history-v2";
     const HISTORY_LIMIT = 15;
     const MAX_ITEMS = 10;
     const MAX_ITEM_LENGTH = 2000;
@@ -446,6 +448,8 @@ main{max-width:1510px;padding:0 34px 78px}
     let activeReview = null;
     let liveResults = [];
     let rowStates = [];
+    let activeHistoryId = null;
+    let snapshotMode = false;
 
     function el(tag, text, cls) {
       const node = document.createElement(tag);
@@ -474,53 +478,117 @@ main{max-width:1510px;padding:0 34px 78px}
       byId("error").style.display = message ? "block" : "none";
     }
 
-    // Local history saves original query strings after a successful run.
-    // Never store result payloads, gold labels, scores or credentials.
+    // Snapshot history: original tender lines + actual result at that point in time.
+    // Never persist review capabilities, passwords, model scores or provider data.
+    function publicSnapshotItem(d) {
+      const keepVariant=c=>({
+        ld_id:c.ld_id,name:c.name,article:c.article,dn:c.dn,pn:c.pn,
+        joining_type:c.joining_type,reason:c.reason,
+        selection:c.selection,rank:c.rank,review_gate:c.review_gate,
+        review_note:c.review_note,
+        comparison:{rows:(c.comparison&&c.comparison.rows)||[]}
+      });
+      const main=(d.recommended||[]).map(keepVariant);
+      const other=(d.other_candidates||[]).map(keepVariant);
+      return {
+        input:d.input,source_input:d.source_input,status:d.status,
+        message:d.message,missing_fields:d.missing_fields||[],
+        parameters:d.parameters||[],
+        normalized_query:d.normalized_query,corrected_query:d.corrected_query,
+        editable_constraints:d.editable_constraints||{},
+        recommended:main,other_candidates:other,
+        candidates:(d.candidates||[...main,...other]).map(keepVariant)
+      };
+    }
     function readHistory() {
       try {
-        const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-        if (!Array.isArray(value)) return [];
-        return value.filter(x => x && Array.isArray(x.products) && x.products.length <= MAX_ITEMS &&
-          x.products.every(p => typeof p === "string" && p.length <= MAX_ITEM_LENGTH))
-          .slice(0, HISTORY_LIMIT);
-      } catch { return []; }
+        const saved=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
+        if(!Array.isArray(saved))return [];
+        return saved.filter(x=>x && Array.isArray(x.products) && x.products.length<=MAX_ITEMS &&
+          x.products.every(p=>typeof p==="string"&&p.length<=MAX_ITEM_LENGTH) &&
+          (!x.results || (Array.isArray(x.results)&&x.results.length<=MAX_ITEMS)))
+          .slice(0,HISTORY_LIMIT);
+      }catch {return [];}
+    }
+    function readLegacyHistory() {
+      try {
+        const old=JSON.parse(localStorage.getItem(LEGACY_HISTORY_KEY)||"[]");
+        if(!Array.isArray(old))return [];
+        return old.filter(x=>x && Array.isArray(x.products)&&x.products.length<=MAX_ITEMS)
+          .slice(0,HISTORY_LIMIT).map((x,i)=>({
+            id:"legacy-"+i,at:x.at,products:x.products,results:null,rowStates:null,
+            legacy:true
+          }));
+      }catch{return [];}
     }
     function writeHistory(rows) {
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(rows.slice(0, HISTORY_LIMIT))); }
-      catch { /* Private mode, blocked storage or full quota: UI still works. */ }
-      renderHistory();
+      // Larger batches may exceed storage quota; evict older snapshots first.
+      let pending=rows.slice(0,HISTORY_LIMIT);
+      try{
+        while(pending.length){
+          try{localStorage.setItem(HISTORY_KEY,JSON.stringify(pending));renderHistory();return true;}
+          catch(e){pending.pop();}
+        }
+        localStorage.removeItem(HISTORY_KEY);
+      }catch{}
+      renderHistory();return false;
     }
-    function saveHistory(products) {
-      const signature = JSON.stringify(products);
-      const rows = readHistory().filter(x => JSON.stringify(x.products) !== signature);
-      rows.unshift({ products: products.slice(), at: new Date().toISOString() });
-      writeHistory(rows);
+    function persistHistorySnapshot(products,forceNew=false) {
+      if(!liveResults.length)return false;
+      const snapshot={
+        id:activeHistoryId||("run-"+Date.now()+"-"+Math.random().toString(36).slice(2)),
+        at:new Date().toISOString(),
+        products:products.slice(),
+        results:liveResults.map(publicSnapshotItem),
+        rowStates:rowStates.map(s=>({
+          revision:s.revision,decision:s.decision,edited:!!s.edited,
+          selected_ld_id:s.selected_ld_id
+        }))
+      };
+      if(forceNew || !activeHistoryId)activeHistoryId=snapshot.id;
+      const previous=readHistory().filter(x=>x.id!==snapshot.id);
+      const ok=writeHistory([snapshot,...previous]);
+      const hint=byId("history-save-note");
+      if(hint){
+        hint.hidden=ok;
+        hint.textContent=ok?"":"Не удалось сохранить слепок в браузере. Проверьте доступное место.";
+      }
+      return ok;
     }
     function renderHistory() {
-      const history = readHistory();
-      byId("history-count").textContent = String(history.length);
-      const host = byId("history-list");
-      host.replaceChildren();
-      if (!history.length) {
-        host.append(el("p", "Пока нет запросов. После первого подбора вы сможете быстро вернуть введённую номенклатуру.", "subtle"));
-        byId("history-clear").hidden = true; return;
+      const snapshots=readHistory();
+      const all=[...snapshots,...readLegacyHistory()].slice(0,HISTORY_LIMIT);
+      byId("history-count").textContent=String(all.length);
+      const host=byId("history-list");host.replaceChildren();
+      if(!all.length){
+        host.append(el("p","Пока нет истории. После поиска здесь сохранятся введённые строки и полученные результаты.","subtle"));
+        byId("history-clear").hidden=true;return;
       }
-      byId("history-clear").hidden = false;
-      history.forEach(entry => {
-        const item = el("button", null, "history-item");
-        item.type = "button";
-        const date = el("time", "");
-        const parsed = new Date(entry.at);
-        date.textContent = Number.isNaN(parsed.getTime()) ? "Недавний запрос" :
-          parsed.toLocaleString("ru-RU", { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" });
-        add(item, date, el("strong", entry.products[0], ""), el("span",
-          entry.products.length === 1 ? "1 позиция" : countLabel(entry.products.length) + " · Нажмите, чтобы повторить",
-          "subtle"));
-        item.addEventListener("click", () => {
-          byId("query").value = entry.products.join("\n");
-          refreshInputCount(); showError("");
-          closeHistory(); byId("query").focus();
-          window.scrollTo({ top: 0, behavior: "smooth" });
+      byId("history-clear").hidden=false;
+      all.forEach(entry=>{
+        const item=el("button",null,"history-item");item.type="button";
+        const date=el("time","");
+        const parsed=new Date(entry.at);
+        date.textContent=Number.isNaN(parsed.getTime())?"Сохранённый запрос":
+          parsed.toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
+        const matchCount=(entry.results||[]).filter(r=>r.status==="MATCHED").length;
+        const summary=entry.results?
+          entry.products.length+" позиций · найдено "+matchCount+
+          " · подтверждено "+(entry.rowStates||[]).filter(s=>s&&["ACCEPTED","SELECTED_OTHER"].includes(s.decision)).length:
+          "Старый запрос (ответ ранее не сохранялся)";
+        add(item,date,el("strong",entry.products[0]||"Номенклатура"),
+            el("span",summary,"subtle"));
+        item.addEventListener("click",()=>{
+          byId("query").value=entry.products.join("\n");refreshInputCount();showError("");
+          closeHistory();
+          if(entry.results){
+            renderResponse({results:entry.results},{historical:true,states:entry.rowStates||[]});
+            byId("results-summary").textContent="Сохранённый слепок · без повторного поиска";
+            byId("results-section").scrollIntoView({behavior:"smooth",block:"start"});
+          }else{
+            byId("query").focus();
+            window.scrollTo({top:0,behavior:"smooth"});
+          }
         });
         host.append(item);
       });
@@ -554,7 +622,9 @@ main{max-width:1510px;padding:0 34px 78px}
     });
     byId("history-clear").addEventListener("click", () => {
       if (!window.confirm("Удалить все сохранённые запросы из этого браузера?")) return;
+      try{localStorage.removeItem(LEGACY_HISTORY_KEY);}catch{}
       writeHistory([]);
+      activeHistoryId=null;
     });
 
     // CSV / TSV support. Excel columns may be pasted directly as plain text.
@@ -739,6 +809,7 @@ main{max-width:1510px;padding:0 34px 78px}
         }
         rowStates[index]={...rowStates[index],...result};
         repaintReview(index);
+        persistHistorySnapshot(readInput());
       } catch(e) { alert(e.message || "Не удалось сохранить выбор."); }
     }
     function fieldEditor(d,index) {
@@ -790,6 +861,7 @@ main{max-width:1510px;padding:0 34px 78px}
           liveResults[index]=result.result;
           rowStates[index]={...rowStates[index],revision:result.revision,decision:result.decision,edited:true,selected_ld_id:null};
           repaintReview(index);
+          persistHistorySnapshot(readInput());
         } catch(e) {err.textContent=e.message||"Ошибка повторного подбора.";}
         finally {btn.disabled=false;}
       });
@@ -1008,11 +1080,14 @@ main{max-width:1510px;padding:0 34px 78px}
       });
       add(section, grid, detail); return section;
     }
-    function renderResponse(payload) {
-      const results = Array.isArray(payload.results) ? payload.results : [];
-      activeReview={request_id:payload.request_id,review_token:payload.review_token};
+    function renderResponse(payload,opts={}) {
+      const results=Array.isArray(payload.results)?payload.results:[];
+      snapshotMode=!!opts.historical;
+      activeReview=snapshotMode?null:{request_id:payload.request_id,review_token:payload.review_token};
+      activeHistoryId=snapshotMode?null:null;
       liveResults=results;
-      rowStates=results.map(()=>({revision:0,decision:"PENDING",selected_ld_id:null}));
+      rowStates=results.map((_,i)=>opts.states&&opts.states[i]?
+        {...opts.states[i]}:{revision:0,decision:"PENDING",selected_ld_id:null});
       const list = el("div", null, "results-list");
       const header = el("div", null, "results-header");
       ["Исходная номенклатура", "Предложенный аналог LD", "Артикул", "Статус"].forEach(s => header.append(el("span", s)));
@@ -1049,7 +1124,7 @@ main{max-width:1510px;padding:0 34px 78px}
         const data = await response.json();
         if (!Array.isArray(data.results)) throw Error("Получен некорректный ответ сервиса.");
         renderResponse(data);
-        saveHistory(products);
+        persistHistorySnapshot(products,true);
       } catch (error) {
         showError(error.message || "Не удалось выполнить подбор.");
       } finally {
