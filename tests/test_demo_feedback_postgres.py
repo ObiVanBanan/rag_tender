@@ -54,7 +54,15 @@ def test_real_database_review_events_and_stats_are_durable():
         rejected=store.decide(request_id,0,token,2,"REJECTED")
         assert rejected["decision"]=="REJECTED" and rejected["revision"]==3
 
-        counters=store.stats(1)["counts"]
+        report=store.stats(1)
+        counters=report["counts"]
+        assert report["timeline"] and report["timeline"][-1]["processed"]>=1
+        assert report["timeline"][-1]["auto_matched"]>=1
+        assert "insufficient" in report["timeline"][-1]
+        assert report["feedback_timeline"], "Feedback chart must have real daily DB data"
+        assert report["feedback_timeline"][-1]["selected_other"]>=1
+        assert report["feedback_timeline"][-1]["corrected"]>=1
+        assert report["feedback_timeline"][-1]["rejected"]>=1
         assert counters["rejected"]>=1
         assert counters["parameter_edited"]>=1
         assert counters["selected_other"]>=0
