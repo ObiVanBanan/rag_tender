@@ -68,8 +68,7 @@ def mock_result():
     }
 
 
-@pytest.mark.parametrize("open_stats",[False,True])
-def test_reference_ui_in_real_browser(open_stats):
+def test_reference_ui_in_real_browser():
     payload=mock_result()
     decisions=[]
     with sync_playwright() as browser_host:
@@ -128,9 +127,8 @@ def test_reference_ui_in_real_browser(open_stats):
         assert "review_token" not in json.dumps(history)
         assert "ФПНД-080.16-ст20-1080001" in json.dumps(history)
         assert "metrics" not in json.dumps(history)
-        if not open_stats:
-            ARTIFACT.mkdir(exist_ok=True)
-            page.screenshot(path=str(ARTIFACT/"demo-reference-review.png"),full_page=True)
+        ARTIFACT.mkdir(exist_ok=True)
+        page.screenshot(path=str(ARTIFACT/"demo-reference-review.png"),full_page=True)
         browser.close()
 
 
@@ -160,7 +158,7 @@ def test_admin_statistics_charts_in_real_browser():
         page.route("**/v1/demo/stats**",lambda route:route.fulfill(
             status=200,content_type="application/json",body=json.dumps(data)))
         page.goto(URL+"/demo/stats")
-        page.locator("#processed").get_by_text("10").wait_for()
+        page.wait_for_function("document.querySelector('#processed').textContent.trim() === '10'")
         assert page.locator(".chart-column").count()==2
         assert "conic-gradient" in page.locator("#donut").get_attribute("style")
         assert page.locator("#interaction-chart polyline").count()==4
