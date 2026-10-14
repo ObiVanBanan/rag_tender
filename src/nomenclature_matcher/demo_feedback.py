@@ -92,6 +92,67 @@ class DemoFeedbackStore:
                     )
         return token
 
+    def _authorized_session(self, conn: Any, request_id: str, token: str) -> None:
+        session = conn.execute(
+            "SELECT token_hash FROM demo_review_sessions WHERE request_id=%s FOR UPDATE",
+            (request_id,),
+        ).fetchone()
+        if not session or not compare_digest(str(session[0]), token_digest(token)):
+            raise ReviewNotFound("Сессия не найдена. Запустите подбор повторно.")
+
+    def assert_can_append(
+        self, request_id: str, token: str, expected_count: int, *, max_rows: int = 100
+    ) -> None:
+        """Validate before paid inference; the append itself checks again."""
+        with self.pool.connection() as conn:
+            with conn.transaction():
+                self._authorized_session(conn, request_id, token)
+                count = conn.execute(
+                    "SELECT count(*) FROM demo_review_rows WHERE request_id=%s",
+                    (request_id,),
+                ).fetchone()[0]
+                if count != expected_count:
+                    raise ReviewConflict("Список изменился в другой вкладке. Обновите результаты.")
+                if count >= max_rows:
+                    raise ReviewConflict("Достигнут лимит в 100 позиций на один запуск.")
+
+    def append(self, request_id: str, token: str, expected_count: int,
+               result: dict[str, Any], *, max_rows: int = 100) -> dict[str, Any]:
+        """Atomically attach exactly one evaluated row to the original batch.
+
+        Lock the session first: two browser tabs cannot append the same index.
+        The existing rows and all human decisions remain untouched.
+        """
+        with self.pool.connection() as conn:
+            with conn.transaction():
+                self._authorized_session(conn, request_id, token)
+                count, latest = conn.execute(
+                    """SELECT count(*),max(item_index)
+                       FROM demo_review_rows WHERE request_id=%s""",
+                    (request_id,),
+                ).fetchone()
+                if count != expected_count:
+                    raise ReviewConflict("Список изменился в другой вкладке. Обновите результаты.")
+                if count >= max_rows:
+                    raise ReviewConflict("Достигнут лимит в 100 позиций на один запуск.")
+                # Contiguous indices are an invariant, not a user-controlled ID.
+                if latest is not None and latest + 1 != count:
+                    raise ReviewConflict("Некорректная нумерация позиций в сеансе.")
+                index = count
+                conn.execute(
+                    """INSERT INTO demo_review_rows(
+                           request_id,item_index,initial_status,initial_result,current_result)
+                       VALUES (%s,%s,%s,%s,%s)""",
+                    (request_id,index,result["status"],Jsonb(result),Jsonb(result)),
+                )
+                conn.execute(
+                    """INSERT INTO demo_review_events(
+                           request_id,item_index,event_type,event_data)
+                       VALUES (%s,%s,'ITEM_ADDED',%s)""",
+                    (request_id,index,Jsonb({"status":result["status"]})),
+                )
+                return {"item_index":index,"revision":0,"decision":"PENDING","result":result}
+
     def _locked_row(self, conn: Any, request_id: str, index: int, token: str) -> dict[str, Any]:
         session = conn.execute(
             "SELECT token_hash FROM demo_review_sessions WHERE request_id=%s",
