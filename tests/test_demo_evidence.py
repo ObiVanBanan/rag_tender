@@ -10,7 +10,7 @@ def test_comparison_has_distinct_matched_mismatch_and_unknown():
     matched=MatchResult(query="Кран шаровой DN50 PN16 резьбовой",
         status="MATCHED",ld_product=candidate, candidates=[candidate],selected=[choice],
         query_interpretation={"constraints":{"product_type":"ball_valve",
-            "dn":50,"pn_min_mpa":1.6,"joining_type":"threaded","control":"manual"},
+            "dn":50,"pn_min_mpa":1.6,"joining_type":"threaded","working_medium":"water"},
             "hard_constraints":{"dn":50,"pn_min_mpa":1.6,"joining_type":"threaded"}})
     dto=build_demo_item(matched,200)
     cmp=dto["recommended"][0]["comparison"]
@@ -18,6 +18,6 @@ def test_comparison_has_distinct_matched_mismatch_and_unknown():
     assert statuses["dn"]=="MATCH"
     assert statuses["pn_min_mpa"]=="MATCH"
     assert statuses["joining_type"]=="MISMATCH"
-    assert statuses["control"]=="UNKNOWN"
+    assert statuses["working_medium"]=="UNKNOWN"
     assert cmp["mismatched"]>=1
     assert cmp["unknown"]>=1
