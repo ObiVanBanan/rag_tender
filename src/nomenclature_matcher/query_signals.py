@@ -129,6 +129,33 @@ def has_product_identity(query: str) -> bool:
     return False
 
 
+_FLANGE_SLEEVE_PATTERN = re.compile(
+    r"(?<![а-яa-z])фланец(?![а-яa-z]).{0,120}?"
+    r"(?:ду|dn|dy|du)\s*[-:]?\s*(\d{1,4})\s*(?:мм)?\.?\s+"
+    r"под\s+втулку\s+(?:пнд|пэ|полиэтилен\w*)\s*"
+    r"(?:ду|dn|dy|du)\s*[-:]?\s*(\d{1,4})",
+    re.IGNORECASE,
+)
+
+
+def flange_sleeve_dn_pair(query: str) -> tuple[int, int] | None:
+    """Flange's own DN vs mating HDPE sleeve's DN; never treat two arbitrary DNs as unambiguous.
+
+    This is an explicit, limited technical notation, not a gold/case-specific
+    mapping. If there are additional DN tokens, preserve the normal ambiguity.
+    """
+    text = normalize_query_text(query)
+    matches = re.findall(r"(?:ду|dn|dy|du)\s*[-:]?\s*(\d{1,4})", text)
+    if len(matches) != 2:
+        return None
+    match = _FLANGE_SLEEVE_PATTERN.search(text)
+    if match is None or [int(x) for x in matches] != [
+        int(match.group(1)), int(match.group(2))
+    ]:
+        return None
+    return int(match.group(1)), int(match.group(2))
+
+
 def explicit_dn_from_query(query: str) -> int | None:
     """Return deterministic DN only when the size is explicit and unambiguous in QUERY."""
     text = normalize_query_text(query)
@@ -139,7 +166,8 @@ def explicit_dn_from_query(query: str) -> int | None:
     if len(dn_values) == 1:
         return next(iter(dn_values))
     if len(dn_values) > 1:
-        return None
+        profile = flange_sleeve_dn_pair(query)
+        return profile[0] if profile else None
 
     inch_values = set()
     for match in _INCH_PATTERN.finditer(text):
@@ -225,6 +253,12 @@ def explicit_joining_type_from_query(query: str) -> str | None:
         return "compression"
     if re.search(r"резьб|муфт", text):
         return "threaded"
+    # A steel flange described as "плоский приварной" is installed through
+    # flanges. "Приварной" describes how the flange attaches to a pipe, not a
+    # welded-end ball valve. This was covered by the older exp4 nomenclature
+    # handling but must NOT leak to valves.
+    if re.search(r"(?<![а-яa-z])фланец(?![а-яa-z])", text) and "приварн" in text:
+        return "flanged"
     if re.search(r"фланц|\bф\s*/\s*ф\b", text):
         return "flanged"
     if re.search(
