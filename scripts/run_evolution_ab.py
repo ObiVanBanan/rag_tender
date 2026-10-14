@@ -1,7 +1,7 @@
-"""Run comparable historical/current/candidate tender matcher probes.
+"""Run comparable pre-100/current/candidate tender matcher probes.
 
-Uses the exact Sept 9 baseline commit (pre-query-gate) for tender20 causal
-comparison, and the previous business-demo commit for frozen100 promotion.
+Uses the exact last commit before competitor100 retrieval optimization (Sep 24)
+for tender20 causal comparison, and the business-demo head for frozen100 promotion.
 Calls the match_batch script in each isolated worktree; Qdrant is read-only.
 Never sends any acceptable LD IDs to the model. GOLD stays under .tmp/.
 """
@@ -21,7 +21,9 @@ from pathlib import Path
 from compare_regression_outputs import compare, evaluate
 
 ROOT = Path(__file__).resolve().parents[1]
-HISTORIC_REF = "5768c4591c9a92cc3a9c33338a163b83a15d81d5"
+HISTORIC_REF = "336d7c08cbface23afb0cbd6ae83736e294d870f"
+# Immutable 20-case label source: this is deliberately NOT read from the pre100 branch.
+TENDER_GOLD_REF = "e1661896e8d0c7fbb18c02adb4abb9a1d93b4d2f"
 MODERN_REF = "origin/codex/business-demo-oct16"
 
 
@@ -45,9 +47,11 @@ def worktree(ref: str, directory: Path) -> tuple[Path, str]:
     return path, actual
 
 
-def load_cases(cohort: str, historic_dir: Path) -> list[dict]:
+def load_cases(cohort: str, tender_gold_path: Path | None = None) -> list[dict]:
     if cohort == "tender20":
-        data = json.loads((historic_dir/"data/tender_queries_v1_harness_cases.json").read_text(encoding="utf-8"))
+        if tender_gold_path is None:
+            raise ValueError("Tender20 requires an explicit, pinned independent human-verified GOLD file")
+        data = json.loads(tender_gold_path.read_text(encoding="utf-8"))
         cases = data["cases"]
         if len(cases) != 20:
             raise ValueError(f"Historical verified tender benchmark changed: {len(cases)} instead of 20")
@@ -109,8 +113,13 @@ def run_comparison(cohort: str, *, historical_checkout: Path | None,
                    catalog: Path, env: dict[str,str], output_dir: Path,
                    kb_seed: Path | None = None) -> dict:
     if cohort == "tender20" and historical_checkout is None:
-        raise ValueError("Tender20 requires historical Sept9 checkout")
-    cases=load_cases(cohort,historical_checkout or candidate_checkout)
+        raise ValueError("Tender20 requires historical pre100 checkout")
+    gold_path=output_dir/"tender20.gold.private.json" if cohort == "tender20" else None
+    if gold_path is not None:
+        # Labels are pinned to a September 9 data commit, never read from the
+        # historical algorithm branch (which does not contain tender labels).
+        gold_path.write_text(git("show",f"{TENDER_GOLD_REF}:data/tender_queries_v1_harness_cases.json")+"\n",encoding="utf-8")
+    cases=load_cases(cohort,gold_path)
     cohort_dir=output_dir/cohort
     cohort_dir.mkdir(parents=True,exist_ok=True)
     (cohort_dir/"cases.private.json").write_text(
@@ -168,7 +177,8 @@ def main() -> int:
     p.add_argument("--cohort",choices=["tender20","frozen100","both"],default="tender20")
     p.add_argument("--csv",type=Path,required=True,help="Single shared LD catalog CSV for both runs")
     p.add_argument("--env-file",type=Path,required=True,help="One shared environment containing provider keys and Qdrant URL")
-    p.add_argument("--historic-ref",default=HISTORIC_REF)
+    p.add_argument("--historic-ref",default=HISTORIC_REF,
+                   help="Last pre-optimization matcher commit, Sep 24; defaults to pinned SHA")
     p.add_argument("--current-ref",default=MODERN_REF)
     p.add_argument("--out",type=Path,default=Path(".tmp/evolution-ab"))
     p.add_argument("--run-live",action="store_true",help="Required: these runs incur embedding+LLM costs")
@@ -205,6 +215,7 @@ def main() -> int:
         "catalog_sha256":hashlib.sha256(catalog.read_bytes()).hexdigest(),
         "competitor_kb_initial_sha256":hashlib.sha256(kb_snapshot.read_bytes()).hexdigest() if kb_snapshot else None,
         "historic_ref":historic_sha,"current_ref":current_sha,"candidate_ref":candidate_sha,
+        "tender20_gold_ref":git("rev-parse",TENDER_GOLD_REF),
     }
     (out/"environment_fingerprint.json").write_text(
         json.dumps(environment_fingerprint,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
