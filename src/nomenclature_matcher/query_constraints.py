@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from .models import LDProduct
 from .product_safety import flange_spec_from_query, thread_size_from_text
+from .flange_geometry import pe_stub_pipe_od_from_bore
 
 
 DEFAULT_QUERY_CONSTRAINTS_PROMPT = (
@@ -168,6 +169,19 @@ def candidate_flange_kind(product: LDProduct) -> str | None:
     spec = flange_spec_from_query(name)
     if spec is not None:
         return spec.kind
+
+    # The LD catalogue uses "Фланец ПНД 1-080х16 ... внутр.108 мм"
+    # and "Тип продукта: Фланец для ПНД труб", not "под втулку Ду90".
+    # Never infer the flange material from "ПНД" here: PND refers to
+    # the mating pipe and candidate_material() checks steel separately.
+    types = _property_values(product, "Тип продукта", "Тип продукта AI")
+    if any(re.search(r"фланец\s+для\s+(?:пнд|пэ|полиэтиленов\w*)\s+труб", _norm(t))
+           for t in types):
+        return "pe_stub"
+    if (re.search(r"\bфланец\s+пнд\b", name) or
+            re.search(r"\bфланец\b.*\bдля\s+(?:пнд|пэ|полиэтиленов\w*)\s+труб", name)):
+        return "pe_stub"
+
     if ("плоск" in name and "привар" in name) or (
         "33259" in name and re.search(r"(?:^|[-\s])01(?:[-\s]|$)", name)
     ):
@@ -175,16 +189,57 @@ def candidate_flange_kind(product: LDProduct) -> str | None:
     return None
 
 
+def candidate_flange_bore_mm(product: LDProduct) -> int | None:
+    """Extract the actual flange inner opening from the LD product text.
+
+    Bore Ø108 is NOT the pipe OD Ø90. Keep the two measurements separate.
+    Do not treat nominal DN, PN, or the article's numeric suffix as bore.
+    """
+    for value in _property_values(
+        product, "Внутренний диаметр", "Внутренний диаметр, мм",
+        "Диаметр внутренний", "Диаметр отверстия", "Внутренний Ø",
+    ):
+        number = _first_number(value)
+        if number is not None and number.is_integer():
+            return int(number)
+    match = re.search(
+        r"(?<![a-zа-я0-9])(?:внутр\.?|вн\.?)\s*"
+        r"(?:(?:диаметр|диам\.?|[dд])\s*)?"
+        r"(?:[øØ⌀]\s*)?(\d{2,4})\s*(?:мм)?(?!\d)",
+        _norm(product.name),
+    )
+    return int(match.group(1)) if match else None
+
+
 def candidate_stub_dn(product: LDProduct) -> int | None:
+    if candidate_flange_kind(product) != "pe_stub":
+        return None
     for value in _property_values(
         product, "Диаметр втулки", "Диаметр втулки ПНД",
-        "Диаметр трубы ПНД", "DN втулки",
+        "Диаметр трубы ПНД", "Наружный диаметр трубы ПНД", "DN втулки",
     ):
         number = _first_number(value)
         if number is not None:
             return int(round(number))
     spec = flange_spec_from_query(product.name)
-    return spec.stub_dn if spec is not None and spec.kind == "pe_stub" else None
+    if spec is not None and spec.kind == "pe_stub":
+        return spec.stub_dn
+
+    # Specific "для трубы Дн110" notation is a PE pipe OD, not steel DN.
+    explicit_pipe = re.search(
+        r"для\s+(?:пэ|пнд)\s+труб\w*.*?"
+        r"(?:для\s+труб\w*\s*)?(?:дн|dn|д)\s*[-:]?\s*(\d{2,4})\b",
+        _norm(product.name),
+    )
+    if explicit_pipe:
+        return int(explicit_pipe.group(1))
+
+    # Only a *verified* unique nominal DN/OD/bore triple is admissible.
+    # Unknown bores and any conflict must remain non-match, not guessed.
+    return pe_stub_pipe_od_from_bore(
+        candidate_flange_dn(product),
+        candidate_flange_bore_mm(product),
+    )
 
 
 def candidate_flange_dn(product: LDProduct) -> int | None:
@@ -559,6 +614,7 @@ def product_snapshot(product: LDProduct, constraints: QueryConstraints | None = 
         "thread_size": candidate_thread_size(product),
         "flange_kind": candidate_flange_kind(product),
         "stub_dn": candidate_stub_dn(product),
+        "flange_bore_mm": candidate_flange_bore_mm(product) if candidate_flange_kind(product) == "pe_stub" else None,
         "product_type": candidate_product_type(product),
         "valve_type": candidate_valve_type(product),
         "body_material": candidate_material(product),
