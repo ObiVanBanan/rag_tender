@@ -335,6 +335,18 @@ def match_products(matcher: NomenclatureMatcher, products: list[str]) -> list[di
                         "confidence": confidence,
                         "error_code": None,
                     }
+                elif match.status == "INSUFFICIENT_PARAMETERS":
+                    item = {
+                        "input": product,
+                        "status": "INSUFFICIENT_PARAMETERS",
+                        "matched_name": None,
+                        "matched_article": None,
+                        "score": None,
+                        "confidence": None,
+                        "error_code": "INSUFFICIENT_PARAMETERS",
+                        "missing_fields": (match.query_interpretation or {}).get("missing_fields", []),
+                        "reason": match.reason,
+                    }
                 elif match.status == "RERANK_FAILED":
                     item = {
                         "input": product,
@@ -383,6 +395,12 @@ def match_products(matcher: NomenclatureMatcher, products: list[str]) -> list[di
                     f"(confidence={item['confidence']}, {duration * 1000:.0f} ms)"
                 )
                 severity = "INFO"
+            elif item["status"] == "INSUFFICIENT_PARAMETERS":
+                summary = (
+                    f"INSUFFICIENT_PARAMETERS — {', '.join(item['missing_fields'])} "
+                    f"({duration * 1000:.0f} ms)"
+                )
+                severity = "WARNING"
             elif item["status"] == "NOT_FOUND":
                 summary = f"NOT_FOUND — {reason_code} ({duration * 1000:.0f} ms)"
                 severity = "WARNING"

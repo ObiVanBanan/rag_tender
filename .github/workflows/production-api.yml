@@ -22,6 +22,10 @@ on:
       - "src/nomenclature_matcher/production.py"
       - "src/nomenclature_matcher/settings.py"
       - "src/nomenclature_matcher/query_signals.py"
+      - "src/nomenclature_matcher/product_safety.py"
+      - "src/nomenclature_matcher/flange_geometry.py"
+      - "tests/test_pe_stub_geometry.py"
+      - "src/nomenclature_matcher/query_constraints.py"
       - "src/nomenclature_matcher/query_interpreter.py"
       - "src/nomenclature_matcher/competitor_decoding.py"
       - "src/nomenclature_matcher/competitor_resolver.py"
@@ -80,6 +84,9 @@ jobs:
           tests/test_competitor_resolver_integration.py
           tests/test_eval_competitor_trace.py
           tests/test_query_signals_exact_identity.py
+          tests/test_query_constraints.py
+          tests/test_product_safety.py
+          tests/test_pe_stub_geometry.py
           tests/test_query_canonicalization.py
           tests/test_web_search_mcp.py
           tests/test_bm25_technical_normalization.py
