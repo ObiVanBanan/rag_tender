@@ -42,7 +42,7 @@ docker compose ps
 curl -f http://127.0.0.1:8000/health/ready
 ```
 
-**Почему `API_PUBLISH_BIND=127.0.0.1:8000`:** строка compose `"${API_PORT:-8000}:8000"` иначе по умолчанию публикует порт напрямую в Интернет.
+**Почему `API_PUBLISH_BIND=127.0.0.1:8000`:** строка Compose `"${API_PUBLISH_BIND:-127.0.0.1:8000}:8000"` открывает порт только на loopback. При этом `API_PORT=8000` остаётся числовым параметром приложения.
 
 ## HTTPS reverse proxy с Caddy на хосте
 
