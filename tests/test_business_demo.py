@@ -84,3 +84,43 @@ def test_pe_flange_geometry_is_readable_without_exposing_accuracy_metrics():
     assert stub["value"] == "Ø90 мм"
     assert kind["value"] == "Под ПНД-втулку"
     assert stub["check"] == "Строгое условие"
+
+
+
+def test_customer_top10_is_real_and_preserves_manual_review_evidence():
+    pool = [
+        SearchCandidate(
+            ld_id=100+i, name=f"Кран LD DN{i}", article=f"LD-{i}",
+            score=1.0-i/100, dn=i, pn="1.6",
+            joining_type="flanged",url=f"https://example.org/products/{i}"
+        )
+        for i in range(13)
+    ]
+    chosen=SelectedMatch(
+        candidate_id=1,ld_id=pool[0].ld_id,name=pool[0].name,
+        article=pool[0].article,llm_confidence=.85,reason="selected")
+    match=MatchResult(
+        query="Кран фланцевый Ду50 Ру16",status="MATCHED",
+        ld_product=pool[0],candidates=pool,selected=[chosen],
+        query_interpretation={
+            "constraints":{"product_type":"ball_valve","dn":50},
+            "hard_constraints":{"dn":50},
+        },
+    )
+    dto=build_demo_item(match,10)
+    assert len(dto["top_candidates"])==10
+    assert len(dto["other_candidates"])==9
+    assert dto["top_candidates"][0]["selection"]=="RECOMMENDED"
+    assert dto["top_candidates"][1]["ld_id"]==101
+    assert len({c["ld_id"] for c in dto["top_candidates"]})==10
+    assert all("technical" in c for c in dto["top_candidates"])
+    assert all("comparison" in c for c in dto["top_candidates"])
+    assert dto["top_candidates"][1]["url"]=="https://example.org/products/1"
+    assert "metrics" in dto  # backend diagnostics, never shown in UI
+
+
+def test_no_candidates_are_not_fabricated_to_fill_top10():
+    result=MatchResult(query="Неизвестная спецификация",status="NOT_FOUND")
+    dto=build_demo_item(result,1)
+    assert dto["top_candidates"]==[]
+    assert dto["other_candidates"]==[]
