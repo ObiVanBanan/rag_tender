@@ -131,6 +131,11 @@ def run_comparison(cohort: str, *, historical_checkout: Path | None,
             kb_path=(cohort_dir/f"{name}.competitor-kb.sqlite3").resolve()
             if kb_seed is not None:
                 shutil.copyfile(kb_seed,kb_path)
+            else:
+                for suffix in ("", "-wal", "-shm"):
+                    leftover=Path(str(kb_path)+suffix)
+                    if leftover.exists():
+                        leftover.unlink()
             branch_env["COMPETITOR_KB_PATH"]=str(kb_path)
         result=run_branch(name,checkout,cases,csv=catalog,env=branch_env,
                           out=cohort_dir/f"{name}.raw.private.json")
