@@ -37,10 +37,12 @@ WEB_SEARCH_ENABLED=false
 
 ```bash
 docker network inspect rag-observability-net >/dev/null 2>&1 || docker network create rag-observability-net
-docker compose up -d --build
-docker compose ps
+docker compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml ps
 curl -f http://127.0.0.1:8000/health/ready
 ```
+
+**Важно:** по умолчанию Docker Compose автоматически читает `docker-compose.override.yml`, который предназначен для параллельного observability-стека и имеет порт 8002. Для основного сервера используйте команду с явным `-f docker-compose.yml`. Если запускаете override, она использует `OBS_API_PUBLISH_BIND=127.0.0.1:8002` — порт также должен оставаться локальным.
 
 **Почему `API_PUBLISH_BIND=127.0.0.1:8000`:** строка Compose `"${API_PUBLISH_BIND:-127.0.0.1:8000}:8000"` открывает порт только на loopback. При этом `API_PORT=8000` остаётся числовым параметром приложения.
 
