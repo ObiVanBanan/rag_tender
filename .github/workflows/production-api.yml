@@ -12,6 +12,8 @@ on:
       - "src/nomenclature_matcher/business_demo.html"
       - "tests/test_business_demo.py"
       - "tests/test_business_demo_ui.py"
+      - "tests/test_demo_reference_top10.py"
+      - "tests/demo_ui_browser_smoke.cjs"
       - "tests/test_demo_feedback_features.py"
       - "tests/test_demo_feedback_postgres.py"
       - "src/nomenclature_matcher/demo_feedback.py"
@@ -95,6 +97,7 @@ jobs:
           tests/test_production_api.py
           tests/test_business_demo.py
           tests/test_business_demo_ui.py
+          tests/test_demo_reference_top10.py
           tests/test_demo_feedback_features.py
           tests/test_demo_feedback_postgres.py
           tests/test_demo_recheck.py
@@ -114,6 +117,9 @@ jobs:
           tests/test_query_canonicalization.py
           tests/test_web_search_mcp.py
           tests/test_bm25_technical_normalization.py
+
+      - name: Exercise customer UI selection and historical snapshot with Node DOM
+        run: node tests/demo_ui_browser_smoke.cjs
 
       - name: Validate Docker Compose
         run: |
