@@ -153,7 +153,7 @@ def test_admin_statistics_charts_in_real_browser():
                  "selected_other":0,"parameter_edited":1},
                 {"day":"2026-10-14","accepted":3,"rejected":1,
                  "selected_other":2,"parameter_edited":2}],
-            "events":{"ACCEPTED":4,"REJECTED":1,"SELECTED_OTHER":2,"PARAMETERS_CORRECTED":3}
+            "events":{"ACCEPTED":4,"REJECTED":1,"SELECTED_OTHER":2,"PARAMETERS_CORRECTED":3,"ITEM_ADDED":2}
         }
         page.route("**/v1/demo/stats**",lambda route:route.fulfill(
             status=200,content_type="application/json",body=json.dumps(data)))
@@ -162,7 +162,7 @@ def test_admin_statistics_charts_in_real_browser():
         assert page.locator(".chart-column").count()==2
         assert "conic-gradient" in page.locator("#donut").get_attribute("style")
         assert page.locator("#interaction-chart polyline").count()==4
-        assert page.locator("#review-bars .review-row").count()==4
+        assert page.locator("#review-bars .review-row").count()==5
         ARTIFACT.mkdir(exist_ok=True)
         page.screenshot(path=str(ARTIFACT/"demo-statistics.png"),full_page=True)
         browser.close()
