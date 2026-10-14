@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from .models import LDProduct
 from .product_safety import flange_spec_from_query, thread_size_from_text
-from .flange_geometry import pe_stub_pipe_od_from_bore
+from .flange_geometry import expected_bore_for_pe_stub, pe_stub_pipe_od_from_bore
 
 
 DEFAULT_QUERY_CONSTRAINTS_PROMPT = (
@@ -214,16 +214,17 @@ def candidate_flange_bore_mm(product: LDProduct) -> int | None:
 def candidate_stub_dn(product: LDProduct) -> int | None:
     if candidate_flange_kind(product) != "pe_stub":
         return None
+    explicit_sizes = []
     for value in _property_values(
         product, "Диаметр втулки", "Диаметр втулки ПНД",
         "Диаметр трубы ПНД", "Наружный диаметр трубы ПНД", "DN втулки",
     ):
         number = _first_number(value)
         if number is not None:
-            return int(round(number))
+            explicit_sizes.append(int(round(number)))
     spec = flange_spec_from_query(product.name)
-    if spec is not None and spec.kind == "pe_stub":
-        return spec.stub_dn
+    if spec is not None and spec.kind == "pe_stub" and spec.stub_dn is not None:
+        explicit_sizes.append(spec.stub_dn)
 
     # Specific "для трубы Дн110" notation is a PE pipe OD, not steel DN.
     explicit_pipe = re.search(
@@ -232,14 +233,23 @@ def candidate_stub_dn(product: LDProduct) -> int | None:
         _norm(product.name),
     )
     if explicit_pipe:
-        return int(explicit_pipe.group(1))
+        explicit_sizes.append(int(explicit_pipe.group(1)))
+
+    # Never accept internally inconsistent catalogue data.
+    if len(set(explicit_sizes)) > 1:
+        return None
+    dn = candidate_flange_dn(product)
+    bore = candidate_flange_bore_mm(product)
+    if explicit_sizes:
+        pipe_od = explicit_sizes[0]
+        expected = expected_bore_for_pe_stub(dn, pipe_od)
+        if expected is not None and bore is not None and bore != expected:
+            return None
+        return pipe_od
 
     # Only a *verified* unique nominal DN/OD/bore triple is admissible.
     # Unknown bores and any conflict must remain non-match, not guessed.
-    return pe_stub_pipe_od_from_bore(
-        candidate_flange_dn(product),
-        candidate_flange_bore_mm(product),
-    )
+    return pe_stub_pipe_od_from_bore(dn, bore)
 
 
 def candidate_flange_dn(product: LDProduct) -> int | None:
