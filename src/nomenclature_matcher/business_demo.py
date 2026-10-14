@@ -168,7 +168,15 @@ def compare_candidate(candidate: Any, interpretation: dict[str, Any]) -> dict[st
 
 
 def as_variant(candidate: Any, selected: Any = None, interpretation: dict[str, Any] | None = None) -> dict[str, Any]:
+    product = LDProduct(
+        id=candidate.ld_id, name=candidate.name, article=candidate.article,
+        dn=candidate.dn, pn=candidate.pn, joining_type=candidate.joining_type,
+        properties=candidate.properties or [],
+    )
+    technical = product_snapshot(product)
     return {
+        "technical": technical,
+        "url": candidate.url if isinstance(candidate.url, str) and candidate.url.startswith("https://") else None,
         "ld_id": candidate.ld_id,
         "name": candidate.name,
         "article": candidate.article,
@@ -205,6 +213,10 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
             chosen.add(match.ld_product.ld_id)
     # Limit the user review surface to ten catalogue products in total.
     alternatives = [as_variant(c, interpretation=interpretation) for c in pool if c.ld_id not in chosen][:max(0, 10-len(recommended))]
+    # This is a real shortlist from retriever, never invented "10 products".
+    # Deduplicated selected recommendations appear first, followed by
+    # retrieval-ranked candidates. Keep original RAG match status unchanged.
+    top_candidates = (recommended + alternatives)[:10]
     status = "ERROR" if match.status == "RERANK_FAILED" else match.status
     reason = str(match.reason or "")
     if status == "ERROR":
@@ -229,6 +241,7 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
         "parameters": parameter_rows(interpretation),
         "recommended": recommended,
         "other_candidates": alternatives,
+        "top_candidates": top_candidates,
         "metrics": {
             "latency_ms": round(duration_ms, 1),
             "retrieved_count": len(pool),
@@ -492,7 +505,7 @@ def business_match(payload: DemoRequest, request: Request) -> dict[str, Any]:
                 "input": product, "status": "ERROR",
                 "message": "Сервис подбора временно недоступен.",
                 "normalized_query": product, "parameters": [],
-                "recommended": [], "other_candidates": [],
+                "recommended": [], "other_candidates": [], "top_candidates": [],
                 "metrics": {"latency_ms": round((perf_counter()-item_started)*1000, 1),
                             "retrieved_count": 0, "recommended_count": 0,
                             "retrieval_score": None},
