@@ -223,6 +223,23 @@
       footer { flex-direction: column; align-items: start; }
     }
 
+    [hidden]{display:none!important}
+    .ld-append-panel{padding:23px 27px;margin:0 0 18px;background:white;box-shadow:0 14px 35px #1111110a;border-top:3px solid #ffcd00;}
+    .ld-append-panel .eyebrow{margin-bottom:9px}
+    .ld-append-panel .ld-section-head h3{font-size:21px;margin:0}
+    .ld-append-label{display:block;font-weight:780;font-size:12px;margin:19px 0 9px}
+    .ld-append-query{display:block;width:100%;padding:14px;border:1px solid #deded5;border-radius:9px;background:#fcfcfa;font-size:13px}
+    .ld-append-query:focus,.ld-append-fields select:focus,.ld-append-fields input:focus{outline:2px solid #e6c248;outline-offset:1px}
+    .ld-append-fields-head{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:21px}
+    .ld-append-fields-head h4{font-size:14px;margin:0}
+    .ld-append-fields{grid-template-columns:repeat(4,minmax(0,1fr));margin:13px 0 19px}
+    .ld-append-fields .editor-field select,.ld-append-fields .editor-field input{background:#fcfcfa}
+    .ld-append-actions{display:flex;align-items:center;gap:15px;flex-wrap:wrap}
+    #append-message{line-height:1.6}
+    .ld-append-status-error{color:#a34138!important}
+    @media(max-width:1000px){.ld-append-fields{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:650px){.ld-append-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.ld-append-panel{padding:17px}}
+    @media(max-width:410px){.ld-append-fields{grid-template-columns:1fr}}
     /* LD v2: reference-inspired results-first engineering workspace. */
     .top {height:74px;border-bottom:3px solid #ffcd00;}
     .top-inner,main,footer{max-width:1490px;}
@@ -481,6 +498,7 @@
           <h2 id="results-title">Результаты подбора</h2>
         </div>
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end">
+          <button id="append-open" type="button" class="secondary" aria-expanded="false" aria-controls="append-panel" hidden>＋ Добавить позицию</button>
           <div class="muted" id="results-summary" aria-live="polite">Пока нет результатов</div>
           <div class="tray" role="status" aria-label="Лоток подобранных изделий">
             <svg class="tray-icon" viewBox="0 0 58 50" fill="none" aria-hidden="true">
@@ -496,6 +514,27 @@
           </div>
         </div>
       </div>
+      <section class="surface ld-append-panel" id="append-panel" aria-labelledby="append-title" hidden>
+        <div class="ld-section-head">
+          <div>
+            <div class="eyebrow">НОВАЯ ПОЗИЦИЯ · БЕЗ ПЕРЕРАСЧЁТА СПИСКА</div>
+            <h3 id="append-title">Добавить ещё один товар</h3>
+          </div>
+          <button id="append-close" class="icon-btn" type="button" aria-label="Закрыть добавление позиции">×</button>
+        </div>
+        <p class="subtle">Введите строку номенклатуры либо заполните технические характеристики ниже. Подбор запустится только для нового товара, остальные результаты и решения сохранятся.</p>
+        <label class="ld-append-label" for="append-query">Наименование / исходная строка <span class="subtle">(необязательно при заполненных характеристиках)</span></label>
+        <input id="append-query" class="ld-append-query" type="text" maxlength="2000" autocomplete="off" placeholder="Например, Кран шаровой штуцерный Ду20 Ру40">
+        <div class="ld-append-fields-head">
+          <h4>Технические характеристики</h4>
+          <span class="subtle">Указывайте только известные значения. PN — в МПа.</span>
+        </div>
+        <div id="append-fields" class="editor-grid ld-append-fields"></div>
+        <div class="ld-append-actions">
+          <button id="append-submit" class="primary" type="button">Найти и добавить товар <span aria-hidden="true">→</span></button>
+          <span id="append-message" class="subtle" role="status" aria-live="polite"></span>
+        </div>
+      </section>
       <div id="results" aria-live="polite" aria-busy="false">
         <div class="empty" id="empty-state">
           <div class="empty-icon" aria-hidden="true">
@@ -531,6 +570,7 @@
     const OLD_HISTORY_KEY = "ld-tender-demo-query-history-v2";
     const HISTORY_LIMIT = 15;
     const MAX_ITEMS = 10;
+    const MAX_SESSION_ITEMS = 100;
     const MAX_ITEM_LENGTH = 2000;
     let isBusy = false;
     let returnFocus = null;
@@ -601,7 +641,7 @@
         const values=raw?JSON.parse(raw):[];
         if (!Array.isArray(values))return [];
         return values.filter(x=>x&&Array.isArray(x.products)&&Array.isArray(x.results)&&
-          x.products.length<=MAX_ITEMS&&x.products.every(p=>typeof p==="string"&&p.length<=MAX_ITEM_LENGTH)&&
+          x.products.length<=MAX_SESSION_ITEMS&&x.products.every(p=>typeof p==="string"&&p.length<=MAX_ITEM_LENGTH)&&
           x.results.length===x.products.length).slice(0,HISTORY_LIMIT);
       } catch {
         historyStorageAvailable=false;
@@ -648,6 +688,7 @@
       const history=readHistory();
       const entry=history.find(x=>x.id===activeHistoryId);
       if (!entry)return;
+      entry.products=liveResults.map(x=>x.source_input||x.input||"");
       entry.results=liveResults.map(historyResult);
       entry.states=rowStates.map(s=>({
         revision:s.revision||0,
@@ -865,6 +906,108 @@
       bore_type:{full:"Полнопроходной",reduced:"Стандартнопроходной"},
       control:{manual:"Ручное",gearbox:"Редуктор",electric:"Электропривод",pneumatic:"Пневмопривод"}
     };
+    function toggleAppend(open) {
+      const panel=byId("append-panel");
+      const canAppend=!!(activeReview&&activeReview.review_token)&&liveResults.length<MAX_SESSION_ITEMS;
+      panel.hidden=!open||!canAppend;
+      byId("append-open").setAttribute("aria-expanded",String(!panel.hidden));
+      if(!panel.hidden) {
+        if(!byId("append-fields").childElementCount)buildAppendFields();
+        byId("append-query").focus();
+        panel.scrollIntoView({behavior:"smooth",block:"center"});
+      }
+    }
+    function buildAppendFields() {
+      const host=byId("append-fields");
+      editSchema.forEach(([key,label,type,options])=>{
+        const wrapper=el("div",null,"editor-field");
+        const title=el("label",label);
+        let control;
+        if(type==="select") {
+          control=el("select");
+          options.forEach(value=>{
+            const option=el("option",value ? ((editNames[key]||{})[value]||value) : "Не указано");
+            option.value=value;control.append(option);
+          });
+        } else {
+          control=el("input");
+          control.type=type;control.placeholder="Не указано";
+          if(type==="number") {
+            control.min="0.01";control.max="2000";
+            control.step=key==="pn_min_mpa"?"0.1":"1";
+          } else control.maxLength=80;
+        }
+        control.id="append-field-"+key;
+        title.htmlFor=control.id;
+        add(wrapper,title,control);host.append(wrapper);
+      });
+    }
+    function setAppendMessage(message,error=false) {
+      const node=byId("append-message");
+      node.textContent=message;
+      node.classList.toggle("ld-append-status-error",error);
+    }
+    async function appendOne() {
+      if(isBusy)return;
+      if(!activeReview||!activeReview.review_token)
+        return setAppendMessage("Для добавления запустите подбор в текущей вкладке.",true);
+      if(liveResults.length>=MAX_SESSION_ITEMS)
+        return setAppendMessage("Достигнут лимит в 100 позиций в списке.",true);
+      const query=byId("append-query").value.trim();
+      const fields={};
+      editSchema.forEach(([key])=>{
+        const value=byId("append-field-"+key).value.trim();
+        if(value) fields[key]=value;
+      });
+      if(!query&&!Object.keys(fields).length)
+        return setAppendMessage("Введите наименование или хотя бы одну характеристику.",true);
+      if(!query&&!fields.product_type)
+        return setAppendMessage("При добавлении по характеристикам сначала укажите тип изделия.",true);
+      isBusy=true;
+      const button=byId("append-submit");
+      button.disabled=true;
+      setAppendMessage("Подбираем только новую позицию…");
+      try {
+        const data=await postReview("/v1/demo/append",{
+          request_id:activeReview.request_id,
+          review_token:activeReview.review_token,
+          expected_count:liveResults.length,
+          query,fields
+        });
+        if(data.item_index!==liveResults.length||!data.result)
+          throw Error("Ответ сервера не соответствует текущему списку. Обновите страницу.");
+        liveResults.push(data.result);
+        rowStates.push({revision:data.revision||0,decision:data.decision||"PENDING",
+                        selected_ld_id:null,edited:false});
+        const list=byId("results").querySelector(".results-list");
+        if(!list)throw Error("Таблица результатов не найдена.");
+        const row=renderRow(data.result,data.item_index);
+        list.append(row);
+        refreshTray();
+        updateHistorySnapshot();
+        byId("append-open").hidden=liveResults.length>=MAX_SESSION_ITEMS;
+        byId("append-query").value="";
+        byId("append-fields").querySelectorAll("input,select").forEach(node=>node.value="");
+        toggleAppend(false);
+        row.classList.add("expanded");
+        const toggle=row.querySelector(".open-detail");
+        toggle.setAttribute("aria-expanded","true");
+        toggle.firstChild.textContent="Свернуть";
+        row.scrollIntoView({behavior:"smooth",block:"center"});
+        setAppendMessage("");
+      }catch(error){
+        setAppendMessage(error.message||"Не удалось добавить позицию.",true);
+      }finally{
+        isBusy=false;
+        button.disabled=false;
+      }
+    }
+    byId("append-open").addEventListener("click",()=>{
+      toggleAppend(byId("append-panel").hidden);
+    });
+    byId("append-close").addEventListener("click",()=>toggleAppend(false));
+    byId("append-submit").addEventListener("click",appendOne);
+
     function reviewHeaders(index) {
       if (!activeReview || !activeReview.review_token) throw Error("Для действий запустите подбор повторно.");
       return {
@@ -1248,6 +1391,9 @@
       list.append(header);
       results.forEach((d, i) => list.append(renderRow(d, i)));
       byId("results").replaceChildren(list);
+      toggleAppend(false);
+      byId("append-open").hidden=!activeReview||!activeReview.review_token||
+                                     results.length>=MAX_SESSION_ITEMS;
       refreshTray();
       // Make the selection workflow immediately discoverable; no second
       // hidden accordion is needed to access available catalogue candidates.
