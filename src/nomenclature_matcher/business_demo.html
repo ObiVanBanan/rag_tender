@@ -38,7 +38,7 @@
     .brand-name { font-size: 17px; font-weight: 800; letter-spacing: -.4px; line-height: 1.05; }
     .brand-caption { font-size: 10px; font-weight: 600; letter-spacing: 1.55px; color: #bcbcb7; }
     .nav { display: flex; align-items: center; gap: 10px; }
-    .nav-link { color: #d0d0cd; font-size: 13px; background: none; border: 0; border-radius: 9px; padding: 10px 15px; font-weight: 650; }
+    .nav-link { display: inline-flex; align-items: center; text-decoration: none; color: #d0d0cd; font-size: 13px; background: none; border: 0; border-radius: 9px; padding: 10px 15px; font-weight: 650; }
     .nav-link.active { color: #181818; background: var(--brand); }
     .nav-link:hover:not(.active) { background: #30302e; color: white; }
     .nav-link .counter { color: #e9e4d0; background: #3a3a38; border-radius: 5px; padding: 2px 6px; margin-left: 6px; font-size: 11px; }
@@ -217,7 +217,7 @@
         </span>
       </a>
       <nav class="nav" aria-label="Навигация">
-        <button class="nav-link active" type="button" aria-current="page">Подбор</button>
+        <a href="/demo" class="nav-link active" aria-current="page">Подбор</a>
         <button class="nav-link" id="history-open" type="button" aria-controls="history-pane" aria-expanded="false">История <span class="counter" id="history-count">0</span></button>
       </nav>
     </div>
