@@ -157,6 +157,29 @@
     .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
     .spinner { width: 15px; height: 15px; display: inline-block; border-radius: 50%; border: 2px solid #1d1d1d35; border-top-color: #151515; animation: spin .8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .review-actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;}
+    .review-actions button{padding:10px 13px;border:1px solid #deddd3;border-radius:8px;background:#fff;font-size:12px;font-weight:750;}
+    .review-actions button:hover{border-color:#a89228;background:#fffbee;}
+    .review-actions .review-accept{background:#ffcd00;border-color:#ffcd00;color:#20201e;}
+    .review-actions .review-reject{color:#aa4b38;}
+    .user-status{background:#fff2cb;color:#7b5d15;padding:8px 11px;margin:10px 0;display:inline-flex;border-radius:7px;font-size:12px;font-weight:750;}
+    .editor{margin:16px 0 20px;background:#fff;border:1px solid #e5e2d4;border-radius:10px;padding:16px;}
+    .editor summary{cursor:pointer;font-weight:800;color:#66551b;font-size:13px;}
+    .editor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:16px 0;}
+    .editor-field{display:flex;flex-direction:column;gap:6px;min-width:0;}
+    .editor-field label{font-size:11px;color:#68665b;font-weight:750;}
+    .editor-field select,.editor-field input{width:100%;min-width:0;background:#fdfdfb;border:1px solid #deddd4;border-radius:7px;padding:10px;color:#252522;font-size:12px;}
+    .editor-hint{font-size:11px;color:#817e6d;line-height:1.7;margin-top:0;}
+    .review-error{color:#a13c35;font-size:12px;line-height:1.5;min-height:12px;}
+    .candidate-actions{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:10px;}
+    .candidate-actions button{background:#fff8dd;color:#61500e;border:1px solid #e7d16f;border-radius:7px;padding:8px 10px;font-weight:800;font-size:11px;}
+    .tray{display:flex;align-items:center;gap:11px;padding:8px 12px;background:#fff;border:1px solid #e5e3d9;border-radius:12px;}
+    .tray-icon{width:45px;height:42px;display:block;}
+    .tray strong{font-size:19px;display:block;line-height:1.15;}
+    .tray small{display:block;font-size:10px;color:#878379;margin-top:3px;}
+    .tray .tray-approved{color:#665819;font-size:11px;font-weight:650;}
+    @media(max-width:760px){.editor-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.tray{padding:6px 8px;}}
+    @media(max-width:430px){.editor-grid{grid-template-columns:1fr;}}
     @media (max-width: 1050px) {
       .workspace { grid-template-columns: minmax(0,1fr) 240px; }
       .result-grid, .results-header { grid-template-columns: minmax(0, 1.15fr) minmax(0,1fr) 116px 110px; gap: 13px; }
@@ -286,7 +309,21 @@
           <div class="eyebrow">02 / РЕЗУЛЬТАТ</div>
           <h2 id="results-title">Результаты подбора</h2>
         </div>
-        <div class="muted" id="results-summary" aria-live="polite">Пока нет результатов</div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end">
+          <div class="muted" id="results-summary" aria-live="polite">Пока нет результатов</div>
+          <div class="tray" role="status" aria-label="Лоток подобранных изделий">
+            <svg class="tray-icon" viewBox="0 0 58 50" fill="none" aria-hidden="true">
+              <path d="M7 26h44l-5 17H12L7 26Z" fill="#252525"/>
+              <path d="M10 26h38" stroke="#FFCD00" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="20" cy="17" r="10" stroke="#505050" stroke-width="5"/>
+              <circle cx="20" cy="17" r="3" fill="#252525"/>
+              <path d="M34 10h13v14H34z" fill="#92938E" stroke="#292929" stroke-width="2"/>
+              <path d="M38 8h13" stroke="#FFCD00" stroke-width="4" stroke-linecap="round"/>
+              <path d="M39 14h4m-6 5h8" stroke="#2B2B2B" stroke-width="2"/>
+            </svg>
+            <div><strong id="tray-count">0 / 0</strong><small>Найдено в каталоге</small><span class="tray-approved" id="tray-approved">0 подтверждено пользователем</span></div>
+          </div>
+        </div>
       </div>
       <div id="results" aria-live="polite" aria-busy="false">
         <div class="empty" id="empty-state">
@@ -325,6 +362,9 @@
     const MAX_ITEM_LENGTH = 2000;
     let isBusy = false;
     let returnFocus = null;
+    let activeReview = null;
+    let liveResults = [];
+    let rowStates = [];
 
     function el(tag, text, cls) {
       const node = document.createElement(tag);
@@ -521,7 +561,7 @@
       });
       table.append(body); return table;
     }
-    function displayCandidate(container, candidate, main) {
+    function displayCandidate(container, candidate, main,index) {
       const shell = el("div", null, "candidate");
       add(shell, el("b", candidate.name || "Без наименования"),
         el("p", "Артикул LD: " + (candidate.article || "Не указан")));
@@ -533,12 +573,173 @@
         details.append(tableFor(rows));
         shell.append(details);
       }
+      if (index!==undefined && activeReview && candidate.ld_id!=null) {
+        const bar=el("div",null,"candidate-actions");
+        const choose=el("button","Выбрать этот LD","secondary");
+        choose.type="button";
+        choose.addEventListener("click",()=>userDecision(index,"SELECTED_OTHER",candidate.ld_id));
+        bar.append(el("span","Выбор другого кандидата требует технической проверки.","subtle"),choose);
+        shell.append(bar);
+      }
       container.append(shell);
     }
-    function renderDetail(d) {
+    const editSchema = [
+      ["product_type","Тип изделия","select",["","ball_valve","flange","butterfly_valve","gate_valve","check_valve","filter"]],
+      ["dn","DN","number"],
+      ["pn_min_mpa","PN, МПа","number"],
+      ["flange_kind","Исполнение фланца","select",["","flat_welded","pe_stub"]],
+      ["stub_dn","Размер трубы ПНД (OD), мм","number"],
+      ["body_material","Материал","select",["","steel","stainless_steel","brass","cast_iron"]],
+      ["body_material_grade","Марка стали","text"],
+      ["joining_type","Присоединение","select",["","threaded","flanged","welded","wafer","compression"]],
+      ["thread_type","Тип резьбы","select",["","female_female","male_female","male_male"]],
+      ["thread_size","Размер резьбы, G","text"],
+      ["working_medium","Рабочая среда","text"],
+      ["bore_type","Проход","select",["","full","reduced"]],
+      ["control","Управление","select",["","manual","gearbox","electric","pneumatic"]]
+    ];
+    const editNames = {
+      product_type:{ball_valve:"Шаровой кран",flange:"Фланец",butterfly_valve:"Дисковый затвор",gate_valve:"Задвижка",check_valve:"Обратный клапан",filter:"Фильтр"},
+      flange_kind:{flat_welded:"Плоский приварной",pe_stub:"Под втулку ПНД"},
+      body_material:{steel:"Сталь",stainless_steel:"Нержавеющая сталь",brass:"Латунь",cast_iron:"Чугун"},
+      joining_type:{threaded:"Резьбовое",flanged:"Фланцевое",welded:"Приварное",wafer:"Межфланцевое",compression:"Обжимное"},
+      thread_type:{female_female:"ВР/ВР",male_female:"НР/ВР",male_male:"НР/НР"},
+      bore_type:{full:"Полнопроходной",reduced:"Стандартнопроходной"},
+      control:{manual:"Ручное",gearbox:"Редуктор",electric:"Электропривод",pneumatic:"Пневмопривод"}
+    };
+    function reviewHeaders(index) {
+      if (!activeReview || !activeReview.review_token) throw Error("Для действий запустите подбор повторно.");
+      return {
+        request_id:activeReview.request_id,
+        review_token:activeReview.review_token,
+        item_index:index,
+        revision:rowStates[index].revision
+      };
+    }
+    async function postReview(path,payload) {
+      const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const result=await response.json().catch(()=>({}));
+      if (!response.ok) throw Error(
+        typeof result.detail==="string" ? result.detail :
+        response.status===429 ? "Превышен лимит запросов." : "Ошибка сервера ("+response.status+")");
+      return result;
+    }
+    function repaintReview(index) {
+      const previous=document.getElementById("detail-"+index);
+      const opened=previous && previous.parentElement.classList.contains("expanded");
+      const parent=previous && previous.parentElement;
+      if (parent) parent.replaceWith(renderRow(liveResults[index],index));
+      if (opened) {
+        const next=document.getElementById("detail-"+index);
+        next.parentElement.classList.add("expanded");
+        const toggle=next.parentElement.querySelector(".open-detail");
+        toggle.setAttribute("aria-expanded","true");
+        toggle.firstChild.textContent="Свернуть";
+      }
+      refreshTray();
+    }
+    function refreshTray() {
+      const found=liveResults.filter(x=>x.status==="MATCHED").length;
+      const chosen=rowStates.filter(s=>s && ["ACCEPTED","SELECTED_OTHER"].includes(s.decision)).length;
+      byId("tray-count").textContent=found+" / "+liveResults.length;
+      byId("tray-approved").textContent=chosen+" подтверждено пользователем";
+      byId("results-summary").textContent=countLabel(liveResults.length)+" · Предварительный подбор";
+    }
+    async function userDecision(index,action,ldId) {
+      try {
+        let payload={...reviewHeaders(index),action};
+        if (ldId!=null) payload.selected_ld_id=ldId;
+        let result;
+        try { result=await postReview("/v1/demo/decision",payload); }
+        catch(e) {
+          if (!/не все обязательные характеристики подтверждены/i.test(e.message)) throw e;
+          if (!window.confirm("Проверка не смогла подтвердить все обязательные характеристики. Вы лично проверили применимость изделия и принимаете ответственность за выбор?")) return;
+          result=await postReview("/v1/demo/decision",{...payload,acknowledge_unknown:true});
+        }
+        rowStates[index]={...rowStates[index],...result};
+        repaintReview(index);
+      } catch(e) { alert(e.message || "Не удалось сохранить выбор."); }
+    }
+    function fieldEditor(d,index) {
+      const details=el("details",null,"editor");
+      details.append(el("summary","Исправить извлечённые характеристики"));
+      details.append(el("p","После исправления технический поиск будет запущен заново. Все обязательные проверки останутся включены.","editor-hint"));
+      const grid=el("div",null,"editor-grid");
+      const inputs={};
+      const initial=d.editable_constraints || {};
+      editSchema.forEach(([key,label,type,options])=>{
+        const outer=el("div",null,"editor-field");
+        const name=el("label",label);
+        let input;
+        if (type==="select") {
+          input=el("select");
+          options.forEach(value=>{
+            const option=el("option",value ? ((editNames[key]||{})[value] || value) : "Не указано");
+            option.value=value;input.append(option);
+          });
+        } else {
+          input=el("input");
+          input.type=type;
+          if (type==="number") {
+            input.min="0.01"; input.max="2000";
+            input.step=key==="pn_min_mpa"?"0.1":"1";
+          }
+          input.placeholder="Не указано";
+        }
+        input.value=initial[key] == null ? "" : String(initial[key]);
+        input.id="edit-"+index+"-"+key;
+        name.htmlFor=input.id; inputs[key]=input;
+        add(outer,name,input);grid.append(outer);
+      });
+      details.append(grid);
+      const err=el("p","", "review-error");
+      const btn=el("button","Применить и подобрать заново","primary");
+      btn.type="button";
+      btn.addEventListener("click",async()=>{
+        const changes={};
+        for(const [key,input] of Object.entries(inputs)){
+          const value=input.value.trim();
+          const baseline=initial[key]==null ? "" : String(initial[key]);
+          if(value !== baseline) changes[key]=value==="" ? null : value;
+        }
+        if(!Object.keys(changes).length){err.textContent="Измените хотя бы одно значение.";return;}
+        btn.disabled=true;err.textContent="Идёт повторный подбор…";
+        try {
+          const result=await postReview("/v1/demo/correct",{...reviewHeaders(index),changes});
+          liveResults[index]=result.result;
+          rowStates[index]={...rowStates[index],revision:result.revision,decision:result.decision};
+          repaintReview(index);
+        } catch(e) {err.textContent=e.message||"Ошибка повторного подбора.";}
+        finally {btn.disabled=false;}
+      });
+      details.append(btn,err);return details;
+    }
+    function choiceControls(detail,d,index) {
+      if (!activeReview || !activeReview.review_token) return;
+      const current=rowStates[index];
+      if (current && current.decision!=="PENDING") {
+        detail.append(el("div", ({
+          ACCEPTED:"Рекомендация принята пользователем",
+          SELECTED_OTHER:"Выбран другой товар LD",
+          REJECTED:"Результат отклонён"
+        })[current.decision]||current.decision,"user-status"));
+      }
+      const bar=el("div",null,"review-actions");
+      if(d.recommended && d.recommended.length) {
+        const accept=el("button","Принять рекомендацию","review-accept");
+        accept.addEventListener("click",()=>userDecision(index,"ACCEPTED"));
+        bar.append(accept);
+      }
+      const reject=el("button","Отклонить результат","review-reject");
+      reject.addEventListener("click",()=>userDecision(index,"REJECTED"));
+      bar.append(reject);
+      detail.append(bar,fieldEditor(d,index));
+    }
+    function renderDetail(d,index) {
       const detail = el("div", null, "detail-panel");
       detail.append(el("h3", "Почему такой результат?"));
       detail.append(el("p", d.message || "Нет дополнительного пояснения.", "detail-copy"));
+      choiceControls(detail,d,index);
       if (d.status === "INSUFFICIENT_PARAMETERS") {
         const missing = (d.missing_fields || []).map(x => missingLabels[x] || x);
         if (missing.length) detail.append(el("div", "Уточните: " + missing.join(", ") + ".", "detail-alert"));
@@ -572,13 +773,13 @@
       if (d.other_candidates && d.other_candidates.length) {
         const others = el("details", null, "candidates");
         others.append(el("summary", "Другие кандидаты (" + d.other_candidates.length + ") · пока не подтверждены"));
-        d.other_candidates.forEach(c => displayCandidate(others, c, false));
+        d.other_candidates.forEach(c => displayCandidate(others, c, false,index));
         detail.append(others);
       }
       if (d.recommended && d.recommended.length > 1) {
         const extra = el("details", null, "candidates");
         extra.append(el("summary", "Ещё рекомендованные варианты (" + (d.recommended.length - 1) + ")"));
-        d.recommended.slice(1).forEach(c => displayCandidate(extra, c, true));
+        d.recommended.slice(1).forEach(c => displayCandidate(extra, c, true,index));
         detail.append(extra);
       }
       detail.append(el("p", "* Строго заданные в запросе параметры. Рекомендация не заменяет инженерную проверку применимости.", "subtle"));
@@ -601,7 +802,7 @@
       add(toggle, el("span", "Подробнее"), iconChevron());
       status.append(toggle);
       add(grid, query, product, article, status);
-      const detail = renderDetail(d);
+      const detail = renderDetail(d,index);
       detail.id = "detail-" + index;
       toggle.setAttribute("aria-controls", detail.id);
       toggle.addEventListener("click", () => {
@@ -613,13 +814,16 @@
     }
     function renderResponse(payload) {
       const results = Array.isArray(payload.results) ? payload.results : [];
-      byId("results-summary").textContent = countLabel(results.length) + " · Результат предварительного подбора";
+      activeReview={request_id:payload.request_id,review_token:payload.review_token};
+      liveResults=results;
+      rowStates=results.map(()=>({revision:0,decision:"PENDING",selected_ld_id:null}));
       const list = el("div", null, "results-list");
       const header = el("div", null, "results-header");
       ["Исходная номенклатура", "Предложенный аналог LD", "Артикул", "Статус"].forEach(s => header.append(el("span", s)));
       list.append(header);
       results.forEach((d, i) => list.append(renderRow(d, i)));
       byId("results").replaceChildren(list);
+      refreshTray();
       byId("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
     }
     async function run() {
