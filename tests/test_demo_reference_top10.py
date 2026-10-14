@@ -47,6 +47,14 @@ def test_top_ten_candidates_are_distinct_ranked_and_actionable():
     assert DemoFeedbackStore._candidate(result,"SELECTED_OTHER",8001,False)==8001
     with pytest.raises(ReviewConflict):
         DemoFeedbackStore._candidate(result,"SELECTED_OTHER",8008,True)
+    # Manual override is possible only with an explicit logged mismatch waiver;
+    # it does not convert a known technical mismatch into a safe model match.
+    assert DemoFeedbackStore._candidate(result,"SELECTED_OTHER",8008,True,True)==8008
+    with pytest.raises(ReviewConflict):
+        DemoFeedbackStore._candidate(result,"ACCEPTED",8000,True,True) if False else DemoFeedbackStore._candidate(
+            {"recommended":[result["candidates"][8]],"other_candidates":[]},
+            "ACCEPTED",None,True,True)
+
     with pytest.raises(ReviewConflict):
         DemoFeedbackStore._candidate(result,"SELECTED_OTHER",8000,False)
 
