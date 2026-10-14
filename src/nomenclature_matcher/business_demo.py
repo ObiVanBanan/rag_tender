@@ -22,6 +22,9 @@ FIELDS = {
     "product_type": "Тип изделия",
     "dn": "Номинальный диаметр",
     "pn_min_mpa": "Номинальное давление",
+    "flange_kind": "Тип фланца",
+    "stub_dn": "Размер ПНД-втулки",
+    "thread_size": "Размер резьбы",
     "joining_type": "Присоединение",
     "thread_type": "Тип резьбы",
     "working_medium": "Рабочая среда",
@@ -41,6 +44,7 @@ VALUES = {
     "compression": "Компрессионное",
     "male_female": "НР/ВР", "female_female": "ВР/ВР", "male_male": "НР/НР",
     "steel": "Сталь", "brass": "Латунь", "full": "Полнопроходной",
+    "pe_stub": "Под ПНД-втулку", "flat_welded": "Плоский приварной",
     "reduced": "Стандартнопроходной", "manual": "Ручное",
     "gearbox": "Редуктор", "electric": "Электропривод",
     "electric_ready": "Под электропривод", "pneumatic": "Пневмопривод",
@@ -72,6 +76,8 @@ def parameter_rows(interpretation: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         if field == "dn":
             shown = "DN " + str(value)
+        elif field == "stub_dn":
+            shown = "Ø" + str(value) + " мм"
         elif field == "pn_min_mpa":
             try:
                 v = float(value)
@@ -93,6 +99,8 @@ def _render_fact(key: str, value: Any) -> str:
         return "Нет данных"
     if key == "dn":
         return f"DN{value}"
+    if key == "stub_dn":
+        return f"Ø{value} мм"
     if key == "pn_min_mpa":
         try:
             n = float(value)
@@ -196,6 +204,8 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
     reason = str(match.reason or "")
     if status == "ERROR":
         message = "Ошибка этапа обработки. Повторите запрос."
+    elif status == "INSUFFICIENT_PARAMETERS":
+        message = "Для безопасного подбора недостаточно характеристик. Уточните параметры и повторите поиск."
     elif reason.startswith("HARD_CONSTRAINT_FILTER"):
         message = "Среди найденных кандидатов нет подтверждённого соответствия строгим условиям."
     elif reason.startswith("QUERY_REJECTED"):
@@ -208,6 +218,7 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
         "input": match.query,
         "status": status,
         "message": message,
+        "missing_fields": interpretation.get("missing_fields") if status == "INSUFFICIENT_PARAMETERS" else [],
         "normalized_query": interpretation.get("normalized_query") or match.query,
         "parameters": parameter_rows(interpretation),
         "recommended": recommended,
