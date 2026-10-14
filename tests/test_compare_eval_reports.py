@@ -40,7 +40,7 @@ def test_cohort_or_gold_change_is_not_compared():
     y["cases"][0]["acceptable_ld_ids"] = [999]
     with pytest.raises(ValueError,match="GOLD"):
         compare_reports(x,y,expected_cases=2)
-    with pytest.raises(ValueError,match="size"):
+    with pytest.raises(ValueError,match="Expected 2 cases"):
         compare_reports(x,report(["PASS"]),expected_cases=2)
     with pytest.raises(ValueError,match="mapping"):
         compare_reports(x,report(["PASS","PASS"],ds="other"),expected_cases=2)
