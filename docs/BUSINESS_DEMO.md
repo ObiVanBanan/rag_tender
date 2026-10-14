@@ -4,11 +4,12 @@
 
 ## Запуск
 
-1. Выполнить `git lfs pull`, заполнить `.env` (OPENAI_API_KEY, DEEPSEEK_API_KEY, POSTGRES_PASSWORD), проверить наличие индекса Qdrant.
-2. Выполнить `docker compose up -d --build`.
+1. Выполнить `git lfs pull`, заполнить `.env` (OPENAI_API_KEY, DEEPSEEK_API_KEY, POSTGRES_PASSWORD, PUBLIC_DEMO_PASSWORD), проверить наличие индекса Qdrant. В production запросы без пароля блокируются.
+2. Выполнить `docker compose -f docker-compose.yml up -d --build`. Это предотвращает автоподключение observability override (порт 8002).
 3. Проверить `http://localhost:8000/health/ready`; открыть `http://localhost:8000/demo`.
 4. Swagger: `http://localhost:8000/docs`, бизнес endpoint: `POST /v1/demo/match`, вход `{"products":["Кран шаровой Ду50 Ру16"]}`.
-5. Фокус показа: оригинальный запрос → извлечённые DN/PN/материал/присоединение → рекомендованные LD → отдельно кандидаты, требующие проверки → технический статус и задержка.
+5. Фокус показа: оригинальный запрос → извлечённые DN/PN/материал/присоединение → рекомендованные LD → построчная сверка требований с каталогом → отдельно непроверенные кандидаты → время и количество результатов. Расхождение/отсутствие данных по одному критичному полю не должно маскироваться зелёным статусом.
+6. Для белого IP использовать Caddy + HTTPS; адрес публикации Docker по умолчанию локальный. Инструкция: `docs/PUBLIC_SERVER_DEPLOY_RU.md`.
 
 ## Метрики и честные оговорки
 
@@ -32,6 +33,6 @@ python scripts/demo_recheck.py --cases .tmp/demo20_verified.json --out .tmp/demo
 
 ## Проверка
 
-`uv run pytest -q tests/test_business_demo.py tests/test_production_api.py`
+`uv run pytest -q tests/test_business_demo.py tests/test_demo_auth.py tests/test_demo_evidence.py tests/test_production_api.py tests/test_demo_recheck.py tests/test_export_demo20.py`
 
-Демо endpoint предназначен для локального/закрытого показа, без авторизации его нельзя публично выставлять в интернет. Проверка работающих ключей, Docker, Qdrant, PostgreSQL, провайдеров и E2E делается на машине владельца окружения.
+Для внешнего показа требуется HTTPS и Basic auth (`PUBLIC_DEMO_USERNAME`, `PUBLIC_DEMO_PASSWORD`). Production без пароля не обслуживает платные API и интерфейс. Проверка работающих ключей, Docker, Qdrant, PostgreSQL, провайдеров и E2E делается на машине владельца окружения.
