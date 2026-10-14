@@ -96,7 +96,7 @@ def test_historic_tender20_source_is_exact_git_revision(tmp_path):
     payload={"cases":[{"id":f"tender_v1_{i:03d}","query":f"Query {i}",
                       "split":"CORE","known_positive_ids":[i]} for i in range(20)]}
     (baseline/"data/tender_queries_v1_harness_cases.json").write_text(json.dumps(payload))
-    cases=load_cases("tender20",baseline)
+    cases=load_cases("tender20",baseline/"data/tender_queries_v1_harness_cases.json")
     assert len(cases)==20
     assert cases[0]["acceptable_ld_ids"]==[0]
     assert HISTORIC_REF == "336d7c08cbface23afb0cbd6ae83736e294d870f"
@@ -104,7 +104,7 @@ def test_historic_tender20_source_is_exact_git_revision(tmp_path):
     payload["cases"].pop()
     (baseline/"data/tender_queries_v1_harness_cases.json").write_text(json.dumps(payload))
     with pytest.raises(ValueError,match="instead of 20"):
-        load_cases("tender20",baseline)
+        load_cases("tender20",baseline/"data/tender_queries_v1_harness_cases.json")
 
 
 def test_evidence_attributes_offline_technical_conflicts_to_known_candidate():
