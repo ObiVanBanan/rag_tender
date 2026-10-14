@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1d1d1b">
+<title>Статистика сервиса — LD Аналоги</title>
+<style>
+:root{font-family:"Segoe UI",Inter,Arial,sans-serif;background:#f6f7f5;color:#232321}
+*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}
+.shell{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+aside{background:#1c1d1d;color:white;padding:26px 16px}
+.brand{display:flex;align-items:center;gap:11px;padding:0 10px 32px;font-weight:850;font-size:17px}
+.brand strong{font-size:24px;color:#ffcd00}
+.menu a,.menu span{display:block;border-radius:8px;padding:13px 16px;font-size:14px;color:#c5c5be;margin:5px 0}
+.menu .active{background:#ffcd00;color:#1a1a18;font-weight:800}
+main{padding:42px clamp(18px,4vw,60px);max-width:1500px;width:100%}
+h1{font-size:clamp(26px,3vw,34px);letter-spacing:-.8px;margin:0 0 5px}
+.sub{color:#85857c;font-size:13px;line-height:1.6}
+.head{display:flex;justify-content:space-between;gap:16px;align-items:start;margin-bottom:30px}
+select{background:white;border:1px solid #deded6;border-radius:9px;padding:12px;font:inherit;font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.card,.block{background:#fff;border:1px solid #e9e9e4;border-radius:13px;padding:20px}
+.card label{font-size:12px;color:#6b6c66;font-weight:700;display:block;margin-bottom:18px}
+.card strong{font-size:30px;letter-spacing:-1px;display:block}
+.card .mini{font-size:11px;color:#88867b;margin-top:9px}
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin:15px 0}
+h2{font-size:16px;margin:0 0 16px}
+.timeline{height:200px;display:flex;gap:7px;align-items:end;border-bottom:1px solid #dadad5;padding:4px 0}
+.timeline .bar{flex:1;min-width:5px;background:#ffcd00;border-radius:4px 4px 0 0;min-height:2px}
+.details{font-size:13px;color:#66675e;line-height:2}
+.details strong{float:right;color:#252522}
+.note{font-size:12px;color:#7a786c;line-height:1.65;margin-top:18px;border-left:3px solid #ffcd00;padding-left:12px}
+.empty{color:#aaa9a1;padding:42px;text-align:center}
+@media(max-width:1050px){.cards{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}}
+@media(max-width:650px){.shell{display:block}aside{padding:15px}.brand{padding:0 10px 10px}.menu{display:flex;gap:5px}.menu a{padding:10px}.head{flex-direction:column}.cards{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside>
+<div class="brand"><strong>LD</strong><span>Аналоги<br><small style="font-weight:400;color:#999">Администрирование</small></span></div>
+<nav class="menu"><a href="/demo">Подбор</a><a class="active" href="/demo/stats" aria-current="page">Статистика</a></nav>
+</aside>
+<main>
+<div class="head"><div><h1>Статистика и качество сервиса</h1><p class="sub">Как используется подбор аналогов и что пользователи изменяют в результатах</p></div>
+<label><span class="sub">Период&nbsp;</span><select id="period" aria-label="Период статистики"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="366">Год</option></select></label></div>
+<div id="error" role="alert" class="note" hidden></div>
+<div class="cards">
+<div class="card"><label>Обработано позиций</label><strong id="processed">—</strong><div class="mini">Не количество файлов</div></div>
+<div class="card"><label>Найдено автоматически</label><strong id="auto_matched">—</strong><div class="mini">Результат алгоритма</div></div>
+<div class="card"><label>Не найдено</label><strong id="not_found">—</strong><div class="mini">Нет подтверждённого аналога</div></div>
+<div class="card"><label>Нужно уточнение</label><strong id="insufficient">—</strong><div class="mini">Не хватает характеристик</div></div>
+<div class="card"><label>Отклонено пользователями</label><strong id="rejected">—</strong><div class="mini">Решение человека</div></div>
+<div class="card"><label>Принято пользователями</label><strong id="accepted">—</strong><div class="mini">Принят рекомендованный аналог</div></div>
+<div class="card"><label>Выбран другой товар</label><strong id="selected_other">—</strong><div class="mini">Исправлен результат подбора</div></div>
+<div class="card"><label>Изменены характеристики</label><strong id="parameter_edited">—</strong><div class="mini">Уникальные позиции, не клики</div></div>
+<div class="card"><label>Без решения</label><strong id="pending">—</strong><div class="mini">Ожидают проверки</div></div>
+<div class="card"><label>Ошибки сервиса</label><strong id="errors">—</strong><div class="mini">Ошибки в API</div></div>
+</div>
+<div class="grid">
+<section class="block"><h2>Динамика обработанных позиций</h2><div id="timeline" class="timeline" aria-label="Распределение по дням"></div><p class="sub" id="timeline-caption">Загружаем данные…</p></section>
+<section class="block"><h2>События обратной связи</h2><div id="events" class="details"></div><p class="sub">Сколько раз пользователи исправляли и подтверждали решения. Повторные изменения отражены в событиях.</p></section>
+</div>
+<p class="note">Это показатели использования сервиса, а не тестовая точность RAG. Число автоматически найденных товаров не является числом верных аналогов. У одного результата могут быть и исправление параметров, и ручной выбор.</p>
+</main>
+</div>
+<script>
+"use strict";
+const byId=id=>document.getElementById(id);
+const digits=new Intl.NumberFormat("ru-RU");
+async function refresh(){
+ const days=Number(byId("period").value);
+ byId("error").hidden=true;
+ try{
+   const res=await fetch("/v1/demo/stats?days="+days,{headers:{"Accept":"application/json"}});
+   if(!res.ok)throw Error("Не удалось загрузить статистику (HTTP "+res.status+")");
+   const data=await res.json();
+   for(const [key,value] of Object.entries(data.counts||{})){
+     const holder=byId(key);if(holder)holder.textContent=digits.format(value);
+   }
+   const timeline=byId("timeline");timeline.replaceChildren();
+   const dates=Array.isArray(data.timeline)?data.timeline:[];
+   if(!dates.length){timeline.textContent="Данные за выбранный период отсутствуют.";return;}
+   const peak=Math.max(1,...dates.map(x=>x.processed));
+   dates.forEach(day=>{
+     const bar=document.createElement("div");bar.className="bar";
+     bar.style.height=Math.max(1,Math.round(day.processed/peak*100))+"%";
+     bar.title=day.day+" — "+day.processed+" обработано, "+day.auto_matched+" найдено";
+     timeline.append(bar);
+   });
+   byId("timeline-caption").textContent=dates[0].day+" — "+dates[dates.length-1].day;
+   const events=byId("events");events.replaceChildren();
+   const names={ACCEPTED:"Принято",REJECTED:"Отклонено",SELECTED_OTHER:"Выбран другой",
+                PARAMETERS_CORRECTED:"Исправлены параметры"};
+   const eventRows=Object.entries(data.events||{});
+   if(!eventRows.length)events.textContent="Событий пока нет.";
+   eventRows.forEach(([key,count])=>{
+     const row=document.createElement("div");
+     row.append(document.createTextNode(names[key]||key));
+     const value=document.createElement("strong");value.textContent=digits.format(count);
+     row.append(value);events.append(row);
+   });
+ }catch(e){byId("error").hidden=false;byId("error").textContent=e.message;}
+}
+byId("period").addEventListener("change",refresh);
+refresh();
+</script>
+</body>
+</html>
