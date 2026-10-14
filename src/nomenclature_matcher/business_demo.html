@@ -222,6 +222,103 @@
       .comparison { min-width: 450px; }
       footer { flex-direction: column; align-items: start; }
     }
+
+    /* LD v2: reference-inspired results-first engineering workspace. */
+    .top {height:74px;border-bottom:3px solid #ffcd00;}
+    .top-inner,main,footer{max-width:1490px;}
+    .brand-mark{background:#ffcd00;border-radius:4px;font-style:italic;transform:skew(-6deg);}
+    .brand-name{font-size:19px;}
+    .hero{padding:34px 0 22px;}
+    .hero h1{font-size:clamp(28px,3.2vw,40px);letter-spacing:-1.25px;}
+    .hero p{margin-top:11px;}
+    .workspace{grid-template-columns:minmax(0,1fr) 240px;}
+    .entry{padding:21px 25px;}
+    .entry textarea{min-height:158px;}
+    .aside{min-height:275px;}
+    .aside h2{font-size:22px;}
+    .results-section{margin-top:28px;}
+    .results-list{box-shadow:0 10px 38px #14141408;}
+    .results-header,.result-grid{grid-template-columns:minmax(190px,1.1fr) minmax(190px,1.2fr) minmax(120px,.65fr) 175px;}
+    .result-grid{padding:19px 22px;align-items:center;}
+    .result-row.expanded>.result-grid{background:#fffbea;box-shadow:inset 4px 0 #ffcd00;}
+    .result-row.expanded .detail-panel{display:block;}
+    .detail-panel.ld-review-panel{margin:0;padding:24px 22px;background:#f8f8f5;border:0;border-top:1px solid #e9e8dc;border-radius:0;}
+    .ld-review-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(255px,305px);gap:18px;align-items:start;}
+    .ld-review-content{min-width:0;}
+    .ld-parameter-side{background:#fff;border:1px solid #e9e9e0;border-radius:13px;padding:20px;box-shadow:0 4px 26px #25252509;}
+    .ld-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px;}
+    .ld-section-head h3,.ld-section-head h4{margin:0;font-size:17px;letter-spacing:-.3px;}
+    .ld-section-head h4{font-size:17px;}
+    .ld-kicker{font-size:10px;font-weight:850;letter-spacing:1.4px;color:#968020;}
+    .ld-recommendation{background:white;border:1px solid #eadc9f;border-radius:13px;overflow:hidden;}
+    .ld-recommendation-label{display:block;padding:12px 17px;background:#fff8dd;color:#65520c;font-size:10px;letter-spacing:1.2px;font-weight:900;}
+    .ld-product-hero{display:grid;grid-template-columns:185px minmax(0,1fr);align-items:center;gap:19px;padding:21px;}
+    .ld-product-visual{background:#f5f5f2;border-radius:12px;min-height:160px;display:grid;place-items:center;}
+    .ld-product-visual svg{width:100%;max-width:170px;height:135px;filter:drop-shadow(0 7px 6px #1112);}
+    .ld-product-summary h3{margin:0 0 8px;font-size:17px;font-weight:800;line-height:1.4;letter-spacing:-.4px;}
+    .ld-article-large{font-size:12px;color:#5f605c;overflow-wrap:anywhere;margin:0 0 13px;}
+    .ld-specs{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0;}
+    .ld-spec-chip{background:#f4f4ef;border:1px solid #e9e8e0;border-radius:6px;padding:7px 9px;font-size:11px;color:#494a45;}
+    .ld-product-reason{font-size:11px;line-height:1.7;color:#79766a;margin:11px 0;}
+    .ld-catalogue-link{display:inline-block;border-bottom:1px solid #dbb300;color:#5b4c05;font-size:12px;font-weight:800;margin-top:3px;}
+    .ld-inline-compare{margin:11px 0;background:white;border:1px solid #e8e8df;border-radius:9px;padding:12px 15px;}
+    .ld-inline-compare summary{cursor:pointer;color:#4e4d46;font-weight:800;font-size:12px;}
+    .ld-inline-compare table{margin-top:10px;}
+    .ld-unmatched{padding:23px 25px;background:#fffaf1;border:1px solid #e9dbb9;border-radius:12px;}
+    .ld-unmatched h3{margin:0 0 9px;font-size:17px;}
+    .ld-unmatched p{color:#756c57;font-size:12px;line-height:1.7;margin:5px 0;}
+    .ld-missing-line{font-weight:780;color:#725414!important;}
+    .ld-review-buttons{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:13px 0 24px;}
+    .ld-review-buttons .primary,.ld-review-buttons .secondary{min-height:39px;padding:9px 15px;}
+    .ld-archive-note{font-size:11px;color:#a16e28;}
+    .ld-top-ten{padding:20px 19px;background:#fff;border-radius:12px;border:1px solid #e8e8e3;}
+    .ld-top-ten>.subtle{display:block;margin-bottom:14px;}
+    .ld-candidate-scroll{overflow-x:auto;border:1px solid #ecece7;border-radius:9px;}
+    .ld-candidate-table{width:100%;border-collapse:collapse;min-width:800px;text-align:left;font-size:11px;}
+    .ld-candidate-table th{background:#f6f6f2;padding:12px 9px;color:#8b8981;font-size:10px;white-space:nowrap;}
+    .ld-candidate-table td{padding:13px 9px;border-top:1px solid #eeeeea;vertical-align:middle;overflow-wrap:anywhere;}
+    .ld-candidate-table td:first-child{font-weight:800;color:#aaa79d;}
+    .ld-candidate-table td strong{font-size:12px;font-weight:780;display:block;min-width:180px;margin-bottom:5px;}
+    .ld-candidate-table tr.ld-ai-choice{background:#fffefa;}
+    .ld-candidate-table tr.ld-current-choice{background:#fff9dd;}
+    .ld-ai-tag{display:inline-block;margin-top:6px;padding:4px 6px;border-radius:4px;background:#ffedac;font-size:10px;font-weight:800;color:#77621c;}
+    .ld-verdict{font-size:10px;border-radius:5px;padding:6px 7px;font-weight:750;white-space:nowrap;}
+    .ld-verdict.verified{color:#257451;background:#eaf5eb;}
+    .ld-verdict.review{color:#936818;background:#fff4d6;}
+    .ld-verdict.unsafe{color:#a34342;background:#fff0ef;}
+    .ld-select-product{padding:10px 13px;background:#ffcd00;border:0;border-radius:7px;font-size:11px;font-weight:850;white-space:nowrap;color:#28251a;}
+    .ld-select-product:hover:not(:disabled){background:#efbd00;}
+    .ld-select-product:disabled{background:#f1f0eb;color:#96958a;cursor:not-allowed;}
+    .ld-no-candidates{padding:25px;text-align:center;background:#f9f9f5;color:#8c8a7b;font-size:12px;}
+    .ld-side-intro{margin:0 0 15px;}
+    .ld-side-intro h3{font-size:19px;line-height:1.25;letter-spacing:-.4px;margin:5px 0;}
+    .ld-parameter-side .editor{border:0;padding:0;margin:0;background:transparent;}
+    .ld-parameter-side .editor summary{display:none;}
+    .ld-parameter-side .editor-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 16px;}
+    .ld-parameter-side .editor-field select,.ld-parameter-side .editor-field input{background:#fcfcfa;}
+    .ld-parameter-side .editor .primary{width:100%;font-size:12px;min-height:42px;}
+    .ld-original-query{background:#f6f6f2;border-radius:8px;margin-top:21px;padding:15px;}
+    .ld-original-query strong{display:block;font-size:11px;margin-bottom:7px;}
+    .ld-original-query p{font-size:12px;color:#707067;line-height:1.55;margin:5px 0;overflow-wrap:anywhere;}
+    .ld-archive-parameters{padding:10px;font-size:12px;}
+    .ld-archive-parameters p{padding:6px 0;border-bottom:1px solid #ecece7;}
+    @media(max-width:1050px){
+      .ld-review-layout{grid-template-columns:1fr;}
+      .ld-parameter-side{grid-row:1;}
+      .ld-parameter-side .editor-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    }
+    @media(max-width:760px){
+      .ld-product-hero{grid-template-columns:135px minmax(0,1fr);padding:14px;}
+      .ld-product-visual{min-height:120px;}.ld-product-visual svg{height:115px;}
+    }
+    @media(max-width:550px){
+      .ld-product-hero{grid-template-columns:1fr;}
+      .ld-product-visual{min-height:140px;}
+      .ld-parameter-side .editor-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .ld-review-panel{padding:12px!important;}
+      .ld-top-ten{padding:13px;}
+    }
+
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       .history-shade, .history-pane, .primary, .open-detail svg { transition: none; }
@@ -742,9 +839,23 @@
       svg.setAttribute("role","img");
       svg.setAttribute("aria-label",kind==="flange"?"Схематичный фланец":"Схематичный шаровой кран");
       const flange=kind==="flange";
-      svg.innerHTML=flange ?
-        '<circle cx="88" cy="61" r="47" fill="#b1b5b6" stroke="#484d4d" stroke-width="8"/><circle cx="88" cy="61" r="23" fill="#f4f3ee" stroke="#626868" stroke-width="6"/><circle cx="88" cy="23" r="5" fill="#f4f3ee"/><circle cx="88" cy="99" r="5" fill="#f4f3ee"/><circle cx="50" cy="61" r="5" fill="#f4f3ee"/><circle cx="126" cy="61" r="5" fill="#f4f3ee"/>' :
-        '<path d="M18 43h36v43H18zM122 43h36v43h-36z" fill="#a2a7a7" stroke="#3a4141" stroke-width="5"/><rect x="48" y="35" width="80" height="58" rx="14" fill="#60686a" stroke="#313b3b" stroke-width="6"/><circle cx="88" cy="64" r="23" fill="#9da6a5" stroke="#394142" stroke-width="5"/><path d="M88 38V17" stroke="#292f2f" stroke-width="11"/><path d="M88 15h49" stroke="#ffcd00" stroke-width="12" stroke-linecap="round"/><circle cx="88" cy="15" r="7" fill="#353d3d"/>';
+      const shapes=flange ? [
+        ["circle",{cx:88,cy:61,r:47,fill:"#b1b5b6",stroke:"#484d4d","stroke-width":8}],
+        ["circle",{cx:88,cy:61,r:23,fill:"#f4f3ee",stroke:"#626868","stroke-width":6}],
+        ...[[88,23],[88,99],[50,61],[126,61]].map(([cx,cy])=>["circle",{cx,cy,r:5,fill:"#f4f3ee"}])
+      ] : [
+        ["path",{d:"M18 43h36v43H18zM122 43h36v43h-36z",fill:"#a2a7a7",stroke:"#3a4141","stroke-width":5}],
+        ["rect",{x:48,y:35,width:80,height:58,rx:14,fill:"#60686a",stroke:"#313b3b","stroke-width":6}],
+        ["circle",{cx:88,cy:64,r:23,fill:"#9da6a5",stroke:"#394142","stroke-width":5}],
+        ["path",{d:"M88 38V17",stroke:"#292f2f","stroke-width":11}],
+        ["path",{d:"M88 15h49",stroke:"#ffcd00","stroke-width":12,"stroke-linecap":"round"}],
+        ["circle",{cx:88,cy:15,r:7,fill:"#353d3d"}]
+      ];
+      shapes.forEach(([type,attrs])=>{
+        const node=document.createElementNS("http://www.w3.org/2000/svg",type);
+        Object.entries(attrs).forEach(([key,value])=>node.setAttribute(key,String(value)));
+        svg.append(node);
+      });
       box.append(svg);return box;
     }
     const techNames={
