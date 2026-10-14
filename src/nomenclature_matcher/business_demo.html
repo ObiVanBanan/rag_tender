@@ -524,6 +524,7 @@
       };
     }
     function readHistory() {
+      if (!historyStorageAvailable) return volatileHistory;
       try {
         const raw=localStorage.getItem(HISTORY_KEY);
         const values=raw?JSON.parse(raw):[];
@@ -1133,7 +1134,7 @@
       const choices = [...(d.recommended || []), ...(d.other_candidates || [])];
       const manual = state.decision === "SELECTED_OTHER" ?
         choices.find(c => c.ld_id === state.selected_ld_id) : null;
-      const main = manual || (d.recommended && d.recommended[0]);
+      const main = state.decision==="REJECTED"?null:(manual || (d.recommended && d.recommended[0]));
       const product = el("div");
       product.append(el("div", main && main.name ? main.name : "Не выбран", "result-name" + (!main ? " missing" : "")));
       if (manual) product.append(el("div","Выбрано пользователем вместо рекомендации системы","subtle"));
@@ -1147,7 +1148,8 @@
       const toggle = el("button", null, "open-detail");
       toggle.type = "button"; toggle.setAttribute("aria-expanded", "false");
       toggle.setAttribute("aria-label", "Подробнее о результате для позиции " + (index + 1));
-      add(toggle, el("span", "Подробнее"), iconChevron());
+      const available=(d.top_candidates || [...(d.recommended||[]),...(d.other_candidates||[])]).length;
+      add(toggle, el("span", available>1?"Кандидаты ("+available+")":"Подробнее"), iconChevron());
       status.append(toggle);
       add(grid, query, product, article, status);
       const detail = renderDetail(d,index);
@@ -1176,6 +1178,15 @@
       results.forEach((d, i) => list.append(renderRow(d, i)));
       byId("results").replaceChildren(list);
       refreshTray();
+      // Make the selection workflow immediately discoverable; no second
+      // hidden accordion is needed to access available catalogue candidates.
+      if (!options.archived) {
+        const first=results.findIndex(x=>(x.top_candidates||x.other_candidates||[]).length);
+        if(first>=0) {
+          const toggle=byId("results").querySelectorAll(".open-detail")[first];
+          if(toggle)toggle.click();
+        }
+      }
       byId("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
     }
     async function run() {
