@@ -134,7 +134,7 @@ def test_technical_fallback_and_user_correction_roundtrip(joining,phrase):
 
 
 def test_technical_signal_and_lexical_stem_understand_stutser():
-    assert explicit_technical_signal_count("Кран шаровой Ду20 Ру40 штуцерный")>=3
+    assert explicit_technical_signal_count("Кран шаровой Ду20 PN 40 штуцерный")>=3
     a=technical_lexical_tokens("Кран шаровой штуцерное Ду20")
     b=technical_lexical_tokens("Кран шаровой штуцерный Ду20")
     assert "штуцер" in a and "штуцер" in b
