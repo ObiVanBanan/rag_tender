@@ -816,54 +816,160 @@ main{max-width:1510px;padding:0 34px 78px}
       bar.append(reject);
       detail.append(bar,fieldEditor(d,index));
     }
-    function renderDetail(d,index) {
-      const detail = el("div", null, "detail-panel");
-      detail.append(el("h3", "Почему такой результат?"));
-      detail.append(el("p", d.message || "Нет дополнительного пояснения.", "detail-copy"));
-      choiceControls(detail,d,index);
-      if (d.status === "INSUFFICIENT_PARAMETERS") {
-        const missing = (d.missing_fields || []).map(x => missingLabels[x] || x);
-        if (missing.length) detail.append(el("div", "Уточните: " + missing.join(", ") + ".", "detail-alert"));
+    function industrialPartArt(type) {
+      // Deliberately a schematic, not a photo of a particular LD product.
+      const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 180 145");svg.setAttribute("role","img");
+      svg.setAttribute("aria-label",type==="flange"?"Схема промышленного фланца":"Схема шарового крана");
+      function part(tag,attributes) {
+        const n=document.createElementNS("http://www.w3.org/2000/svg",tag);
+        Object.entries(attributes).forEach(([k,v])=>n.setAttribute(k,String(v)));
+        svg.append(n);return n;
       }
-      if (d.status === "MATCHED") {
-        const main = (d.recommended || [])[0];
-        if (main) {
-          const cmp = main.comparison || {};
-          const rows = cmp.rows || [];
-          const strictIssues = rows.filter(x => x.strict && x.status !== "MATCH");
-          if (!rows.length || strictIssues.length) {
-            detail.append(el("div", "Не все обязательные параметры подтверждены каталогом. Перед закупкой необходима ручная проверка.", "detail-alert"));
-          } else {
-            detail.append(el("div", "Кандидат прошёл доступные проверки. Подтвердите применимость изделия к вашей спецификации перед закупкой.", "detail-alert detail-ok"));
-          }
-          if (rows.length) {
-            const wrap = el("div", null, "detail-block");
-            wrap.append(el("h4", "Сравнение с рекомендованным изделием"));
-            wrap.append(tableFor(rows)); detail.append(wrap);
-          }
-          if (main.reason) detail.append(el("p", "Основание выбора: " + main.reason, "detail-copy"));
+      if(type==="flange"){
+        part("ellipse",{cx:90,cy:72,rx:57,ry:55,fill:"#aab4b8",stroke:"#425158","stroke-width":7});
+        part("ellipse",{cx:90,cy:72,rx:26,ry:25,fill:"#f1f3f5",stroke:"#536269","stroke-width":6});
+        for(const [cx,cy] of [[90,29],[133,72],[90,115],[47,72]]) {
+          part("circle",{cx,cy,r:7,fill:"#e9eeef",stroke:"#59656c","stroke-width":3});
         }
+        part("path",{d:"M43 42Q65 12 99 18",stroke:"#e6eaec","stroke-width":9,fill:"none","stroke-linecap":"round"});
+      }else{
+        part("rect",{x:12,y:68,width:42,height:39,rx:4,fill:"#9ba6ab",stroke:"#58666a","stroke-width":4});
+        part("rect",{x:125,y:68,width:43,height:39,rx:4,fill:"#9ba6ab",stroke:"#58666a","stroke-width":4});
+        part("rect",{x:45,y:56,width:91,height:60,rx:14,fill:"#414c54",stroke:"#172328","stroke-width":5});
+        part("path",{d:"M55 72H125M55 103H125",stroke:"#6d8087","stroke-width":5});
+        part("rect",{x:85,y:31,width:13,height:32,rx:3,fill:"#626e73",stroke:"#28353b","stroke-width":3});
+        part("path",{d:"M91 31V20H153",stroke:"#ffcd00","stroke-width":13,fill:"none","stroke-linecap":"round","stroke-linejoin":"round"});
+        part("circle",{cx:151,cy:20,r:7,fill:"#e8b900",stroke:"#65510b","stroke-width":2});
       }
-      if (Array.isArray(d.parameters) && d.parameters.length) {
-        const wrap = el("div", null, "detail-block");
-        add(wrap, el("h4", "Характеристики, выделенные из запроса"));
-        const tokens = el("div", null, "token-list");
-        d.parameters.forEach(p => tokens.append(el("span", p.label + ": " + p.value, "token")));
-        wrap.append(tokens); detail.append(wrap);
+      return svg;
+    }
+    function renderDetail(d,index) {
+      const detail=el("div",null,"detail-panel");
+      const review=activeReview && activeReview.review_token;
+      const state=rowStates[index] || {};
+      const layout=el("div",null,"review-layout");
+      const main=el("div",null,"review-main");
+      const inspector=el("aside",null,"review-inspector");
+      const candidates=Array.isArray(d.candidates)?d.candidates:
+        [...(d.recommended||[]),...(d.other_candidates||[])];
+      const recommended=(d.recommended||[])[0];
+      const manual=state.decision==="SELECTED_OTHER"?
+        candidates.find(c=>c.ld_id===state.selected_ld_id):null;
+      const current=manual||recommended;
+      if(state.decision!=="PENDING") {
+        main.append(el("div",({
+          ACCEPTED:"✓ Рекомендация принята пользователем",
+          SELECTED_OTHER:"✓ Выбран другой товар LD — сохранено",
+          REJECTED:"Результат отклонён пользователем"
+        })[state.decision]||state.decision,"user-status"));
       }
-      if (d.other_candidates && d.other_candidates.length) {
-        const others = el("details", null, "candidates");
-        others.append(el("summary", "Другие кандидаты (" + d.other_candidates.length + ") · пока не подтверждены"));
-        d.other_candidates.forEach(c => displayCandidate(others, c, false,index));
-        detail.append(others);
+      const feature=el("section",null,"featured");
+      feature.append(el("span",manual?"ВЫБРАНО ПОЛЬЗОВАТЕЛЕМ":"РЕКОМЕНДАЦИЯ СИСТЕМЫ","featured-tag"));
+      const featureGrid=el("div",null,"featured-grid");
+      const art=el("div",null,"part-art");
+      art.append(industrialPartArt((d.editable_constraints||{}).product_type));
+      const info=el("div");
+      info.append(el("h3",current?current.name:"Аналог пока не выбран","featured-name"));
+      if(current) info.append(el("p","Артикул LD: "+(current.article||"не указан"),"featured-article"));
+      info.append(el("p",d.message||"Система пока не подтвердила техническое соответствие.","featured-note"));
+      if(d.status==="INSUFFICIENT_PARAMETERS"){
+        const fields=(d.missing_fields||[]).map(x=>missingLabels[x]||x);
+        if(fields.length) info.append(el("div","Не хватает: "+fields.join(", "),"detail-alert"));
       }
-      if (d.recommended && d.recommended.length > 1) {
-        const extra = el("details", null, "candidates");
-        extra.append(el("summary", "Ещё рекомендованные варианты (" + (d.recommended.length - 1) + ")"));
-        d.recommended.slice(1).forEach(c => displayCandidate(extra, c, true,index));
-        detail.append(extra);
+      if(current){
+        const verdict=el("div",(current.review_note||"Требуется проверка характеристик"),
+                        current.review_gate==="BLOCKED"?"detail-alert":
+                        current.review_gate==="CHECKS_PASSED"?"detail-alert detail-ok":"detail-alert");
+        info.append(verdict);
       }
-      detail.append(el("p", "* Строго заданные в запросе параметры. Рекомендация не заменяет инженерную проверку применимости.", "subtle"));
+      if(review){
+        const bar=el("div",null,"review-actions");
+        if(recommended){
+          const accept=el("button","Принять рекомендацию","review-accept");
+          accept.type="button";
+          if(recommended.review_gate==="BLOCKED") {
+            accept.disabled=true;accept.title=recommended.review_note||"Строгие характеристики не совпадают";
+          }else accept.addEventListener("click",()=>userDecision(index,"ACCEPTED"));
+          bar.append(accept);
+        }
+        const reject=el("button","Отклонить","review-reject");
+        reject.type="button";reject.addEventListener("click",()=>userDecision(index,"REJECTED"));
+        bar.append(reject);info.append(bar);
+      }
+      add(featureGrid,art,info);feature.append(featureGrid);main.append(feature);
+      const header=el("div",null,"review-titleline");
+      add(header,el("h3","Топ-10 кандидатов LD"),el("span",candidates.length+" найдено для просмотра"));
+      main.append(header);
+      if(!candidates.length){
+        main.append(el("p",d.status==="INSUFFICIENT_PARAMETERS"?
+          "Кандидаты появятся после уточнения обязательных параметров и повторного подбора.":
+          "По текущему запросу кандидатов для выбора нет. Исправьте параметры и выполните подбор заново.","review-table-empty"));
+      }else{
+        const table=el("div",null,"review-table");
+        const head=el("div",null,"review-table-head");
+        ["№","Изделие LD","Параметры","Действие"].forEach(label=>head.append(el("span",label)));
+        table.append(head);
+        candidates.forEach((c,i)=>{
+          const picked=state.decision==="SELECTED_OTHER"&&state.selected_ld_id===c.ld_id;
+          const currentPrimary=!!recommended && recommended.ld_id===c.ld_id;
+          const blocked=c.review_gate==="BLOCKED";
+          const row=el("div",null,"review-option"+(picked?" chosen":"")+(blocked?" is-blocked":""));
+          row.append(el("span",String(i+1).padStart(2,"0"),"rank"));
+          const name=el("div");
+          name.append(el("div",c.name||"Без наименования","part-name"));
+          name.append(el("div","Арт. "+(c.article||"—"),"part-article"));
+          name.append(el("div",c.review_note||
+              (blocked?"Есть несовпадения по требованиям":"Кандидат для инженерной проверки"),
+              "check-note"+(blocked?" blocked":"")));
+          if(currentPrimary) name.append(el("div","Рекомендует система","subtle"));
+          row.append(name);
+          const tech=el("div",null,"review-tech");
+          tech.append(el("p","DN "+(c.dn==null?"—":c.dn),"tech-row"));
+          tech.append(el("p","PN "+(c.pn==null?"—":c.pn),"tech-row"));
+          row.append(tech);
+          const actions=el("div");
+          if(picked){
+            actions.append(el("span","✓ Выбрано","picked"));
+          }else if(!review){
+            actions.append(el("span","Сохранённый результат","subtle"));
+          }else if(currentPrimary) {
+            actions.append(el("span","Основной вариант","subtle"));
+          }else {
+            const choose=el("button",blocked?"Не подходит":"Выбрать этот LD");
+            choose.type="button";choose.disabled=blocked;
+            if(blocked)choose.title=c.review_note||"Не совпадают обязательные параметры";
+            else choose.addEventListener("click",()=>userDecision(index,"SELECTED_OTHER",c.ld_id));
+            actions.append(choose);
+          }
+          row.append(actions);table.append(row);
+        });
+        main.append(table);
+      }
+      const checks=el("details",null,"review-detail");
+      checks.append(el("summary","Почему выбран аналог? Сравнение характеристик и пояснения"));
+      if(current){
+        const rows=(current.comparison||{}).rows||[];
+        if(rows.length)checks.append(tableFor(rows));
+        else checks.append(el("p","Недостаточно структурированных данных для полного сравнения.","subtle"));
+        if(current.reason)checks.append(el("p",current.reason,"detail-copy"));
+      }else checks.append(el("p",d.message||"Недостаточно данных.","detail-copy"));
+      checks.append(el("p","* Строго заданные параметры. Подбор предварительный и не заменяет проверку инженером.","subtle"));
+      main.append(checks);
+      inspector.append(el("h3","Параметры из документа"));
+      inspector.append(el("p","Проверьте извлечённые характеристики. Исправление запускает подбор повторно.","inspector-copy"));
+      if(review) {
+        const editor=fieldEditor(d,index);
+        editor.open=true;inspector.append(editor);
+      }else{
+        inspector.append(el("p","Это сохранённый слепок. Для нового подбора нажмите «Найти аналоги» наверху.","review-table-empty"));
+      }
+      const source=el("details",null,"review-detail");
+      source.append(el("summary","Исходная строка спецификации"));
+      source.append(el("p",d.input||"—","detail-copy"));
+      if(d.corrected_query)source.append(el("p","Исправленный запрос: "+d.corrected_query,"detail-copy"));
+      inspector.append(source);
+      add(layout,main,inspector);detail.append(layout);
       return detail;
     }
     function renderRow(d, index) {
