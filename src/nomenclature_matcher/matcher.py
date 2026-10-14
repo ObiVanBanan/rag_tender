@@ -710,7 +710,7 @@ class NomenclatureMatcher:
             "pn_min_mpa": (flange.pn_min_mpa or explicit_pn_mpa_from_query(query)) if flange else explicit_pn_mpa_from_query(query),
             "joining_type": None if flange else explicit_joining_type_from_query(query),
             "thread_type": explicit_thread_type_from_query(query),
-            "thread_size": thread_size_from_text(query),
+            "thread_size": thread_size_from_text(query) if "11б27п" in query.casefold() else None,
             "working_medium": explicit_working_medium_from_query(query),
             "valve_type": valve_type,
             "valve_designation": designation,
