@@ -12,7 +12,7 @@ from compare_regression_outputs import (  # noqa: E402
     allowed_sparse_refusal, classify, compare, evaluate, stage_of_failure,
     technical_rejection_evidence
 )
-from run_evolution_ab import load_cases, HISTORIC_REF  # noqa: E402
+from run_evolution_ab import load_cases, HISTORIC_REF, TENDER_GOLD_REF  # noqa: E402
 
 
 def case(query="Кран шаровой DN50 PN16",positive=7):
@@ -99,7 +99,8 @@ def test_historic_tender20_source_is_exact_git_revision(tmp_path):
     cases=load_cases("tender20",baseline)
     assert len(cases)==20
     assert cases[0]["acceptable_ld_ids"]==[0]
-    assert HISTORIC_REF.startswith("5768c459")
+    assert HISTORIC_REF == "336d7c08cbface23afb0cbd6ae83736e294d870f"
+    assert TENDER_GOLD_REF == "e1661896e8d0c7fbb18c02adb4abb9a1d93b4d2f"
     payload["cases"].pop()
     (baseline/"data/tender_queries_v1_harness_cases.json").write_text(json.dumps(payload))
     with pytest.raises(ValueError,match="instead of 20"):
@@ -125,3 +126,8 @@ def test_evidence_attributes_offline_technical_conflicts_to_known_candidate():
     assert evidence[0]["hard_eligible"] is False
     assert "body_material" in evidence[0]["soft_conflicts"]
     assert "dn" not in evidence[0]["soft_conflicts"]
+
+
+def test_tender20_labels_must_be_supplied_independently_of_old_algorithm():
+    with pytest.raises(ValueError,match="explicit"):
+        load_cases("tender20")
