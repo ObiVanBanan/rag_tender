@@ -333,6 +333,13 @@ def canonical_joining_type(text: Any) -> str | None:
     value = _norm(text)
     if not value:
         return None
+    # LD catalogue distinguishes "Штуцерное" (КШЦШ) from
+    # "Приварное/штуцерное" (КШЦК). Neither is ordinary threaded
+    # or welded-end. Check the hybrid form *before* generic weld words.
+    if "штуцер" in value:
+        if "привар" in value or "сварка" in value:
+            return "welded_nipple"
+        return "nipple"
     if "межфлан" in value:
         return "wafer"
     if "компресс" in value or "обжим" in value:
