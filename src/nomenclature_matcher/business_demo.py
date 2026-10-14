@@ -13,6 +13,8 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, field_validator
 
 from .observability import get_request_id
+from .models import LDProduct
+from .query_constraints import QueryConstraints, candidate_material_text, product_snapshot, technical_compatibility
 
 router = APIRouter(tags=["Бизнес-демо"])
 
@@ -86,7 +88,74 @@ def parameter_rows(interpretation: dict[str, Any]) -> list[dict[str, Any]]:
     return result
 
 
-def as_variant(candidate: Any, selected: Any = None) -> dict[str, Any]:
+def _render_fact(key: str, value: Any) -> str:
+    if value is None or value == "" or value == []:
+        return "Нет данных"
+    if key == "dn":
+        return f"DN{value}"
+    if key == "pn_min_mpa":
+        try:
+            n = float(value)
+            return f"{n:g} МПа (PN{n*10:g})"
+        except (TypeError, ValueError):
+            return str(value)
+    if isinstance(value, list):
+        return ", ".join(map(str, value[:8]))
+    return VALUES.get(str(value), str(value))
+
+
+def compare_candidate(candidate: Any, interpretation: dict[str, Any]) -> dict[str, Any]:
+    """Separate matching, mismatching and unknown catalog facts.
+
+    The check is against interpreted constraints; hard flags identify explicit
+    requirements. Do not equate matching these fields with tender equivalence.
+    """
+    raw = interpretation.get("constraints")
+    hard = interpretation.get("hard_constraints")
+    empty = {"rows": [], "matched": 0, "mismatched": 0, "unknown": 0}
+    if not isinstance(raw, dict):
+        return empty
+    hard = hard if isinstance(hard, dict) else {}
+    try:
+        clean = {k: v for k, v in raw.items() if k in QueryConstraints.model_fields}
+        constraints = QueryConstraints.model_validate(clean)
+        product = LDProduct(
+            id=candidate.ld_id, name=candidate.name, article=candidate.article,
+            dn=candidate.dn, pn=candidate.pn, joining_type=candidate.joining_type,
+            properties=candidate.properties or [],
+        )
+        actual = product_snapshot(product)
+        actual["body_material_grade"] = candidate_material_text(product)
+        checks = technical_compatibility(product, constraints)["checks"]
+    except (ValueError, TypeError, KeyError):
+        return empty
+    result = {"rows": [], "matched": 0, "mismatched": 0, "unknown": 0}
+    for key, label in FIELDS.items():
+        expected = clean.get(key)
+        if expected is None or expected == "" or expected == [] or expected in ("other", "unknown"):
+            continue
+        status = checks.get(key, "unknown")
+        if status == "match":
+            verdict, field = "MATCH", "matched"
+        elif status.startswith("mismatch:"):
+            verdict, field = "MISMATCH", "mismatched"
+        else:
+            verdict, field = "UNKNOWN", "unknown"
+        result[field] += 1
+        actual_value = actual.get("pn_mpa" if key == "pn_min_mpa" else key)
+        if key == "valve_designation":
+            actual_value = None  # Not deterministically evaluated by this checker.
+        result["rows"].append({
+            "key": key, "label": label,
+            "required": _render_fact(key, expected),
+            "catalog": _render_fact(key, actual_value),
+            "status": verdict,
+            "strict": hard.get(key) not in (None, "", "other", "unknown"),
+        })
+    return result
+
+
+def as_variant(candidate: Any, selected: Any = None, interpretation: dict[str, Any] | None = None) -> dict[str, Any]:
     return {
         "ld_id": candidate.ld_id,
         "name": candidate.name,
@@ -98,6 +167,7 @@ def as_variant(candidate: Any, selected: Any = None) -> dict[str, Any]:
         "llm_confidence": getattr(selected, "llm_confidence", None),
         "reason": getattr(selected, "reason", None),
         "selection": "RECOMMENDED" if selected is not None else "FOR_REVIEW",
+        "comparison": compare_candidate(candidate, interpretation or {}),
     }
 
 
@@ -115,13 +185,13 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
         for s in match.selected or []:
             c = indexed.get(s.ld_id)
             if c is not None and c.ld_id not in chosen:
-                recommended.append(as_variant(c, s))
+                recommended.append(as_variant(c, s, interpretation))
                 chosen.add(c.ld_id)
         if not recommended and match.ld_product is not None:
-            recommended = [as_variant(match.ld_product)]
+            recommended = [as_variant(match.ld_product, interpretation=interpretation)]
             recommended[0]["selection"] = "RECOMMENDED"
             chosen.add(match.ld_product.ld_id)
-    alternatives = [as_variant(c) for c in pool if c.ld_id not in chosen][:5]
+    alternatives = [as_variant(c, interpretation=interpretation) for c in pool if c.ld_id not in chosen][:5]
     status = "ERROR" if match.status == "RERANK_FAILED" else match.status
     reason = str(match.reason or "")
     if status == "ERROR":
@@ -161,7 +231,7 @@ def business_page() -> HTMLResponse:
 @router.post("/v1/demo/match")
 def business_match(payload: DemoRequest, request: Request) -> dict[str, Any]:
     runtime = request.app.state.runtime
-    if len(payload.products) > runtime.settings.api_max_batch_size:
+    if len(payload.products) > min(runtime.settings.api_max_batch_size, int(getattr(runtime.settings, 'public_demo_max_batch_size', 10))):
         raise HTTPException(status_code=413, detail="Размер пакета превышает лимит")
     started = perf_counter()
     results = []
