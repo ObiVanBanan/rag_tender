@@ -204,3 +204,80 @@ def test_connection_dropdown_edits_are_sent_for_both_stutser_variants():
             page.wait_for_function("document.querySelector('#edit-0-joining_type')?.value === "+json.dumps(kind))
             assert edits and edits[0]["changes"]["joining_type"]==kind
             browser.close()
+
+
+
+def test_append_a_missing_item_to_current_batch_and_history_without_rerunning_old_items():
+    import copy
+    payload=mock_result()
+    appended=[]
+    match_calls=[]
+    one=copy.deepcopy(payload["results"][0])
+    one["input"]="Кран шаровой штуцерный Ду20 Ру40"
+    one["source_input"]=one["input"]
+    one["editable_constraints"]={
+        "product_type":"ball_valve","dn":20,
+        "pn_min_mpa":4.0,"joining_type":"nipple"
+    }
+    one["recommended"]=[candidate(601,"LD-КШЦШ-20",recommended=True)]
+    one["other_candidates"]=[]
+    one["top_candidates"]=one["recommended"]
+    with sync_playwright() as host:
+        browser=host.chromium.launch(headless=True)
+        page=browser.new_page(viewport={"width":1440,"height":960})
+        page.route(URL+"/demo",lambda route:route.fulfill(
+            status=200,content_type="text/html; charset=utf-8",
+            body=(ROOT/"business_demo.html").read_text(encoding="utf-8")))
+
+        def match(route):
+            match_calls.append(route.request.post_data_json)
+            route.fulfill(status=200,content_type="application/json",body=json.dumps(payload))
+
+        def append(route):
+            data=route.request.post_data_json
+            appended.append(data)
+            route.fulfill(status=200,content_type="application/json",body=json.dumps({
+                "item_index":2,"revision":0,"decision":"PENDING","result":one
+            }))
+
+        page.route("**/v1/demo/match",match)
+        page.route("**/v1/demo/append",append)
+        page.goto(URL+"/demo")
+        assert page.locator("#append-open").is_hidden()
+        page.locator("#query").fill("\n".join(x["input"] for x in payload["results"]))
+        page.locator("#go").click()
+        page.locator(".result-row").first.wait_for()
+        original_name=page.locator(".result-row").first.locator(".article-code").inner_text()
+        assert page.locator(".result-row").count()==2
+        assert len(match_calls)==1
+        page.locator("#append-open").click()
+        page.locator("#append-query").fill("Кран шаровой штуцерный Ду20 Ру40")
+        page.locator("#append-field-product_type").select_option("ball_valve")
+        page.locator("#append-field-joining_type").select_option("nipple")
+        page.locator("#append-field-dn").fill("20")
+        page.locator("#append-field-pn_min_mpa").fill("4")
+        page.locator("#append-submit").click()
+        page.locator(".result-row").nth(2).wait_for()
+        assert len(match_calls)==1  # no full-batch re-run
+        assert len(appended)==1
+        assert appended[0]["expected_count"]==2
+        assert appended[0]["fields"]["joining_type"]=="nipple"
+        assert appended[0]["fields"]["product_type"]=="ball_valve"
+        assert len(page.locator(".result-row").all())==3
+        assert page.locator(".result-row").first.locator(".article-code").inner_text()==original_name
+        assert "LD-КШЦШ-20" in page.locator(".result-row").nth(2).locator(".article-code").inner_text()
+        assert page.locator("#tray-count").inner_text()=="2 / 3"
+        page.reload()
+        page.locator("#history-open").click()
+        assert page.locator(".history-item").count()==1
+        page.locator(".history-item").click()
+        assert page.locator(".result-row").count()==3
+        assert "LD-КШЦШ-20" in page.locator(".result-row").nth(2).locator(".article-code").inner_text()
+        assert page.locator("#append-open").is_hidden()
+        saved=page.evaluate("JSON.parse(localStorage.getItem('ld-tender-demo-snapshots-v3'))")
+        assert saved[0]["products"][-1]=="Кран шаровой штуцерный Ду20 Ру40"
+        assert len(saved[0]["results"])==3
+        assert len(saved[0]["states"])==3
+        assert "review_token" not in json.dumps(saved)
+        assert len(match_calls)==1  # re-open history never calls match
+        browser.close()
