@@ -46,6 +46,7 @@ VALUES = {
     "flanged": "Фланцевое", "welded": "Приварное",
     "threaded": "Резьбовое", "wafer": "Межфланцевое",
     "compression": "Компрессионное",
+    "nipple": "Штуцерное", "welded_nipple": "Приварное/штуцерное",
     "male_female": "НР/ВР", "female_female": "ВР/ВР", "male_male": "НР/НР",
     "steel": "Сталь", "brass": "Латунь", "full": "Полнопроходной",
     "pe_stub": "Под ПНД-втулку", "flat_welded": "Плоский приварной",
@@ -262,7 +263,7 @@ EDIT_FIELDS = {
 }
 ENUMS = {
     "product_type": {"ball_valve", "flange", "butterfly_valve", "gate_valve", "check_valve", "filter"},
-    "joining_type": {"threaded","flanged","welded","wafer","compression"},
+    "joining_type": {"threaded","flanged","welded","wafer","compression","nipple","welded_nipple"},
     "thread_type": {"female_female","male_male","male_female"},
     "body_material": {"steel","stainless_steel","brass","cast_iron"},
     "bore_type": {"full","reduced"},
@@ -276,7 +277,9 @@ PRODUCT_NAMES = {
 }
 TEXT_NAMES = {
     "joining_type":{"threaded":"резьбовой","flanged":"фланцевый",
-                    "welded":"под приварку","wafer":"межфланцевый","compression":"обжимной"},
+                    "welded":"под приварку","wafer":"межфланцевый","compression":"обжимной",
+                    "nipple":"штуцерное присоединение",
+                    "welded_nipple":"приварное/штуцерное присоединение"},
     "thread_type":{"female_female":"ВР/ВР","male_male":"НР/НР","male_female":"НР/ВР"},
     "body_material":{"steel":"стальной","stainless_steel":"нержавеющая сталь",
                      "brass":"латунный","cast_iron":"чугунный"},
