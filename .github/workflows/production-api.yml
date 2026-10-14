@@ -12,6 +12,10 @@ on:
       - "src/nomenclature_matcher/business_demo.html"
       - "tests/test_business_demo.py"
       - "tests/test_business_demo_ui.py"
+      - "tests/test_demo_feedback_features.py"
+      - "tests/test_demo_feedback_postgres.py"
+      - "src/nomenclature_matcher/demo_feedback.py"
+      - "src/nomenclature_matcher/business_demo_stats.html"
       - "tests/test_demo_recheck.py"
       - "tests/test_export_demo20.py"
       - "tests/test_demo_auth.py"
@@ -56,6 +60,22 @@ on:
 jobs:
   contract:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: demo_test
+          POSTGRES_PASSWORD: demo_test_password
+          POSTGRES_DB: demo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U demo_test -d demo_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DEMO_PG_DSN: postgresql://demo_test:demo_test_password@localhost:5432/demo_test
     steps:
       - uses: actions/checkout@v4
 
@@ -75,6 +95,8 @@ jobs:
           tests/test_production_api.py
           tests/test_business_demo.py
           tests/test_business_demo_ui.py
+          tests/test_demo_feedback_features.py
+          tests/test_demo_feedback_postgres.py
           tests/test_demo_recheck.py
           tests/test_export_demo20.py
           tests/test_demo_auth.py
