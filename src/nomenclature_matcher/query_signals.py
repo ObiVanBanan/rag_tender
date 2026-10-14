@@ -241,11 +241,11 @@ def explicit_working_medium_from_query(query: str) -> str | None:
     text = normalize_query_text(query)
     matches: list[str] = []
     for pattern, value in (
-        (r"\bвода\b", "вода"),
-        (r"\bпар\b", "пар"),
-        (r"\bгаз\b", "газ"),
-        (r"\bмасло\b", "масло"),
-        (r"\bгликол\b", "гликол"),
+        (r"\bвод(?:а|ы|у|е|ой)\b", "вода"),
+        (r"\bпар(?:а|у|ом)?\b", "пар"),
+        (r"\bгаз(?:а|у|ом)?\b", "газ"),
+        (r"\bмасл(?:о|а|у|ом)\b", "масло"),
+        (r"\bгликол(?:ь|я|ю|ем)?\b", "гликол"),
     ):
         if re.search(pattern, text):
             matches.append(value)
