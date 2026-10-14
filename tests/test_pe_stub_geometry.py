@@ -133,3 +133,13 @@ def test_non_pnd_valves_do_not_receive_inferred_pe_geometry():
     valve=LDProduct(id=8,name="Кран шаровый ПНД из стали Ду80 внутр.108 мм",dn="80")
     assert candidate_flange_kind(valve) is None
     assert candidate_stub_dn(valve) is None
+
+
+def test_catalog_inner_diameter_conflict_is_rejected():
+    product = ld_pnd(80, 108)
+    product.properties.append({"name":"Внутренний диаметр", "values":["78"]})
+    assert candidate_flange_bore_mm(product) is None
+    assert candidate_stub_dn(product) is None
+    assert not evaluate_product(product, QueryConstraints(
+        product_type="flange", flange_kind="pe_stub", dn=80, stub_dn=90, body_material="steel"
+    )).matches
