@@ -215,7 +215,13 @@ class DemoFeedbackStore:
             ).fetchone()
             timeline=conn.execute(
                 """SELECT date_trunc('day',s.created_at)::date AS day, count(*),
-                          count(*) FILTER (WHERE d.initial_status='MATCHED')
+                          count(*) FILTER (WHERE d.initial_status='MATCHED'),
+                          count(*) FILTER (WHERE d.initial_status='NOT_FOUND'),
+                          count(*) FILTER (WHERE d.initial_status='INSUFFICIENT_PARAMETERS'),
+                          count(*) FILTER (WHERE d.initial_status='ERROR'),
+                          count(*) FILTER (WHERE d.decision='ACCEPTED'),
+                          count(*) FILTER (WHERE d.decision='REJECTED'),
+                          count(*) FILTER (WHERE d.decision='SELECTED_OTHER')
                    FROM demo_review_rows d JOIN demo_review_sessions s USING(request_id)
                    WHERE s.created_at >= now() - (%s * interval '1 day')
                    GROUP BY 1 ORDER BY 1""",
@@ -227,6 +233,17 @@ class DemoFeedbackStore:
                    GROUP BY event_type ORDER BY count(*) DESC""",
                 (days,),
             ).fetchall()
+            interaction_timeline=conn.execute(
+                """SELECT date_trunc('day',created_at)::date AS day,
+                          count(*) FILTER (WHERE event_type='ACCEPTED'),
+                          count(*) FILTER (WHERE event_type='REJECTED'),
+                          count(*) FILTER (WHERE event_type='SELECTED_OTHER'),
+                          count(*) FILTER (WHERE event_type='PARAMETERS_CORRECTED')
+                   FROM demo_review_events
+                   WHERE created_at >= now() - (%s * interval '1 day')
+                   GROUP BY 1 ORDER BY 1""",
+                (days,),
+            ).fetchall()
         keys=("processed","auto_matched","not_found","insufficient",
               "errors","accepted","rejected","selected_other",
               "parameter_edited","pending")
@@ -234,7 +251,14 @@ class DemoFeedbackStore:
             "period_days":days,
             "counts":dict(zip(keys,map(int,totals))),
             "timeline":[{"day":str(x[0]),"processed":int(x[1]),
-                         "auto_matched":int(x[2])} for x in timeline],
+                         "auto_matched":int(x[2]),"not_found":int(x[3]),
+                         "insufficient":int(x[4]),"errors":int(x[5]),
+                         "accepted":int(x[6]),"rejected":int(x[7]),
+                         "selected_other":int(x[8])} for x in timeline],
+            "interaction_timeline":[{
+                "day":str(x[0]),"accepted":int(x[1]),"rejected":int(x[2]),
+                "selected_other":int(x[3]),"parameter_edited":int(x[4])
+            } for x in interaction_timeline],
             "events":{str(name):int(count) for name,count in actions},
             "note":"Частоты действий пользователей, не точность алгоритма. Группы действий пересекаются.",
         }

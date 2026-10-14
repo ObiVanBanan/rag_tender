@@ -74,3 +74,45 @@ def test_public_page_uses_static_template():
     assert response.status_code == 200
     assert "charset=utf-8" in response.media_type + ";" + (response.charset or "") or response.charset == "utf-8"
     assert b"LD" in response.body
+
+
+
+def test_reference_style_has_visible_top10_manual_actions_and_snapshot_history():
+    html=PAGE.read_text(encoding="utf-8")
+    assert 'function renderCandidateTable(d,index)' in html
+    assert '"Выбрать","ld-select-product"' in html
+    assert 'userDecision(index,recommended&&recommended.ld_id===c.ld_id?' in html
+    assert '"SELECTED_OTHER"' in html
+    assert '"ld-parameter-side"' in html
+    assert '"ld-product-hero"' in html
+    assert 'function historyResult(item)' in html
+    assert 'function updateHistorySnapshot()' in html
+    assert 'function restoreHistory(entry)' in html
+    assert 'saveHistory(products,data)' in html
+    assert 'updateHistorySnapshot();' in html
+    assert 'options.archived?null' in html
+    assert 'readHistory()' in html
+    assert 'localStorage.setItem(HISTORY_KEY' in html
+    assert "review_token:payload.review_token" in html
+    # A browser snapshot may contain product names and articles, but not
+    # a session capability, diagnostic scores or benchmark labels.
+    snapshot_part=html.split('function historyResult(item)',1)[1].split('function readHistory()',1)[0]
+    assert 'review_token' not in snapshot_part
+    assert 'retrieval_score' not in snapshot_part
+    assert 'llm_confidence' not in snapshot_part
+    assert 'gold' not in snapshot_part.lower()
+
+
+def test_business_statistics_has_real_multiple_charts():
+    stats=(PAGE.parent / "business_demo_stats.html").read_text(encoding="utf-8")
+    assert 'id="timeline"' in stats
+    assert 'id="donut"' in stats
+    assert 'id="interaction-chart"' in stats
+    assert 'id="review-bars"' in stats
+    assert 'function stacked(values)' in stats
+    assert 'function donut(counts)' in stats
+    assert 'function chartEvents(daily)' in stats
+    assert 'data.interaction_timeline' in stats
+    assert "/v1/demo/stats?days=" in stats
+    assert "conic-gradient" in stats
+    assert "innerHTML" not in stats

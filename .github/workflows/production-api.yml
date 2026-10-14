@@ -12,6 +12,7 @@ on:
       - "src/nomenclature_matcher/business_demo.html"
       - "tests/test_business_demo.py"
       - "tests/test_business_demo_ui.py"
+      - "tests/test_demo_ui_browser.py"
       - "tests/test_demo_feedback_features.py"
       - "tests/test_demo_feedback_postgres.py"
       - "src/nomenclature_matcher/demo_feedback.py"
@@ -123,3 +124,25 @@ jobs:
 
       - name: Build API image
         run: docker build -t rag-tender-api:test .
+
+  ui-browser:
+    name: LD demo — Chromium reference & choice regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Playwright and pytest
+        run: python -m pip install pytest playwright
+      - name: Install browser
+        run: python -m playwright install --with-deps chromium
+      - name: Verify UI using real Chromium
+        run: python -m pytest -q tests/test_demo_ui_browser.py
+      - name: Upload rendered design screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ld-reference-ui-screenshots
+          path: test-artifacts/*.png
+          if-no-files-found: ignore

@@ -222,6 +222,106 @@
       .comparison { min-width: 450px; }
       footer { flex-direction: column; align-items: start; }
     }
+
+    /* LD v2: reference-inspired results-first engineering workspace. */
+    .top {height:74px;border-bottom:3px solid #ffcd00;}
+    .top-inner,main,footer{max-width:1490px;}
+    .brand-mark{background:#ffcd00;border-radius:4px;font-style:italic;transform:skew(-6deg);}
+    .brand-name{font-size:19px;}
+    .hero{padding:34px 0 22px;}
+    .hero h1{font-size:clamp(28px,3.2vw,40px);letter-spacing:-1.25px;}
+    .hero p{margin-top:11px;}
+    .workspace{grid-template-columns:minmax(0,1fr) 240px;}
+    .entry{padding:21px 25px;}
+    .entry textarea{min-height:158px;}
+    .aside{min-height:275px;}
+    .aside h2{font-size:22px;}
+    .results-section{margin-top:28px;}
+    .results-list{box-shadow:0 10px 38px #14141408;}
+    .results-header,.result-grid{grid-template-columns:minmax(190px,1.1fr) minmax(190px,1.2fr) minmax(120px,.65fr) 175px;}
+    .result-grid{padding:19px 22px;align-items:center;}
+    .result-row.expanded>.result-grid{background:#fffbea;box-shadow:inset 4px 0 #ffcd00;}
+    .result-row.expanded .detail-panel{display:block;}
+    .detail-panel.ld-review-panel{margin:0;padding:24px 22px;background:#f8f8f5;border:0;border-top:1px solid #e9e8dc;border-radius:0;}
+    .ld-review-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(255px,305px);gap:18px;align-items:start;}
+    .ld-review-content{min-width:0;}
+    .ld-parameter-side{background:#fff;border:1px solid #e9e9e0;border-radius:13px;padding:20px;box-shadow:0 4px 26px #25252509;}
+    .ld-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px;}
+    .ld-section-head h3,.ld-section-head h4{margin:0;font-size:17px;letter-spacing:-.3px;}
+    .ld-section-head h4{font-size:17px;}
+    .ld-kicker{font-size:10px;font-weight:850;letter-spacing:1.4px;color:#968020;}
+    .ld-recommendation{background:white;border:1px solid #eadc9f;border-radius:13px;overflow:hidden;}
+    .ld-recommendation-label{display:block;padding:12px 17px;background:#fff8dd;color:#65520c;font-size:10px;letter-spacing:1.2px;font-weight:900;}
+    .ld-product-hero{display:grid;grid-template-columns:185px minmax(0,1fr);align-items:center;gap:19px;padding:21px;}
+    .ld-product-visual{background:#f5f5f2;border-radius:12px;min-height:160px;display:grid;place-items:center;}
+    .ld-product-visual svg{width:100%;max-width:170px;height:135px;filter:drop-shadow(0 7px 6px #1112);}
+    .ld-product-summary h3{margin:0 0 8px;font-size:17px;font-weight:800;line-height:1.4;letter-spacing:-.4px;}
+    .ld-article-large{font-size:12px;color:#5f605c;overflow-wrap:anywhere;margin:0 0 13px;}
+    .ld-specs{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0;}
+    .ld-spec-chip{background:#f4f4ef;border:1px solid #e9e8e0;border-radius:6px;padding:7px 9px;font-size:11px;color:#494a45;}
+    .ld-product-reason{font-size:11px;line-height:1.7;color:#79766a;margin:11px 0;}
+    .ld-catalogue-link{display:inline-block;border-bottom:1px solid #dbb300;color:#5b4c05;font-size:12px;font-weight:800;margin-top:3px;}
+    .ld-inline-compare{margin:11px 0;background:white;border:1px solid #e8e8df;border-radius:9px;padding:12px 15px;}
+    .ld-inline-compare summary{cursor:pointer;color:#4e4d46;font-weight:800;font-size:12px;}
+    .ld-inline-compare table{margin-top:10px;}
+    .ld-unmatched{padding:23px 25px;background:#fffaf1;border:1px solid #e9dbb9;border-radius:12px;}
+    .ld-unmatched h3{margin:0 0 9px;font-size:17px;}
+    .ld-unmatched p{color:#756c57;font-size:12px;line-height:1.7;margin:5px 0;}
+    .ld-missing-line{font-weight:780;color:#725414!important;}
+    .ld-review-buttons{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:13px 0 24px;}
+    .ld-review-buttons .primary,.ld-review-buttons .secondary{min-height:39px;padding:9px 15px;}
+    .history-open-snapshot{display:block;color:#756212;font-weight:800;font-size:11px;margin-top:10px;}
+    .history-item strong{font-size:13px;}
+    .history-item .subtle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ld-archive-note{font-size:11px;color:#a16e28;}
+    .ld-top-ten{padding:20px 19px;background:#fff;border-radius:12px;border:1px solid #e8e8e3;}
+    .ld-top-ten>.subtle{display:block;margin-bottom:14px;}
+    .ld-candidate-scroll{overflow-x:auto;border:1px solid #ecece7;border-radius:9px;}
+    .ld-candidate-table{width:100%;border-collapse:collapse;min-width:800px;text-align:left;font-size:11px;}
+    .ld-candidate-table th{background:#f6f6f2;padding:12px 9px;color:#8b8981;font-size:10px;white-space:nowrap;}
+    .ld-candidate-table td{padding:13px 9px;border-top:1px solid #eeeeea;vertical-align:middle;overflow-wrap:anywhere;}
+    .ld-candidate-table td:first-child{font-weight:800;color:#aaa79d;}
+    .ld-candidate-table td strong{font-size:12px;font-weight:780;display:block;min-width:180px;margin-bottom:5px;}
+    .ld-candidate-table tr.ld-ai-choice{background:#fffefa;}
+    .ld-candidate-table tr.ld-current-choice{background:#fff9dd;}
+    .ld-ai-tag{display:inline-block;margin-top:6px;padding:4px 6px;border-radius:4px;background:#ffedac;font-size:10px;font-weight:800;color:#77621c;}
+    .ld-verdict{font-size:10px;border-radius:5px;padding:6px 7px;font-weight:750;white-space:nowrap;}
+    .ld-verdict.verified{color:#257451;background:#eaf5eb;}
+    .ld-verdict.review{color:#936818;background:#fff4d6;}
+    .ld-verdict.unsafe{color:#a34342;background:#fff0ef;}
+    .ld-select-product{padding:10px 13px;background:#ffcd00;border:0;border-radius:7px;font-size:11px;font-weight:850;white-space:nowrap;color:#28251a;}
+    .ld-select-product:hover:not(:disabled){background:#efbd00;}
+    .ld-select-product:disabled{background:#f1f0eb;color:#96958a;cursor:not-allowed;}
+    .ld-no-candidates{padding:25px;text-align:center;background:#f9f9f5;color:#8c8a7b;font-size:12px;}
+    .ld-side-intro{margin:0 0 15px;}
+    .ld-side-intro h3{font-size:19px;line-height:1.25;letter-spacing:-.4px;margin:5px 0;}
+    .ld-parameter-side .editor{border:0;padding:0;margin:0;background:transparent;}
+    .ld-parameter-side .editor summary{display:none;}
+    .ld-parameter-side .editor-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 16px;}
+    .ld-parameter-side .editor-field select,.ld-parameter-side .editor-field input{background:#fcfcfa;}
+    .ld-parameter-side .editor .primary{width:100%;font-size:12px;min-height:42px;}
+    .ld-original-query{background:#f6f6f2;border-radius:8px;margin-top:21px;padding:15px;}
+    .ld-original-query strong{display:block;font-size:11px;margin-bottom:7px;}
+    .ld-original-query p{font-size:12px;color:#707067;line-height:1.55;margin:5px 0;overflow-wrap:anywhere;}
+    .ld-archive-parameters{padding:10px;font-size:12px;}
+    .ld-archive-parameters p{padding:6px 0;border-bottom:1px solid #ecece7;}
+    @media(max-width:1050px){
+      .ld-review-layout{grid-template-columns:1fr;}
+      .ld-parameter-side{grid-row:1;}
+      .ld-parameter-side .editor-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    }
+    @media(max-width:760px){
+      .ld-product-hero{grid-template-columns:135px minmax(0,1fr);padding:14px;}
+      .ld-product-visual{min-height:120px;}.ld-product-visual svg{height:115px;}
+    }
+    @media(max-width:550px){
+      .ld-product-hero{grid-template-columns:1fr;}
+      .ld-product-visual{min-height:140px;}
+      .ld-parameter-side .editor-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .ld-review-panel{padding:12px!important;}
+      .ld-top-ten{padding:13px;}
+    }
+
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       .history-shade, .history-pane, .primary, .open-detail svg { transition: none; }
@@ -281,7 +381,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
           </button>
         </div>
-        <p class="entry-hint" id="upload-hint">До 10 позиций за запуск. Excel: скопируйте столбец и вставьте сюда. CSV / TXT читается в браузере. История сохраняется только на этом устройстве — её можно очистить.</p>
+        <p class="entry-hint" id="upload-hint">До 10 позиций за запуск. Excel: скопируйте столбец и вставьте сюда. CSV / TXT читается в браузере. В историю записываются исходные строки и ответы LD (локально в браузере); её можно очистить.</p>
         <div id="error" class="inline-error" role="alert" aria-live="assertive"></div>
       </section>
 
@@ -348,7 +448,7 @@
       <h2 id="history-title">История запросов</h2>
       <button id="history-close" class="icon-btn" type="button" aria-label="Закрыть историю">×</button>
     </div>
-    <p class="subtle">Хранится только в этом браузере. Нажмите на запрос, чтобы снова вставить номенклатуру в форму.</p>
+    <p class="subtle">Сохраняется снимок каждого запуска: запросы, результаты LD, артикулы и действия. Историю можно просмотреть без нового подбора. Данные хранятся только в этом браузере.</p>
     <div id="history-list" class="history-list"></div>
     <button id="history-clear" type="button" class="history-clear">Очистить историю</button>
   </aside>
@@ -356,7 +456,8 @@
   <script>
     "use strict";
     const byId = id => document.getElementById(id);
-    const HISTORY_KEY = "ld-tender-demo-query-history-v2";
+    const HISTORY_KEY = "ld-tender-demo-snapshots-v3";
+    const OLD_HISTORY_KEY = "ld-tender-demo-query-history-v2";
     const HISTORY_LIMIT = 15;
     const MAX_ITEMS = 10;
     const MAX_ITEM_LENGTH = 2000;
@@ -365,6 +466,9 @@
     let activeReview = null;
     let liveResults = [];
     let rowStates = [];
+    let activeHistoryId = null;
+    let volatileHistory = [];
+    let historyStorageAvailable = true;
 
     function el(tag, text, cls) {
       const node = document.createElement(tag);
@@ -393,54 +497,136 @@
       byId("error").style.display = message ? "block" : "none";
     }
 
-    // Local history saves original query strings after a successful run.
-    // Never store result payloads, gold labels, scores or credentials.
+    // Preserve business-facing match snapshots but NEVER review_token,
+    // score, provider errors, secrets, or hidden benchmark answers.
+    // Restored history is read-only; mutations require a fresh API session.
+    function historyCandidate(candidate) {
+      return {
+        ld_id:candidate.ld_id,name:candidate.name,article:candidate.article,
+        dn:candidate.dn,pn:candidate.pn,joining_type:candidate.joining_type,
+        url:candidate.url,reason:candidate.reason,selection:candidate.selection,
+        technical:candidate.technical||{},comparison:candidate.comparison||{rows:[]}
+      };
+    }
+    function historyResult(item) {
+      const options=(item.top_candidates||
+          [...(item.recommended||[]),...(item.other_candidates||[])]).slice(0,10);
+      return {
+        input:item.input,source_input:item.source_input,status:item.status,
+        message:item.message,missing_fields:item.missing_fields||[],
+        normalized_query:item.normalized_query,
+        corrected_query:item.corrected_query,
+        editable_constraints:item.editable_constraints||{},
+        parameters:item.parameters||[],
+        recommended:(item.recommended||[]).map(historyCandidate),
+        other_candidates:(item.other_candidates||[]).map(historyCandidate),
+        top_candidates:options.map(historyCandidate)
+      };
+    }
     function readHistory() {
+      if (!historyStorageAvailable) return volatileHistory;
       try {
-        const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-        if (!Array.isArray(value)) return [];
-        return value.filter(x => x && Array.isArray(x.products) && x.products.length <= MAX_ITEMS &&
-          x.products.every(p => typeof p === "string" && p.length <= MAX_ITEM_LENGTH))
-          .slice(0, HISTORY_LIMIT);
-      } catch { return []; }
+        const raw=localStorage.getItem(HISTORY_KEY);
+        const values=raw?JSON.parse(raw):[];
+        if (!Array.isArray(values))return [];
+        return values.filter(x=>x&&Array.isArray(x.products)&&Array.isArray(x.results)&&
+          x.products.length<=MAX_ITEMS&&x.products.every(p=>typeof p==="string"&&p.length<=MAX_ITEM_LENGTH)&&
+          x.results.length===x.products.length).slice(0,HISTORY_LIMIT);
+      } catch {
+        historyStorageAvailable=false;
+        return volatileHistory;
+      }
     }
     function writeHistory(rows) {
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(rows.slice(0, HISTORY_LIMIT))); }
-      catch { /* Private mode, blocked storage or full quota: UI still works. */ }
+      const list=rows.slice(0,HISTORY_LIMIT);
+      volatileHistory=list;
+      // Browser localStorage quotas differ; retain newest complete runs
+      // rather than silently failing when multiple 10-row snapshots fill it.
+      try {
+        let remaining=list;
+        while (remaining.length) {
+          try {
+            localStorage.setItem(HISTORY_KEY,JSON.stringify(remaining));
+            historyStorageAvailable=true;break;
+          } catch (error) {
+            if (error && (error.name==="QuotaExceededError"||error.code===22)) {
+              remaining=remaining.slice(0,-1);
+            } else throw error;
+          }
+        }
+        if (!remaining.length) throw Error("QuotaExceededError");
+      } catch {
+        historyStorageAvailable=false;
+        showError("Историю не удалось сохранить в браузере. Она доступна только до закрытия этой вкладки. Проверьте настройки хранения данных.");
+      }
       renderHistory();
     }
-    function saveHistory(products) {
-      const signature = JSON.stringify(products);
-      const rows = readHistory().filter(x => JSON.stringify(x.products) !== signature);
-      rows.unshift({ products: products.slice(), at: new Date().toISOString() });
-      writeHistory(rows);
+    function saveHistory(products,payload) {
+      if (!payload||!Array.isArray(payload.results))return;
+      const id="run-"+Date.now()+"-"+Math.random().toString(36).slice(2,9);
+      activeHistoryId=id;
+      const entry={
+        id,at:new Date().toISOString(),products:products.slice(),
+        results:payload.results.map(historyResult),
+        states:payload.results.map(()=>({revision:0,decision:"PENDING",selected_ld_id:null,edited:false}))
+      };
+      writeHistory([entry,...readHistory()]);
+    }
+    function updateHistorySnapshot() {
+      if (!activeHistoryId)return;
+      const history=readHistory();
+      const entry=history.find(x=>x.id===activeHistoryId);
+      if (!entry)return;
+      entry.results=liveResults.map(historyResult);
+      entry.states=rowStates.map(s=>({
+        revision:s.revision||0,
+        decision:s.decision||"PENDING",
+        selected_ld_id:s.selected_ld_id??null,
+        edited:!!s.edited
+      }));
+      entry.updated_at=new Date().toISOString();
+      writeHistory(history);
+    }
+    function restoreHistory(entry) {
+      byId("query").value=entry.products.join("\n");
+      refreshInputCount();showError("");closeHistory();
+      // Old sessions cannot be mutated without their original capability,
+      // intentionally never written to browser storage.
+      activeHistoryId=null;
+      renderResponse({results:entry.results,states:entry.states,request_id:entry.id},
+                     {archived:true});
     }
     function renderHistory() {
-      const history = readHistory();
-      byId("history-count").textContent = String(history.length);
-      const host = byId("history-list");
+      const stored=readHistory();
+      byId("history-count").textContent=String(stored.length);
+      const host=byId("history-list");
       host.replaceChildren();
-      if (!history.length) {
-        host.append(el("p", "Пока нет запросов. После первого подбора вы сможете быстро вернуть введённую номенклатуру.", "subtle"));
-        byId("history-clear").hidden = true; return;
+      if (!historyStorageAvailable)
+        host.append(el("p","Браузер запрещает постоянное хранение. История будет потеряна при закрытии вкладки.","detail-alert"));
+      if (!stored.length) {
+        let legacy=[];
+        try {legacy=JSON.parse(localStorage.getItem(OLD_HISTORY_KEY)||"[]");} catch {}
+        const message=legacy.length
+          ?"В старой версии сохранялись только строки без ответов. Эти результаты восстановить из браузера нельзя. Запустите поиск заново — новые снимки будут сохранены полностью."
+          :"История пуста. После обработки здесь появятся все позиции вместе с найденными артикулами и статусами.";
+        host.append(el("p",message,"subtle"));
+        byId("history-clear").hidden=true;return;
       }
-      byId("history-clear").hidden = false;
-      history.forEach(entry => {
-        const item = el("button", null, "history-item");
-        item.type = "button";
-        const date = el("time", "");
-        const parsed = new Date(entry.at);
-        date.textContent = Number.isNaN(parsed.getTime()) ? "Недавний запрос" :
-          parsed.toLocaleString("ru-RU", { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" });
-        add(item, date, el("strong", entry.products[0], ""), el("span",
-          entry.products.length === 1 ? "1 позиция" : countLabel(entry.products.length) + " · Нажмите, чтобы повторить",
-          "subtle"));
-        item.addEventListener("click", () => {
-          byId("query").value = entry.products.join("\n");
-          refreshInputCount(); showError("");
-          closeHistory(); byId("query").focus();
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        });
+      byId("history-clear").hidden=false;
+      stored.forEach(entry=>{
+        const item=el("button",null,"history-item");
+        item.type="button";
+        const time=el("time");
+        const date=new Date(entry.at);
+        time.textContent=Number.isNaN(date.getTime())?"Недавний запуск":
+          date.toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+        const found=entry.results.filter(x=>x.status==="MATCHED").length;
+        const decisions=(entry.states||[]).filter(x=>x&&["ACCEPTED","SELECTED_OTHER"].includes(x.decision)).length;
+        add(item,time,
+          el("strong",entry.products.length+" позиций · найдено "+found+" · подтверждено "+decisions),
+          el("span",entry.products[0],"subtle"),
+          el("span","Открыть сохранённые ответы и артикулы →","history-open-snapshot"));
+        item.addEventListener("click",()=>restoreHistory(entry));
         host.append(item);
       });
     }
@@ -472,7 +658,8 @@
       }
     });
     byId("history-clear").addEventListener("click", () => {
-      if (!window.confirm("Удалить все сохранённые запросы из этого браузера?")) return;
+      if (!window.confirm("Удалить сохранённые запросы и все снимки ответов из этого браузера?")) return;
+      activeHistoryId=null;
       writeHistory([]);
     });
 
@@ -657,6 +844,7 @@
           result=await postReview("/v1/demo/decision",{...payload,acknowledge_unknown:true});
         }
         rowStates[index]={...rowStates[index],...result};
+        updateHistorySnapshot();
         repaintReview(index);
       } catch(e) { alert(e.message || "Не удалось сохранить выбор."); }
     }
@@ -708,6 +896,7 @@
           const result=await postReview("/v1/demo/correct",{...reviewHeaders(index),changes});
           liveResults[index]=result.result;
           rowStates[index]={...rowStates[index],revision:result.revision,decision:result.decision,edited:true,selected_ld_id:null};
+          updateHistorySnapshot();
           repaintReview(index);
         } catch(e) {err.textContent=e.message||"Ошибка повторного подбора.";}
         finally {btn.disabled=false;}
@@ -735,54 +924,205 @@
       bar.append(reject);
       detail.append(bar,fieldEditor(d,index));
     }
-    function renderDetail(d,index) {
-      const detail = el("div", null, "detail-panel");
-      detail.append(el("h3", "Почему такой результат?"));
-      detail.append(el("p", d.message || "Нет дополнительного пояснения.", "detail-copy"));
-      choiceControls(detail,d,index);
-      if (d.status === "INSUFFICIENT_PARAMETERS") {
-        const missing = (d.missing_fields || []).map(x => missingLabels[x] || x);
-        if (missing.length) detail.append(el("div", "Уточните: " + missing.join(", ") + ".", "detail-alert"));
+    function productVisual(kind) {
+      const box=el("div",null,"ld-product-visual");
+      const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 176 124");
+      svg.setAttribute("role","img");
+      svg.setAttribute("aria-label",kind==="flange"?"Схематичный фланец":"Схематичный шаровой кран");
+      const flange=kind==="flange";
+      const shapes=flange ? [
+        ["circle",{cx:88,cy:61,r:47,fill:"#b1b5b6",stroke:"#484d4d","stroke-width":8}],
+        ["circle",{cx:88,cy:61,r:23,fill:"#f4f3ee",stroke:"#626868","stroke-width":6}],
+        ...[[88,23],[88,99],[50,61],[126,61]].map(([cx,cy])=>["circle",{cx,cy,r:5,fill:"#f4f3ee"}])
+      ] : [
+        ["path",{d:"M18 43h36v43H18zM122 43h36v43h-36z",fill:"#a2a7a7",stroke:"#3a4141","stroke-width":5}],
+        ["rect",{x:48,y:35,width:80,height:58,rx:14,fill:"#60686a",stroke:"#313b3b","stroke-width":6}],
+        ["circle",{cx:88,cy:64,r:23,fill:"#9da6a5",stroke:"#394142","stroke-width":5}],
+        ["path",{d:"M88 38V17",stroke:"#292f2f","stroke-width":11}],
+        ["path",{d:"M88 15h49",stroke:"#ffcd00","stroke-width":12,"stroke-linecap":"round"}],
+        ["circle",{cx:88,cy:15,r:7,fill:"#353d3d"}]
+      ];
+      shapes.forEach(([type,attrs])=>{
+        const node=document.createElementNS("http://www.w3.org/2000/svg",type);
+        Object.entries(attrs).forEach(([key,value])=>node.setAttribute(key,String(value)));
+        svg.append(node);
+      });
+      box.append(svg);return box;
+    }
+    const techNames={
+      dn:"DN",pn_mpa:"PN, МПа",flange_kind:"Исполнение",
+      flange_bore_mm:"Внутренний Ø",stub_dn:"ПНД Ø",joining_type:"Присоединение",
+      body_material:"Материал",thread_type:"Резьба",working_medium:"Рабочая среда",
+      bore_type:"Тип прохода"
+    };
+    function techText(key,value) {
+      if(value===null || value===undefined || value==="")return "—";
+      if(Array.isArray(value))return value.length ? value.join(", ") : "—";
+      if(key==="body_material")return (editNames.body_material||{})[value]||value;
+      if(key==="joining_type")return (editNames.joining_type||{})[value]||value;
+      if(key==="flange_kind")return (editNames.flange_kind||{})[value]||value;
+      return String(value);
+    }
+    function selectedCandidate(d,index) {
+      const state=rowStates[index]||{};
+      const candidates=[...(d.recommended||[]),...(d.other_candidates||[])];
+      return state.decision==="SELECTED_OTHER"
+        ? candidates.find(c=>c.ld_id===state.selected_ld_id) || null
+        : (d.recommended||[])[0] || null;
+    }
+    function candidateVerdict(candidate) {
+      const rows=(candidate.comparison||{}).rows||[];
+      const critical=rows.filter(r=>r.strict);
+      if(critical.some(r=>r.status==="MISMATCH"))return ["Есть расхождения","unsafe"];
+      if(!critical.length||critical.some(r=>r.status!=="MATCH"))return ["Нужна проверка","review"];
+      return ["Проверено по данным","verified"];
+    }
+    function renderCandidateTable(d,index) {
+      const block=el("section",null,"ld-top-ten");
+      const top=el("div",null,"ld-section-head");
+      const list=(d.top_candidates||[...(d.recommended||[]),...(d.other_candidates||[])]).slice(0,10);
+      add(top,el("h4","Кандидаты из каталога LD"),el("span",
+        list.length+" "+(list.length===1?"товар":"товаров")+" · выбор вручную","subtle"));
+      block.append(top);
+      block.append(el("p","Ниже — реальные изделия, которые вернул поиск. При наличии 10 кандидатов показываем все десять; неподтверждённые позиции не считаются эквивалентами автоматически.","subtle"));
+      if(!list.length) {
+        block.append(el("div","По этому запросу поисковый этап не вернул кандидатов. Уточните параметры справа и попробуйте снова.","ld-no-candidates"));
+        return block;
       }
-      if (d.status === "MATCHED") {
-        const main = (d.recommended || [])[0];
-        if (main) {
-          const cmp = main.comparison || {};
-          const rows = cmp.rows || [];
-          const strictIssues = rows.filter(x => x.strict && x.status !== "MATCH");
-          if (!rows.length || strictIssues.length) {
-            detail.append(el("div", "Не все обязательные параметры подтверждены каталогом. Перед закупкой необходима ручная проверка.", "detail-alert"));
-          } else {
-            detail.append(el("div", "Кандидат прошёл доступные проверки. Подтвердите применимость изделия к вашей спецификации перед закупкой.", "detail-alert detail-ok"));
-          }
-          if (rows.length) {
-            const wrap = el("div", null, "detail-block");
-            wrap.append(el("h4", "Сравнение с рекомендованным изделием"));
-            wrap.append(tableFor(rows)); detail.append(wrap);
-          }
-          if (main.reason) detail.append(el("p", "Основание выбора: " + main.reason, "detail-copy"));
+      const scroller=el("div",null,"ld-candidate-scroll");
+      const table=el("table",null,"ld-candidate-table");
+      const head=el("thead"),header=el("tr");
+      ["№","Изделие LD","DN","PN, МПа","Материал","Присоединение","Проверка","Действие"].forEach(t=>header.append(el("th",t)));
+      head.append(header);table.append(head);
+      const body=el("tbody");
+      list.forEach((c,rank)=>{
+        const row=el("tr");
+        const main=(d.recommended||[])[0];
+        const selected=selectedCandidate(d,index);
+        if(selected&&selected.ld_id===c.ld_id)row.classList.add("ld-current-choice");
+        if(main&&main.ld_id===c.ld_id)row.classList.add("ld-ai-choice");
+        const tech=c.technical||{};
+        const name=el("td");
+        name.append(el("strong",c.name||"Без наименования"));
+        name.append(el("div","Артикул: "+(c.article||"—"),"subtle"));
+        if(main&&main.ld_id===c.ld_id) name.append(el("span","Выбор системы","ld-ai-tag"));
+        const verdict=candidateVerdict(c);
+        const badge=el("span",verdict[0],"ld-verdict "+verdict[1]);
+        const action=el("td");
+        const button=el("button",selected&&selected.ld_id===c.ld_id?"Выбрано":"Выбрать","ld-select-product");
+        button.type="button";
+        button.disabled=!activeReview||!activeReview.review_token||
+          (!!selected&&selected.ld_id===c.ld_id);
+        if(verdict[1]==="unsafe") {
+          button.disabled=true;button.title="Нарушено обязательное техническое условие";
+          button.textContent="Недоступно";
+        } else if(activeReview&&activeReview.review_token) {
+          button.addEventListener("click",()=>{
+            const recommended=(d.recommended||[])[0];
+            userDecision(index,recommended&&recommended.ld_id===c.ld_id?"ACCEPTED":"SELECTED_OTHER",c.ld_id);
+          });
         }
+        action.append(button);
+        add(row,el("td",String(rank+1).padStart(2,"0")),name,
+            el("td",techText("dn",tech.dn??c.dn)),
+            el("td",techText("pn_mpa",tech.pn_mpa??c.pn)),
+            el("td",techText("body_material",tech.body_material)),
+            el("td",techText("joining_type",tech.joining_type??c.joining_type)),
+            (()=>{const cell=el("td");cell.append(badge);return cell;})(),action);
+        body.append(row);
+      });
+      table.append(body);scroller.append(table);block.append(scroller);
+      return block;
+    }
+    function renderDetail(d,index) {
+      const detail=el("div",null,"detail-panel ld-review-panel");
+      const layout=el("div",null,"ld-review-layout");
+      const main=el("div",null,"ld-review-content");
+      const side=el("aside",null,"ld-parameter-side");
+      const candidate=selectedCandidate(d,index);
+      const state=rowStates[index]||{};
+      const topline=el("div",null,"ld-section-head");
+      add(topline,el("h3","Результат подбора аналога"),
+        el("span",state.decision==="SELECTED_OTHER"?"Выбор пользователя":"Инженерная проверка","ld-kicker"));
+      main.append(topline);
+      if(candidate) {
+        const hero=el("div",null,"ld-recommendation");
+        const label=el("span",state.decision==="SELECTED_OTHER"?"ВЫБРАНО ПОЛЬЗОВАТЕЛЕМ":"РЕКОМЕНДУЕТ LD","ld-recommendation-label");
+        hero.append(label);
+        const row=el("div",null,"ld-product-hero");
+        row.append(productVisual((d.editable_constraints||{}).product_type));
+        const info=el("div",null,"ld-product-summary");
+        info.append(el("h3",candidate.name||"Изделие LD"));
+        info.append(el("p","Артикул: "+(candidate.article||"—"),"ld-article-large"));
+        const specs=el("div",null,"ld-specs");
+        const tech=candidate.technical||{};
+        for(const field of ["dn","pn_mpa","body_material","joining_type","flange_kind"]) {
+          if(tech[field]!=null)specs.append(el("span",techNames[field]+": "+techText(field,tech[field]),"ld-spec-chip"));
+        }
+        info.append(specs);
+        const verdict=candidateVerdict(candidate);
+        info.append(el("p",verdict[0]+". "+(candidate.reason||"Окончательную применимость проверяет инженер."),"ld-product-reason"));
+        if(candidate.url) {
+          const link=el("a","Открыть в каталоге LD ↗","ld-catalogue-link");
+          link.href=candidate.url;link.target="_blank";link.rel="noopener noreferrer";info.append(link);
+        }
+        row.append(info);hero.append(row);main.append(hero);
+        if(candidate.comparison && candidate.comparison.rows && candidate.comparison.rows.length) {
+          const compare=el("details",null,"ld-inline-compare");
+          compare.append(el("summary","Сравнение технических характеристик"));
+          compare.append(tableFor(candidate.comparison.rows));
+          main.append(compare);
+        }
+      } else {
+        const notice=el("div",null,"ld-unmatched");
+        add(notice,el("h3",d.status==="INSUFFICIENT_PARAMETERS"?"Не хватает технических данных":"Рекомендация не подтверждена"),
+          el("p",d.message||"Подтверждённый аналог не найден."));
+        const missing=(d.missing_fields||[]).map(x=>missingLabels[x]||x);
+        if(missing.length)notice.append(el("p","Уточнить: "+missing.join(", "),"ld-missing-line"));
+        main.append(notice);
       }
-      if (Array.isArray(d.parameters) && d.parameters.length) {
-        const wrap = el("div", null, "detail-block");
-        add(wrap, el("h4", "Характеристики, выделенные из запроса"));
-        const tokens = el("div", null, "token-list");
-        d.parameters.forEach(p => tokens.append(el("span", p.label + ": " + p.value, "token")));
-        wrap.append(tokens); detail.append(wrap);
+      const actionBar=el("div",null,"ld-review-buttons");
+      if(activeReview&&activeReview.review_token) {
+        if(d.recommended&&d.recommended.length) {
+          const accept=el("button","Принять рекомендацию","primary");
+          accept.type="button";accept.addEventListener("click",()=>userDecision(index,"ACCEPTED"));
+          actionBar.append(accept);
+        }
+        const reject=el("button","Отклонить результат","secondary");
+        reject.type="button";reject.addEventListener("click",()=>userDecision(index,"REJECTED"));
+        actionBar.append(reject);
       }
-      if (d.other_candidates && d.other_candidates.length) {
-        const others = el("details", null, "candidates");
-        others.append(el("summary", "Другие кандидаты (" + d.other_candidates.length + ") · пока не подтверждены"));
-        d.other_candidates.forEach(c => displayCandidate(others, c, false,index));
-        detail.append(others);
+      if(state.decision!=="PENDING") {
+        actionBar.append(el("span",({
+          ACCEPTED:"✓ Принято пользователем",
+          SELECTED_OTHER:"✓ Другой товар выбран пользователем",
+          REJECTED:"Отклонено пользователем"
+        })[state.decision]||state.decision,"user-status"));
       }
-      if (d.recommended && d.recommended.length > 1) {
-        const extra = el("details", null, "candidates");
-        extra.append(el("summary", "Ещё рекомендованные варианты (" + (d.recommended.length - 1) + ")"));
-        d.recommended.slice(1).forEach(c => displayCandidate(extra, c, true,index));
-        detail.append(extra);
+      if(!activeReview||!activeReview.review_token)actionBar.append(
+        el("span","Снимок из истории · только просмотр. Для изменений запустите новый подбор.","ld-archive-note"));
+      main.append(actionBar);
+      main.append(renderCandidateTable(d,index));
+      const sideHead=el("div",null,"ld-side-intro");
+      sideHead.append(el("span","ПАРАМЕТРЫ ИЗ ЗАПРОСА","ld-kicker"));
+      sideHead.append(el("h3","Проверьте характеристики"));
+      sideHead.append(el("p","Если система ошиблась при извлечении параметра, измените его здесь и обновите подбор.","subtle"));
+      side.append(sideHead);
+      if(activeReview&&activeReview.review_token) {
+        const editor=fieldEditor(d,index);
+        editor.open=true;
+        side.append(editor);
+      } else if(d.parameters&&d.parameters.length) {
+        const values=el("div",null,"ld-archive-parameters");
+        d.parameters.forEach(p=>values.append(el("p",p.label+": "+p.value)));
+        side.append(values);
       }
-      detail.append(el("p", "* Строго заданные в запросе параметры. Рекомендация не заменяет инженерную проверку применимости.", "subtle"));
+      const original=el("div",null,"ld-original-query");
+      add(original,el("strong","Исходная позиция"),el("p",d.source_input||d.input||"—"));
+      if(d.corrected_query)original.append(el("p","После исправления: "+d.corrected_query,"subtle"));
+      side.append(original);
+      add(layout,main,side);detail.append(layout);
       return detail;
     }
     function renderRow(d, index) {
@@ -794,7 +1134,7 @@
       const choices = [...(d.recommended || []), ...(d.other_candidates || [])];
       const manual = state.decision === "SELECTED_OTHER" ?
         choices.find(c => c.ld_id === state.selected_ld_id) : null;
-      const main = manual || (d.recommended && d.recommended[0]);
+      const main = state.decision==="REJECTED"?null:(manual || (d.recommended && d.recommended[0]));
       const product = el("div");
       product.append(el("div", main && main.name ? main.name : "Не выбран", "result-name" + (!main ? " missing" : "")));
       if (manual) product.append(el("div","Выбрано пользователем вместо рекомендации системы","subtle"));
@@ -808,7 +1148,8 @@
       const toggle = el("button", null, "open-detail");
       toggle.type = "button"; toggle.setAttribute("aria-expanded", "false");
       toggle.setAttribute("aria-label", "Подробнее о результате для позиции " + (index + 1));
-      add(toggle, el("span", "Подробнее"), iconChevron());
+      const available=(d.top_candidates || [...(d.recommended||[]),...(d.other_candidates||[])]).length;
+      add(toggle, el("span", available>1?"Кандидаты ("+available+")":"Подробнее"), iconChevron());
       status.append(toggle);
       add(grid, query, product, article, status);
       const detail = renderDetail(d,index);
@@ -821,11 +1162,15 @@
       });
       add(section, grid, detail); return section;
     }
-    function renderResponse(payload) {
+    function renderResponse(payload,options={}) {
       const results = Array.isArray(payload.results) ? payload.results : [];
-      activeReview={request_id:payload.request_id,review_token:payload.review_token};
+      activeReview=options.archived?null:{
+        request_id:payload.request_id,review_token:payload.review_token
+      };
       liveResults=results;
-      rowStates=results.map(()=>({revision:0,decision:"PENDING",selected_ld_id:null}));
+      rowStates=Array.isArray(payload.states)&&payload.states.length===results.length
+        ? payload.states.map(x=>({...x}))
+        : results.map(()=>({revision:0,decision:"PENDING",selected_ld_id:null,edited:false}));
       const list = el("div", null, "results-list");
       const header = el("div", null, "results-header");
       ["Исходная номенклатура", "Предложенный аналог LD", "Артикул", "Статус"].forEach(s => header.append(el("span", s)));
@@ -833,6 +1178,15 @@
       results.forEach((d, i) => list.append(renderRow(d, i)));
       byId("results").replaceChildren(list);
       refreshTray();
+      // Make the selection workflow immediately discoverable; no second
+      // hidden accordion is needed to access available catalogue candidates.
+      if (!options.archived) {
+        const first=results.findIndex(x=>(x.top_candidates||x.other_candidates||[]).length);
+        if(first>=0) {
+          const toggle=byId("results").querySelectorAll(".open-detail")[first];
+          if(toggle)toggle.click();
+        }
+      }
       byId("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
     }
     async function run() {
@@ -862,7 +1216,7 @@
         const data = await response.json();
         if (!Array.isArray(data.results)) throw Error("Получен некорректный ответ сервиса.");
         renderResponse(data);
-        saveHistory(products);
+        saveHistory(products,data);
       } catch (error) {
         showError(error.message || "Не удалось выполнить подбор.");
       } finally {
