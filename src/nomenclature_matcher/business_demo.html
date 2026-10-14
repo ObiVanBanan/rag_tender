@@ -707,7 +707,7 @@
         try {
           const result=await postReview("/v1/demo/correct",{...reviewHeaders(index),changes});
           liveResults[index]=result.result;
-          rowStates[index]={...rowStates[index],revision:result.revision,decision:result.decision};
+          rowStates[index]={...rowStates[index],revision:result.revision,decision:result.decision,edited:true,selected_ld_id:null};
           repaintReview(index);
         } catch(e) {err.textContent=e.message||"Ошибка повторного подбора.";}
         finally {btn.disabled=false;}
@@ -790,12 +790,21 @@
       const grid = el("div", null, "result-grid");
       const query = el("div", null, "query-name");
       add(query, el("span", String(index + 1).padStart(2, "0"), "row-num"), el("span", d.input || "—"));
-      const main = d.recommended && d.recommended[0];
+      const state = rowStates[index] || {};
+      const choices = [...(d.recommended || []), ...(d.other_candidates || [])];
+      const manual = state.decision === "SELECTED_OTHER" ?
+        choices.find(c => c.ld_id === state.selected_ld_id) : null;
+      const main = manual || (d.recommended && d.recommended[0]);
       const product = el("div");
       product.append(el("div", main && main.name ? main.name : "Не выбран", "result-name" + (!main ? " missing" : "")));
+      if (manual) product.append(el("div","Выбрано пользователем вместо рекомендации системы","subtle"));
+      if (state.edited) product.append(el("div","Характеристики были исправлены пользователем","subtle"));
       const article = el("div", main && main.article ? main.article : "—", "article-code");
       const status = el("div", null, "status-cell");
       status.append(el("span", statusLabels[d.status] || d.status, "status " + (statusLabels[d.status] ? d.status : "NOT_FOUND")));
+      if (state.decision === "REJECTED") status.append(el("span","Отклонено пользователем","user-status"));
+      if (state.decision === "ACCEPTED") status.append(el("span","Принято пользователем","user-status"));
+      if (state.decision === "SELECTED_OTHER") status.append(el("span","Выбран другой вариант","user-status"));
       const toggle = el("button", null, "open-detail");
       toggle.type = "button"; toggle.setAttribute("aria-expanded", "false");
       toggle.setAttribute("aria-label", "Подробнее о результате для позиции " + (index + 1));
