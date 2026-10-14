@@ -215,9 +215,23 @@ class DemoFeedbackStore:
             ).fetchone()
             timeline=conn.execute(
                 """SELECT date_trunc('day',s.created_at)::date AS day, count(*),
-                          count(*) FILTER (WHERE d.initial_status='MATCHED')
+                          count(*) FILTER (WHERE d.initial_status='MATCHED'),
+                          count(*) FILTER (WHERE d.initial_status='NOT_FOUND'),
+                          count(*) FILTER (WHERE d.initial_status='INSUFFICIENT_PARAMETERS'),
+                          count(*) FILTER (WHERE d.initial_status='ERROR')
                    FROM demo_review_rows d JOIN demo_review_sessions s USING(request_id)
                    WHERE s.created_at >= now() - (%s * interval '1 day')
+                   GROUP BY 1 ORDER BY 1""",
+                (days,),
+            ).fetchall()
+            feedback_timeline=conn.execute(
+                """SELECT date_trunc('day',e.created_at)::date AS day,
+                          count(*) FILTER (WHERE e.event_type='ACCEPTED'),
+                          count(*) FILTER (WHERE e.event_type='REJECTED'),
+                          count(*) FILTER (WHERE e.event_type='SELECTED_OTHER'),
+                          count(*) FILTER (WHERE e.event_type='PARAMETERS_CORRECTED')
+                   FROM demo_review_events e
+                   WHERE e.created_at >= now() - (%s * interval '1 day')
                    GROUP BY 1 ORDER BY 1""",
                 (days,),
             ).fetchall()
@@ -234,7 +248,12 @@ class DemoFeedbackStore:
             "period_days":days,
             "counts":dict(zip(keys,map(int,totals))),
             "timeline":[{"day":str(x[0]),"processed":int(x[1]),
-                         "auto_matched":int(x[2])} for x in timeline],
+                         "auto_matched":int(x[2]),"not_found":int(x[3]),
+                         "insufficient":int(x[4]),"errors":int(x[5])}
+                        for x in timeline],
+            "feedback_timeline":[{"day":str(x[0]),"accepted":int(x[1]),
+                                  "rejected":int(x[2]),"selected_other":int(x[3]),
+                                  "corrected":int(x[4])} for x in feedback_timeline],
             "events":{str(name):int(count) for name,count in actions},
             "note":"Частоты действий пользователей, не точность алгоритма. Группы действий пересекаются.",
         }
