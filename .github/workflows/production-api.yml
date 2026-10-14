@@ -12,6 +12,9 @@ on:
       - "src/nomenclature_matcher/business_demo.html"
       - "tests/test_business_demo.py"
       - "tests/test_business_demo_ui.py"
+      - "tests/test_demo_feedback_features.py"
+      - "src/nomenclature_matcher/demo_feedback.py"
+      - "src/nomenclature_matcher/business_demo_stats.html"
       - "tests/test_demo_recheck.py"
       - "tests/test_export_demo20.py"
       - "tests/test_demo_auth.py"
@@ -75,6 +78,7 @@ jobs:
           tests/test_production_api.py
           tests/test_business_demo.py
           tests/test_business_demo_ui.py
+          tests/test_demo_feedback_features.py
           tests/test_demo_recheck.py
           tests/test_export_demo20.py
           tests/test_demo_auth.py
