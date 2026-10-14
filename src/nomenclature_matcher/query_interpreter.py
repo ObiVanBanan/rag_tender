@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 from .competitor_decoding import decode_competitor_query
 from .query_canonicalization import build_constraint_rendered_query
 from .product_safety import flange_spec_from_query
+from .flange_geometry import expected_bore_for_pe_stub
 from .query_constraints import QueryConstraints
 from .query_signals import (
     explicit_dn_from_query,
@@ -327,7 +328,14 @@ class DeepSeekQueryInterpreter:
             if flange.pn_min_mpa is not None:
                 constraints["pn_min_mpa"] = flange.pn_min_mpa
             if flange.kind == "pe_stub":
+                # Catalogue titles describe nominal flange DN and its real
+                # internal opening, not the mating PE pipe OD. Generate a
+                # second retrieval phrasing without weakening hard filters.
+                bore_mm = expected_bore_for_pe_stub(flange.dn, flange.stub_dn)
                 payload["normalized_query"] = (
+                    f"фланец ПНД стальной Ду{flange.dn} "
+                    f"внутр. {bore_mm} мм"
+                    if bore_mm is not None else
                     f"фланец стальной под втулку ПНД Ду{flange.dn} "
                     f"под втулку Ду{flange.stub_dn}"
                 )
