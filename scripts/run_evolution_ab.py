@@ -12,6 +12,8 @@ import hashlib
 import json
 import os
 import random
+import shutil
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -104,7 +106,8 @@ def load_environment(filename: Path) -> dict[str,str]:
 
 def run_comparison(cohort: str, *, historical_checkout: Path | None,
                    current_checkout: Path, candidate_checkout: Path,
-                   catalog: Path, env: dict[str,str], output_dir: Path) -> dict:
+                   catalog: Path, env: dict[str,str], output_dir: Path,
+                   kb_seed: Path | None = None) -> dict:
     if cohort == "tender20" and historical_checkout is None:
         raise ValueError("Tender20 requires historical Sept9 checkout")
     cases=load_cases(cohort,historical_checkout or candidate_checkout)
@@ -121,7 +124,15 @@ def run_comparison(cohort: str, *, historical_checkout: Path | None,
     for name,checkout in checkouts.items():
         if checkout is None:
             continue
-        result=run_branch(name,checkout,cases,csv=catalog,env=env,
+        branch_env=env.copy()
+        if name != "historic":
+            # All modern variants see the SAME initial competitor KB snapshot.
+            # Keep separate copies so possible writes cannot taint later runs.
+            kb_path=(cohort_dir/f"{name}.competitor-kb.sqlite3").resolve()
+            if kb_seed is not None:
+                shutil.copyfile(kb_seed,kb_path)
+            branch_env["COMPETITOR_KB_PATH"]=str(kb_path)
+        result=run_branch(name,checkout,cases,csv=catalog,env=branch_env,
                           out=cohort_dir/f"{name}.raw.private.json")
         runs[name]=evaluate(cases,result)
         print(f"{name}: exact-known-positive {runs[name]['exact_top1_known_positive']}/{len(cases)}, "
@@ -163,9 +174,19 @@ def main() -> int:
     if not catalog.is_file():
         p.error(f"Missing catalog CSV: {catalog}")
     env=load_environment(args.env_file.expanduser().resolve())
+    if env.get("WEB_SEARCH_ENABLED", "false").lower() in ("1","true","yes","on"):
+        p.error("Use WEB_SEARCH_ENABLED=false for controlled A/B; live mutable web evidence is not frozen")
     out=args.out.expanduser().resolve()
     out.mkdir(parents=True,exist_ok=True)
     candidate_checkout=ROOT.resolve()
+    kb_source=Path(env.get("COMPETITOR_KB_PATH",".rag_tender/competitor_kb.sqlite3")).expanduser()
+    if not kb_source.is_absolute():
+        kb_source=candidate_checkout/kb_source
+    kb_snapshot=None
+    if kb_source.exists():
+        kb_snapshot=out/"competitor_kb.initial.sqlite3"
+        with sqlite3.connect(str(kb_source)) as source_conn, sqlite3.connect(str(kb_snapshot)) as target_conn:
+            source_conn.backup(target_conn)
     current_checkout,current_sha=worktree(args.current_ref,out/"checkouts"/"current")
     historic_checkout,historic_sha=(worktree(args.historic_ref,out/"checkouts"/"historic")
                                    if args.cohort in ("tender20","both") else (None,None))
@@ -177,6 +198,7 @@ def main() -> int:
         "embedding_model":env.get("EMBEDDING_MODEL", "text-embedding-3-small"),
         "deepseek_model":env.get("DEEPSEEK_MODEL", "deepseek-v4-flash"),
         "catalog_sha256":hashlib.sha256(catalog.read_bytes()).hexdigest(),
+        "competitor_kb_initial_sha256":hashlib.sha256(kb_snapshot.read_bytes()).hexdigest() if kb_snapshot else None,
         "historic_ref":historic_sha,"current_ref":current_sha,"candidate_ref":candidate_sha,
     }
     (out/"environment_fingerprint.json").write_text(
@@ -185,7 +207,7 @@ def main() -> int:
     for cohort in (["tender20","frozen100"] if args.cohort=="both" else [args.cohort]):
         reports.append(run_comparison(cohort,historical_checkout=historic_checkout,
                      current_checkout=current_checkout,candidate_checkout=candidate_checkout,
-                     catalog=catalog,env=env,output_dir=out))
+                     catalog=catalog,env=env,output_dir=out,kb_seed=kb_snapshot))
     for report in reports:
         if report["cohort"]=="frozen100" and not report["comparisons"]["current_vs_candidate"]["frozen100_acceptable"]:
             raise SystemExit("REJECT: frozen100 Top-1 decreased or a previously passing case regressed")
