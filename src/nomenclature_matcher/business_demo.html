@@ -1,59 +1,672 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LD Tender — подбор аналогов</title>
-<style>
-:root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#182743;background:#f4f6fa}*{box-sizing:border-box}body{margin:0}.top{background:#14223b;color:white;padding:24px max(20px,calc((100vw - 1100px)/2));display:flex;align-items:center;justify-content:space-between}.brand{font-size:23px;font-weight:800}.brand b{color:#75b8ff}.tag{border:1px solid #526580;border-radius:40px;padding:7px 12px;font-size:12px}.small{font-size:12px;color:#b1bed2}
-main{max-width:1140px;margin:32px auto;padding:0 20px}.intro h1{margin:0 0 9px;font-size:29px}.intro p{margin:0 0 26px;color:#63738a;line-height:1.5}.layout{display:grid;grid-template-columns:minmax(290px,400px) minmax(0,1fr);gap:20px;align-items:start}
-.box,.result{background:white;border:1px solid #e0e8f1;border-radius:16px;padding:23px;box-shadow:0 5px 24px #263e6010}.box{position:sticky;top:15px}.box label{display:block;font-weight:750;margin-bottom:12px}textarea{width:100%;min-height:170px;padding:13px;border:1px solid #cbd6e4;border-radius:10px;font:14px/1.6 inherit;resize:vertical}textarea:focus{outline:2px solid #b4d1ff}.primary{width:100%;background:#1960e8;color:white;border:0;border-radius:10px;padding:14px;font-weight:750;margin-top:14px;cursor:pointer}.primary:disabled{opacity:.65}.hint{font-size:12px;line-height:1.6;color:#718198}.divider{border-top:1px solid #e6eaf0;margin:22px 0}.sample{width:100%;display:block;text-align:left;background:#f9fbff;border:1px solid #dce7f4;border-radius:9px;padding:11px;margin:9px 0;cursor:pointer;color:#365477}.sample:hover{border-color:#6fa2ed}
-#empty{text-align:center;border:2px dashed #d5dfee;border-radius:15px;padding:90px 20px;color:#75849a;background:#fcfdff}.result{margin-bottom:17px}.query{font-size:16px;font-weight:750;line-height:1.5}.status{display:inline-block;font-size:12px;font-weight:750;padding:6px 11px;border-radius:20px;margin-top:12px}.MATCHED{color:#0d674d;background:#e1f7eb}.NOT_FOUND{color:#985e13;background:#fff0d8}.ERROR{color:#b44242;background:#ffe9e9}
-.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:22px 0}.metric{padding:13px;background:#f3f7fc;border-radius:10px}.metric strong{display:block;font-size:22px}.metric small{color:#728298;font-size:11px}.params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.param{background:#fafcff;border:1px solid #e0e9f3;padding:11px;border-radius:9px}.param .key{font-size:11px;color:#71829b}.param .value{display:block;font-weight:750;margin:5px 0}.param .kind{font-size:11px;color:#5c7ba4}.result h3{font-size:14px;margin:25px 0 11px}.item{border:1px solid #e1e7ee;border-radius:10px;padding:14px;margin-bottom:9px}.item.best{border-color:#92cfb4;background:#f7fdf9}.itemname{font-weight:750;font-size:14px}.article{font:12px ui-monospace,monospace;color:#3a5d85;overflow-wrap:anywhere;margin:7px 0}.chip{display:inline-block;color:#356084;background:#e8f0fb;border-radius:20px;padding:4px 8px;font-size:11px}.best .chip{background:#dbf3e6;color:#247452}.warn{background:#fff8e9;border:1px solid #f0e2c5;color:#886b2d;padding:13px;border-radius:10px;font-size:12px;line-height:1.6;margin-top:16px}.error{display:none}
-.comparison-summary{margin-top:12px;padding:10px;background:#f0f4fa;border-radius:8px;font-size:12px;color:#4a5e7c;font-weight:700}
-details{margin-top:10px}details>summary{cursor:pointer;font-size:13px;color:#25539d;font-weight:650}
-.compare-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:11px;text-align:left}
-.compare-table th,.compare-table td{padding:8px 6px;border-bottom:1px solid #e8edf3;vertical-align:top;overflow-wrap:anywhere}
-.compare-table th{color:#66758c}.check-status.MATCH{color:#16754d;background:none}
-.check-status.MISMATCH{color:#b73b3b;background:none}.check-status.UNKNOWN{color:#7b8391;background:none}
-.mismatch-note{color:#a13737;font-size:12px;font-weight:650}
-@media(max-width:520px){.compare-table{font-size:10px}}footer{padding:15px 20px 30px;max-width:1140px;margin:auto;color:#7a8898;font-size:12px;line-height:1.5}
-@media(max-width:830px){.layout{grid-template-columns:1fr}.box{position:static}}@media(max-width:450px){.params{grid-template-columns:1fr}.top{padding:18px}.brand{font-size:19px}}
-</style></head><body><header class="top"><div><div class="brand">LD <b>Tender</b> / Аналоги</div><div class="small">Технический подбор под спецификации</div></div><span class="tag">Бизнес-демо</span></header>
-<main><div class="intro"><h1>Подбор эквивалентов LD</h1><p>Введите тендерную позицию. Мы выделим характеристики изделия и покажем варианты LD с разделением рекомендаций и кандидатов для проверки.</p></div><div class="layout"><section class="box"><label for="query">Запрос из спецификации</label><textarea id="query" placeholder="Кран шаровой стальной фланцевый Ду50 Ру16, полнопроходной, ручка"></textarea><div class="hint">Несколько товаров — по одной позиции в строке.</div><button id="go" class="primary">Подобрать аналоги LD →</button><div id="error" class="warn error" role="alert"></div><div class="divider"></div><b>Примеры для показа</b>
-<button class="sample" data-q="Кран шаровой стальной фланцевый Ду50 Ру16, полнопроходной, ручка">Стальной кран DN50 PN16</button>
-<button class="sample" data-q="Фланец стальной плоский приварной, марка стали 20, номинальное давление 1,6 МПа, номинальный диаметр 100 мм">Фланец из стали 20 DN100</button>
-<button class="sample" data-q="Кран шаровый латунный Ду25, НР-ВР, наружная-внутренняя резьба">Латунный кран DN25, НР/ВР</button>
-<div class="warn">Точность на старых наборах из 20 и 100 строк пока не пересчитана на данной версии. «Найдено» не равно «правильно подобрано».</div></section>
-<section id="results"><div id="empty">Введите позицию и запустите подбор, чтобы увидеть расшифровку параметров и LD-кандидатов.</div></section></div></main>
-<footer>Дополнительные кандидаты не подтверждены как технически подходящие аналоги. Retrieval score и LLM confidence не являются калиброванной вероятностью правильного ответа.</footer>
-<script>
-const byId=id=>document.getElementById(id);
-const node=(tag,value,cls)=>{const e=document.createElement(tag);e.textContent=String(value??"—");if(cls)e.className=cls;return e};
-const add=(target,...nodes)=>{nodes.forEach(n=>target.append(n));return target};
-function variant(v,isBest){
- const el=node("div","","item"+(isBest?" best":""));
- add(el,node("div",v.name||"Без названия","itemname"),node("div","Артикул: "+(v.article||"Нет данных"),"article"),
-   node("span",isBest?"Выбран системой":"Кандидат для проверки","chip"));
- const info=[v.dn?"DN "+v.dn:null,v.pn?"PN "+v.pn:null,v.joining_type].filter(Boolean).join(" · ");
- if(info)el.append(node("p",info,"hint"));
- const cp=v.comparison||{}, rows=cp.rows||[];
- if(rows.length){
-   el.append(node("div","Характеристики: "+cp.matched+" совпало · "+cp.mismatched+" расхождений · "+cp.unknown+" не подтверждено","comparison-summary"));
-   const details=document.createElement("details"), summary=node("summary","Проверить характеристики LD");
-   details.append(summary);
-   const table=node("table","","compare-table"), tr=node("tr","");
-   ["Параметр","Требование","LD","Результат"].forEach(x=>tr.append(node("th",x)));
-   table.append(tr);
-   rows.forEach(r=>{
-     const row=node("tr","");
-     const verdict={MATCH:"Совпало",MISMATCH:"Расхождение",UNKNOWN:"Нет подтверждения"}[r.status]||"Не проверено";
-     add(row,node("td",r.label+(r.strict?" *":"")),node("td",r.required),node("td",r.catalog),
-       node("td",verdict,"check-status "+r.status));table.append(row);
-   });
-   details.append(table,node("p","* Явно задано в запросе. Остальные параметры могут быть интерпретированы моделью.","hint"));
-   el.append(details);
-   if(cp.mismatched>0)el.append(node("p","Есть технические расхождения. Ручная проверка обязательна.","mismatch-note"));
- }
- if(isBest&&v.reason)el.append(node("p","Обоснование LLM: "+v.reason,"hint"));
- return el;
-}
-function render(d,i){const el=node("article","","result");add(el,node("div",(i+1)+". "+d.input,"query"),node("div",({MATCHED:"Найдено",NOT_FOUND:"Требует проверки",ERROR:"Ошибка"}[d.status]||d.status),"status "+d.status),node("p",d.message,"hint"));const m=d.metrics||{};const metrics=node("div","","metrics");[[m.latency_ms==null?"—":(m.latency_ms/1000).toFixed(1)+" с","Время"],[m.retrieved_count??"—","Кандидатов"],[m.recommended_count??"—","Рекомендаций"]].forEach(pair=>{const c=node("div","","metric");add(c,node("strong",pair[0]),node("small",pair[1]));metrics.append(c)});el.append(metrics);el.append(node("h3","Расшифровка запроса"));const grid=node("div","","params");(d.parameters||[]).forEach(p=>{const c=node("div","","param");add(c,node("div",p.label,"key"),node("span",p.value,"value"),node("span",p.check,"kind"));grid.append(c)});if(!d.parameters?.length)grid.append(node("div","Параметры не извлечены","hint"));el.append(grid);if(d.normalized_query&&d.input!==d.normalized_query)el.append(node("p","Нормализованный запрос: "+d.normalized_query,"hint"));if(d.recommended?.length){el.append(node("h3","Рекомендованные товары LD"));d.recommended.forEach(x=>el.append(variant(x,true)))}if(d.other_candidates?.length){el.append(node("h3","Другие кандидаты — не подтверждены"));d.other_candidates.forEach(x=>el.append(variant(x,false)))}el.append(node("p","Внешнее техническое подтверждение необходимо перед коммерческим предложением.","hint"));return el}
-async function run(){const products=byId("query").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);const err=byId("error");err.style.display="none";if(!products.length){err.textContent="Введите хотя бы одну позицию.";err.style.display="block";return}const btn=byId("go");btn.disabled=true;btn.textContent="Идёт подбор…";try{const r=await fetch("/v1/demo/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({products})});if(!r.ok)throw Error("Ошибка HTTP "+r.status);const data=await r.json();byId("results").replaceChildren(...(data.results||[]).map(render))}catch(e){err.textContent=e.message||"Ошибка соединения";err.style.display="block"}finally{btn.disabled=false;btn.textContent="Подобрать аналоги LD →"}}
-byId("go").addEventListener("click",run);document.querySelectorAll(".sample").forEach(b=>b.addEventListener("click",()=>{byId("query").value=b.dataset.q;byId("query").focus()}));
-</script></body></html>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#181818">
+  <meta name="description" content="Подбор аналогов промышленной номенклатуры из каталога LD.">
+  <title>Подбор аналогов — LD</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", Inter, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      color: #20201e;
+      background: #f7f7f5;
+      --ink: #20201e;
+      --muted: #74736e;
+      --line: #e6e6e0;
+      --brand: #ffcd00;
+      --surface: #ffffff;
+      --soft: #f7f7f5;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; min-width: 320px; }
+    button, textarea, input { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: progress; opacity: .58; }
+    button:focus-visible, textarea:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible {
+      outline: 3px solid #b89716;
+      outline-offset: 3px;
+    }
+    a { color: inherit; }
+    .top { background: #191919; color: white; height: 78px; }
+    .top-inner { max-width: 1260px; margin: auto; padding: 0 32px; height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { display: inline-flex; align-items: center; gap: 13px; text-decoration: none; min-width: 0; }
+    .brand-mark { width: 48px; height: 48px; display: grid; place-items: center; background: var(--brand); color: #141414; border-radius: 11px; font-weight: 950; font-size: 24px; letter-spacing: -2px; flex: 0 0 auto; }
+    .brand-words { display: flex; flex-direction: column; gap: 3px; }
+    .brand-name { font-size: 17px; font-weight: 800; letter-spacing: -.4px; line-height: 1.05; }
+    .brand-caption { font-size: 10px; font-weight: 600; letter-spacing: 1.55px; color: #bcbcb7; }
+    .nav { display: flex; align-items: center; gap: 10px; }
+    .nav-link { color: #d0d0cd; font-size: 13px; background: none; border: 0; border-radius: 9px; padding: 10px 15px; font-weight: 650; }
+    .nav-link.active { color: #181818; background: var(--brand); }
+    .nav-link:hover:not(.active) { background: #30302e; color: white; }
+    .nav-link .counter { color: #e9e4d0; background: #3a3a38; border-radius: 5px; padding: 2px 6px; margin-left: 6px; font-size: 11px; }
+    main { max-width: 1260px; margin: 0 auto; padding: 0 32px 72px; }
+    .hero { padding: 58px 0 32px; display: flex; gap: 24px; align-items: end; justify-content: space-between; }
+    .eyebrow { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 850; color: #847500; margin-bottom: 14px; }
+    h1 { font-size: clamp(30px, 4.4vw, 49px); line-height: 1.11; letter-spacing: -1.7px; margin: 0; font-weight: 790; }
+    h1 .accent { position: relative; z-index: 1; white-space: nowrap; }
+    h1 .accent::after { content: ""; height: .24em; background: var(--brand); position: absolute; left: -2px; right: -2px; bottom: 2px; z-index: -1; }
+    .hero p { color: #73736e; line-height: 1.65; max-width: 635px; font-size: 15px; margin: 17px 0 0; }
+    .hero-note { font-size: 12px; color: #575751; max-width: 228px; line-height: 1.6; border-left: 3px solid var(--brand); padding: 5px 0 5px 15px; margin-bottom: 5px; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; align-items: stretch; }
+    .surface { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .entry { padding: 26px 28px 24px; box-shadow: 0 10px 28px rgba(16,16,15,.025); }
+    .entry-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
+    h2 { font-size: 19px; letter-spacing: -.35px; margin: 0; }
+    .section-number { font-size: 11px; color: #a1a19a; font-weight: 850; letter-spacing: 1px; }
+    .entry-top .subnote { font-size: 12px; color: var(--muted); }
+    .input-area { position: relative; }
+    textarea {
+      min-height: 198px; width: 100%; resize: vertical; border: 1px solid #deded7;
+      border-radius: 11px; padding: 18px 18px 32px; color: #252520;
+      background: #fdfdfb; font-size: 14px; line-height: 1.95; outline: none;
+      transition: border-color .15s;
+    }
+    textarea::placeholder { color: #a09f99; }
+    textarea:focus { border-color: #a69957; box-shadow: 0 0 0 3px #ffcd001a; }
+    .input-hint { position: absolute; bottom: 13px; right: 15px; color: #96958f; font-size: 11px; pointer-events: none; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; }
+    .action-left { display: flex; flex-wrap: wrap; gap: 9px; }
+    .secondary { display: inline-flex; gap: 8px; align-items: center; border: 1px solid #deded6; background: white; border-radius: 9px; padding: 11px 14px; font-size: 12px; font-weight: 720; color: #484842; }
+    .secondary:hover { background: #fbfaf2; border-color: #c5be9b; }
+    .secondary svg, .primary svg { flex: none; }
+    .primary { display: inline-flex; align-items: center; justify-content: center; gap: 11px; border: none; background: var(--brand); color: #181818; border-radius: 10px; padding: 14px 22px; min-height: 47px; font-weight: 800; font-size: 13px; transition: background .15s, transform .15s; }
+    .primary:hover:not(:disabled) { background: #f0c100; transform: translateY(-1px); }
+    .entry-hint { margin: 15px 0 0; font-size: 12px; color: #85847f; line-height: 1.5; }
+    .inline-error { display: none; padding: 12px 15px; border: 1px solid #e9c8c8; color: #943c35; background: #fff8f7; border-radius: 9px; font-size: 13px; margin-top: 14px; }
+    .aside { padding: 27px 24px; background: #252521; color: white; border-color: #252521; display: flex; flex-direction: column; justify-content: space-between; min-height: 330px; position: relative; overflow: hidden; }
+    .aside::after { content: ""; position: absolute; width: 190px; height: 190px; border: 36px solid rgba(255,205,0,.08); border-radius: 50%; right: -120px; bottom: -113px; pointer-events: none; }
+    .aside .eyebrow { color: #ffd92a; font-size: 10px; }
+    .aside h2 { font-size: 25px; line-height: 1.25; max-width: 195px; letter-spacing: -.6px; margin: 0 0 17px; }
+    .aside p { font-size: 12px; line-height: 1.75; color: #c2c2b9; margin: 0; }
+    .aside-divider { width: 40px; height: 3px; background: var(--brand); margin: 24px 0 16px; }
+    .aside-footer { font-size: 11px; color: #a8a89e; line-height: 1.7; }
+    .examples { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 19px 0 7px; }
+    .examples-label { font-size: 12px; color: #7c7c74; margin-right: 7px; font-weight: 700; }
+    .sample { background: #fff; border: 1px solid var(--line); color: #53534c; font-size: 12px; border-radius: 24px; padding: 9px 13px; }
+    .sample:hover { border-color: #bdaa41; background: #fffdf2; }
+    .results-section { margin-top: 45px; scroll-margin-top: 32px; }
+    .results-titlebar { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; margin-bottom: 17px; }
+    .results-titlebar .eyebrow { margin-bottom: 8px; }
+    .results-titlebar .muted { color: var(--muted); font-size: 12px; }
+    .empty { border: 1px dashed #d5d5ce; background: #fbfbf9; padding: 61px 20px; border-radius: 15px; text-align: center; }
+    .empty-icon { width: 54px; height: 54px; border: 1px solid #e4e4dc; background: white; display: grid; place-items: center; border-radius: 14px; margin: 0 auto 18px; }
+    .empty strong { font-size: 16px; display: block; margin-bottom: 8px; }
+    .empty p { color: #898980; max-width: 380px; font-size: 13px; line-height: 1.6; margin: auto; }
+    .results-list { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: white; }
+    .results-header { display: grid; grid-template-columns: minmax(0, 1.17fr) minmax(0, 1fr) 145px 120px; padding: 15px 22px; gap: 20px; background: #f3f3ef; color: #85857e; font-size: 10px; font-weight: 850; letter-spacing: 1px; text-transform: uppercase; }
+    .result-row { border-top: 1px solid #ecece7; }
+    .result-row:first-of-type { border-top: none; }
+    .result-grid { display: grid; grid-template-columns: minmax(0, 1.17fr) minmax(0, 1fr) 145px 120px; gap: 20px; padding: 23px 22px; align-items: start; }
+    .result-row:hover > .result-grid { background: #fffefa; }
+    .query-name { font-size: 13px; color: #55564f; line-height: 1.65; overflow-wrap: anywhere; }
+    .row-num { display: inline-block; min-width: 24px; color: #a2a29b; font-size: 11px; font-weight: 700; }
+    .result-name { font-size: 13px; line-height: 1.5; font-weight: 780; overflow-wrap: anywhere; }
+    .result-name.missing { font-weight: 500; color: #8c8b84; }
+    .article-code { color: #686960; font-size: 12px; overflow-wrap: anywhere; font-weight: 650; }
+    .status { font-size: 11px; font-weight: 770; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; width: max-content; max-width: 100%; }
+    .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status.MATCHED { color: #267351; background: #e8f4ec; }
+    .status.NOT_FOUND, .status.INSUFFICIENT_PARAMETERS { color: #956520; background: #fff4da; }
+    .status.ERROR { color: #a44742; background: #ffeded; }
+    .open-detail { border: none; padding: 9px 0 0; background: transparent; color: #776007; font-size: 12px; font-weight: 750; display: flex; align-items: center; gap: 5px; }
+    .open-detail:hover { color: #2b260f; }
+    .open-detail svg { transition: transform .2s; }
+    .result-row.expanded .open-detail svg { transform: rotate(180deg); }
+    .detail-panel { display: none; margin: 0 22px 20px; padding: 23px; border: 1px solid #ebe9dd; background: #fafaf6; border-radius: 12px; }
+    .result-row.expanded .detail-panel { display: block; }
+    .detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    .detail-heading h3 { font-size: 14px; margin: 0; }
+    .detail-copy { color: #66665e; font-size: 12px; line-height: 1.7; margin: 0 0 18px; }
+    .detail-alert { padding: 11px 13px; background: #fff5de; border-left: 3px solid #d49a2e; margin-bottom: 16px; color: #76551f; font-size: 12px; line-height: 1.65; }
+    .detail-ok { background: #eef6ed; border-left-color: #83aa78; color: #385b32; }
+    .detail-block { margin-top: 20px; }
+    .detail-block h4 { font-size: 12px; margin: 0 0 11px; color: #3d3d37; }
+    .comparison { width: 100%; border-collapse: collapse; font-size: 12px; background: white; border: 1px solid var(--line); }
+    .comparison th, .comparison td { text-align: left; padding: 11px 12px; border-bottom: 1px solid #efefe9; vertical-align: top; overflow-wrap: anywhere; }
+    .comparison th { background: #f5f5f1; color: #777870; font-size: 11px; font-weight: 700; }
+    .match-check { color: #22744d; font-weight: 750; }
+    .mismatch-check { color: #ac3f3b; font-weight: 750; }
+    .unknown-check { color: #8d712b; font-weight: 750; }
+    .token-list { display: flex; gap: 8px; flex-wrap: wrap; }
+    .token { font-size: 12px; padding: 7px 10px; background: white; border: 1px solid #e4e4dc; border-radius: 7px; color: #57574f; }
+    .token strong { color: #2c2c27; }
+    .candidates { margin-top: 18px; padding: 0; }
+    .candidates summary { font-weight: 740; cursor: pointer; color: #5f551d; font-size: 12px; padding: 10px 0; }
+    .candidate { background: white; border: 1px solid var(--line); border-radius: 9px; padding: 13px 15px; margin-top: 10px; }
+    .candidate b { display: block; font-size: 12px; line-height: 1.6; }
+    .candidate p { margin: 5px 0 0; font-size: 11px; color: #77776f; }
+    .subtle { color: #77776f; font-size: 11px; line-height: 1.7; }
+    footer { max-width: 1260px; margin: auto; padding: 0 32px 35px; display: flex; align-items: center; justify-content: space-between; gap: 18px; color: #96958c; font-size: 11px; line-height: 1.6; }
+    .history-shade { position: fixed; inset: 0; background: #10100e9c; opacity: 0; pointer-events: none; transition: opacity .22s; z-index: 10; }
+    .history-pane { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: #fff; box-shadow: -18px 0 65px #0002; z-index: 11; transform: translateX(105%); transition: transform .22s; padding: 28px; display: flex; flex-direction: column; }
+    body.history-visible .history-shade { opacity: 1; pointer-events: auto; }
+    body.history-visible .history-pane { transform: translateX(0); }
+    .history-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .history-head h2 { font-size: 23px; }
+    .icon-btn { border: 1px solid var(--line); width: 35px; height: 35px; border-radius: 8px; background: white; font-size: 20px; }
+    .history-list { margin-top: 23px; overflow-y: auto; flex: 1; }
+    .history-item { display: block; width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 16px; background: white; text-align: left; margin-bottom: 10px; }
+    .history-item:hover { border-color: #bdad52; background: #fffef7; }
+    .history-item time { display: block; color: #88877e; font-size: 11px; margin-bottom: 7px; }
+    .history-item strong { font-size: 13px; line-height: 1.5; display: block; max-height: 2.95em; overflow: hidden; }
+    .history-item .subtle { margin-top: 7px; display: block; }
+    .history-clear { margin-top: 12px; align-self: start; color: #996347; font-size: 12px; text-decoration: underline; background: none; border: 0; padding: 6px 0; }
+    .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+    .spinner { width: 15px; height: 15px; display: inline-block; border-radius: 50%; border: 2px solid #1d1d1d35; border-top-color: #151515; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1050px) {
+      .workspace { grid-template-columns: minmax(0,1fr) 240px; }
+      .result-grid, .results-header { grid-template-columns: minmax(0, 1.15fr) minmax(0,1fr) 116px 110px; gap: 13px; }
+      .aside h2 { font-size: 22px; }
+    }
+    @media (max-width: 760px) {
+      .top-inner, main, footer { padding-left: 18px; padding-right: 18px; }
+      .top { height: 69px; }
+      .brand-mark { width: 42px; height: 42px; }
+      .brand-caption { font-size: 9px; letter-spacing: .9px; }
+      .hero { padding-top: 39px; }
+      .hero-note { display: none; }
+      .workspace { grid-template-columns: 1fr; }
+      .aside { min-height: auto; padding: 22px; }
+      .aside h2 { max-width: none; font-size: 19px; }
+      .aside-divider { display: none; }
+      .aside-footer { margin-top: 12px; }
+      .result-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; padding: 20px; }
+      .results-header { display: none; }
+      .status-cell { grid-column: 1 / -1; }
+      .article-code { font-size: 12px; }
+      .detail-panel { margin: 0 12px 13px; padding: 15px; }
+      .comparison { font-size: 11px; }
+      .comparison td, .comparison th { padding: 8px 7px; }
+    }
+    @media (max-width: 460px) {
+      .brand-name { font-size: 14px; }
+      .nav-link { padding: 9px 11px; }
+      .nav-link.active { display: none; }
+      .hero { padding-top: 30px; }
+      h1 { letter-spacing: -.9px; }
+      .entry { padding: 21px 16px; }
+      .entry-top { align-items: start; }
+      .entry-top .subnote { display: none; }
+      .actions, .action-left { width: 100%; }
+      .primary { width: 100%; }
+      .result-grid { grid-template-columns: 1fr; }
+      .status-cell { grid-column: 1; }
+      .detail-panel { overflow-x: auto; }
+      .comparison { min-width: 450px; }
+      footer { flex-direction: column; align-items: start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .history-shade, .history-pane, .primary, .open-detail svg { transition: none; }
+      .spinner { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="/demo" aria-label="LD, подбор аналогов">
+        <span class="brand-mark" aria-hidden="true">LD</span>
+        <span class="brand-words">
+          <span class="brand-name">LD <span style="color:#ffcd00">/</span> Подбор аналогов</span>
+          <span class="brand-caption">ШАРОВЫЕ КРАНЫ И АРМАТУРА</span>
+        </span>
+      </a>
+      <nav class="nav" aria-label="Навигация">
+        <button class="nav-link active" type="button" aria-current="page">Подбор</button>
+        <button class="nav-link" id="history-open" type="button" aria-controls="history-pane" aria-expanded="false">История <span class="counter" id="history-count">0</span></button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <div class="eyebrow">ИНЖЕНЕРНЫЙ ПОИСК · КАТАЛОГ LD</div>
+        <h1 id="page-title">Найдём <span class="accent">аналог</span><br>для вашей номенклатуры</h1>
+        <p>Вставьте позиции из спецификации. Сервис сопоставит технические характеристики и предложит изделия LD с пояснением результата.</p>
+      </div>
+      <div class="hero-note">Вы видите результат первым.<br>Технические подробности — по запросу.</div>
+    </section>
+
+    <div class="workspace">
+      <section class="surface entry" aria-labelledby="input-title">
+        <div class="entry-top">
+          <h2 id="input-title">Номенклатура для подбора</h2>
+          <span class="subnote">01 / Ввод позиций</span>
+        </div>
+        <div class="input-area">
+          <label for="query" class="subtle">Каждая позиция — с новой строки</label>
+          <textarea id="query" aria-label="Номенклатура, одна позиция на строку" spellcheck="false" placeholder="Фланец стальной Ду80 под втулку ПНД Ду90&#10;Кран шаровый 11Б27П Ду20 Ру16&#10;Фланец плоский приварной, сталь 20, DN100, PN16"></textarea>
+          <div class="input-hint" id="input-count">0 позиций</div>
+        </div>
+        <div class="actions">
+          <div class="action-left">
+            <button id="upload" type="button" class="secondary" aria-describedby="upload-hint">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V3m0 0L7 8m5-5 5 5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+              Загрузить CSV / TXT
+            </button>
+            <input type="file" id="file" class="file-input" accept=".csv,.tsv,.txt,text/csv,text/plain" aria-label="Загрузить CSV или текстовый файл">
+            <button id="clear-input" type="button" class="secondary">Очистить</button>
+          </div>
+          <button id="go" type="button" class="primary">
+            Найти аналоги
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+          </button>
+        </div>
+        <p class="entry-hint" id="upload-hint">До 10 позиций за запуск. Excel: можно скопировать столбец и вставить сюда. Файл CSV / TXT обрабатывается в браузере.</p>
+        <div id="error" class="inline-error" role="alert" aria-live="assertive"></div>
+      </section>
+
+      <aside class="surface aside" aria-label="Как работает подбор">
+        <div>
+          <div class="eyebrow">КАК ЭТО РАБОТАЕТ</div>
+          <h2>От спецификации — к изделию LD.</h2>
+          <p>Мы выделяем параметры запроса, ищем изделия в каталоге и проверяем их характеристики перед рекомендацией.</p>
+          <div class="aside-divider"></div>
+        </div>
+        <div class="aside-footer">Не хватает параметров? Сервис подскажет, что необходимо уточнить, вместо случайного аналога.</div>
+      </aside>
+    </div>
+
+    <div class="examples" aria-label="Примеры запросов">
+      <span class="examples-label">Попробуйте:</span>
+      <button class="sample" type="button" data-q="Фланец стальной ду80мм. под втулку ПНД ду90мм.">Фланец ПНД DN80 / 90</button>
+      <button class="sample" type="button" data-q="Фланец стальной плоский приварной, марка стали 20, номинальное давление 1,6 МПа, номинальный диаметр 100 мм">Фланец сталь 20 DN100</button>
+      <button class="sample" type="button" data-q="Кран шаровый 11Б27П ДУ20 РУ16">Кран 11Б27П</button>
+    </div>
+
+    <section id="results-section" class="results-section" aria-labelledby="results-title">
+      <div class="results-titlebar">
+        <div>
+          <div class="eyebrow">02 / РЕЗУЛЬТАТ</div>
+          <h2 id="results-title">Результаты подбора</h2>
+        </div>
+        <div class="muted" id="results-summary" aria-live="polite">Пока нет результатов</div>
+      </div>
+      <div id="results" aria-live="polite" aria-busy="false">
+        <div class="empty" id="empty-state">
+          <div class="empty-icon" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7e784f" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/><path d="m14 16 1.4 1.4L18 14.8"/></svg>
+          </div>
+          <strong>Здесь появятся найденные аналоги</strong>
+          <p>Добавьте номенклатуру выше. Для каждого товара покажем результат, а техническое сравнение можно раскрыть отдельно.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>LD · Инструмент предварительного подбора промышленной номенклатуры.</span>
+    <span>Совместимость и условия применения проверяются перед закупкой.</span>
+  </footer>
+
+  <div id="history-shade" class="history-shade" aria-hidden="true"></div>
+  <aside id="history-pane" class="history-pane" role="dialog" aria-modal="true" aria-labelledby="history-title" aria-hidden="true" tabindex="-1">
+    <div class="history-head">
+      <h2 id="history-title">История запросов</h2>
+      <button id="history-close" class="icon-btn" type="button" aria-label="Закрыть историю">×</button>
+    </div>
+    <p class="subtle">Хранится только в этом браузере. Нажмите на запрос, чтобы снова вставить номенклатуру в форму.</p>
+    <div id="history-list" class="history-list"></div>
+    <button id="history-clear" type="button" class="history-clear">Очистить историю</button>
+  </aside>
+
+  <script>
+    "use strict";
+    const byId = id => document.getElementById(id);
+    const HISTORY_KEY = "ld-tender-demo-query-history-v2";
+    const HISTORY_LIMIT = 15;
+    const MAX_ITEMS = 10;
+    const MAX_ITEM_LENGTH = 2000;
+    let isBusy = false;
+    let returnFocus = null;
+
+    function el(tag, text, cls) {
+      const node = document.createElement(tag);
+      if (text !== undefined && text !== null) node.textContent = String(text);
+      if (cls) node.className = cls;
+      return node;
+    }
+    function add(parent, ...children) { children.forEach(child => parent.append(child)); return parent; }
+    function iconChevron() {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", "14"); svg.setAttribute("height", "14");
+      svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor"); svg.setAttribute("stroke-width", "2");
+      svg.setAttribute("aria-hidden", "true");
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "m6 9 6 6 6-6"); svg.append(path); return svg;
+    }
+    function normalizeRows(input) {
+      return input.replace(/\r\n?/g, "\n").split("\n").map(s => s.trim()).filter(Boolean);
+    }
+    function readInput() { return normalizeRows(byId("query").value); }
+    function countLabel(count) { return count + " поз."; }
+    function refreshInputCount() { byId("input-count").textContent = countLabel(readInput().length); }
+    function showError(message) {
+      byId("error").textContent = message;
+      byId("error").style.display = message ? "block" : "none";
+    }
+
+    // Local history is strictly opt-in by action of running a query, and
+    // saved as original query strings only, never results / credentials.
+    function readHistory() {
+      try {
+        const value = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+        if (!Array.isArray(value)) return [];
+        return value.filter(x => x && Array.isArray(x.products) && x.products.length <= MAX_ITEMS &&
+          x.products.every(p => typeof p === "string" && p.length <= MAX_ITEM_LENGTH))
+          .slice(0, HISTORY_LIMIT);
+      } catch { return []; }
+    }
+    function writeHistory(rows) {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(rows.slice(0, HISTORY_LIMIT))); }
+      catch { /* Private mode, blocked storage or full quota: UI still works. */ }
+      renderHistory();
+    }
+    function saveHistory(products) {
+      const signature = JSON.stringify(products);
+      const rows = readHistory().filter(x => JSON.stringify(x.products) !== signature);
+      rows.unshift({ products: products.slice(), at: new Date().toISOString() });
+      writeHistory(rows);
+    }
+    function renderHistory() {
+      const history = readHistory();
+      byId("history-count").textContent = String(history.length);
+      const host = byId("history-list");
+      host.replaceChildren();
+      if (!history.length) {
+        host.append(el("p", "Пока нет запросов. После первого подбора вы сможете быстро вернуть введённую номенклатуру.", "subtle"));
+        byId("history-clear").hidden = true; return;
+      }
+      byId("history-clear").hidden = false;
+      history.forEach(entry => {
+        const item = el("button", null, "history-item");
+        item.type = "button";
+        const date = el("time", "");
+        const parsed = new Date(entry.at);
+        date.textContent = Number.isNaN(parsed.getTime()) ? "Недавний запрос" :
+          parsed.toLocaleString("ru-RU", { day:"numeric", month:"long", hour:"2-digit", minute:"2-digit" });
+        add(item, date, el("strong", entry.products[0], ""), el("span",
+          entry.products.length === 1 ? "1 позиция" : countLabel(entry.products.length) + " · Нажмите, чтобы повторить",
+          "subtle"));
+        item.addEventListener("click", () => {
+          byId("query").value = entry.products.join("\n");
+          refreshInputCount(); showError("");
+          closeHistory(); byId("query").focus();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        host.append(item);
+      });
+    }
+    function openHistory() {
+      returnFocus = document.activeElement;
+      renderHistory(); document.body.classList.add("history-visible");
+      byId("history-open").setAttribute("aria-expanded", "true");
+      byId("history-pane").setAttribute("aria-hidden", "false");
+      byId("history-pane").focus();
+    }
+    function closeHistory() {
+      document.body.classList.remove("history-visible");
+      byId("history-open").setAttribute("aria-expanded", "false");
+      byId("history-pane").setAttribute("aria-hidden", "true");
+      if (returnFocus && returnFocus.isConnected) returnFocus.focus();
+    }
+    byId("history-open").addEventListener("click", openHistory);
+    byId("history-close").addEventListener("click", closeHistory);
+    byId("history-shade").addEventListener("click", closeHistory);
+    document.addEventListener("keydown", ev => {
+      if (ev.key === "Escape" && document.body.classList.contains("history-visible")) closeHistory();
+      if (ev.key === "Tab" && document.body.classList.contains("history-visible")) {
+        const first = byId("history-close"), last = byId("history-clear").hidden ?
+          byId("history-list").querySelector("button:last-child") || first : byId("history-clear");
+        if (ev.shiftKey && document.activeElement === first) { last.focus(); ev.preventDefault(); }
+        else if (!ev.shiftKey && document.activeElement === last) { first.focus(); ev.preventDefault(); }
+      }
+    });
+    byId("history-clear").addEventListener("click", () => {
+      if (!window.confirm("Удалить все сохранённые запросы из этого браузера?")) return;
+      writeHistory([]);
+    });
+
+    // CSV / TSV support. Excel columns may be pasted directly as plain text.
+    function parseRows(text, delimiter) {
+      const records = []; let row = [], cell = "", quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"') {
+          if (quoted && text[i + 1] === '"') { cell += '"'; i++; }
+          else quoted = !quoted;
+        } else if (c === delimiter && !quoted) { row.push(cell); cell = ""; }
+        else if ((c === "\n" || c === "\r") && !quoted) {
+          if (c === "\r" && text[i+1] === "\n") i++;
+          row.push(cell); records.push(row); row = []; cell = "";
+        } else { cell += c; }
+      }
+      if (cell || row.length) { row.push(cell); records.push(row); }
+      return records;
+    }
+    function rowsFromFile(text, filename) {
+      if (!/\.(csv|tsv)$/i.test(filename)) return normalizeRows(text);
+      const firstLine = text.split(/\r?\n/, 1)[0];
+      const delimiter = /\.tsv$/i.test(filename) ? "\t" :
+        ((firstLine.match(/;/g) || []).length >= (firstLine.match(/,/g) || []).length ? ";" : ",");
+      const rows = parseRows(text, delimiter);
+      const header = rows[0] || [];
+      const target = header.findIndex(v => /(?:наименование|номенклатура|строка сметы|позиция|товар|название|описание)/i.test(v));
+      const column = target >= 0 ? target : (header.length > 1 && /^(?:№|номер|id)$/i.test(header[0].trim()) ? 1 : 0);
+      return rows.slice(target >= 0 ? 1 : 0).map(r => String(r[column] || "").trim()).filter(Boolean);
+    }
+    byId("upload").addEventListener("click", () => byId("file").click());
+    byId("file").addEventListener("change", async ev => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        if (!/\.(csv|tsv|txt)$/i.test(file.name)) throw Error("Поддерживаются только CSV, TSV и TXT. Из Excel скопируйте столбец в поле ввода.");
+        if (file.size > 1024 * 1024) throw Error("Файл слишком большой (максимум 1 МБ).");
+        const bytes = await file.arrayBuffer();
+        let decoded;
+        try { decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+        catch { decoded = new TextDecoder("windows-1251").decode(bytes); }
+        const products = rowsFromFile(decoded.replace(/^\uFEFF/, ""), file.name);
+        if (!products.length) throw Error("В файле не нашлось строк с номенклатурой.");
+        if (products.length > MAX_ITEMS) throw Error("В файле " + products.length + " позиций. Для демо выберите до " + MAX_ITEMS + " и повторите загрузку.");
+        if (products.some(s => s.length > MAX_ITEM_LENGTH)) throw Error("Одна из позиций длиннее 2000 символов.");
+        byId("query").value = products.join("\n"); refreshInputCount(); showError("");
+        byId("query").focus();
+      } catch (e) { showError(e.message || "Файл не удалось прочитать."); }
+      finally { ev.target.value = ""; }
+    });
+    byId("query").addEventListener("input", refreshInputCount);
+    byId("clear-input").addEventListener("click", () => {
+      byId("query").value = ""; refreshInputCount(); showError(""); byId("query").focus();
+    });
+    document.querySelectorAll(".sample").forEach(button => button.addEventListener("click", () => {
+      byId("query").value = button.dataset.q; refreshInputCount();
+      showError(""); byId("query").focus();
+    }));
+
+    const statusLabels = {
+      MATCHED: "Кандидат подобран",
+      NOT_FOUND: "Аналог не подтверждён",
+      INSUFFICIENT_PARAMETERS: "Нужно уточнение",
+      ERROR: "Ошибка подбора"
+    };
+    const missingLabels = {
+      dn: "Номинальный диаметр", pn: "Номинальное давление",
+      working_medium: "Рабочая среда", thread_type: "Тип резьбы",
+      thread_size: "Размер резьбы", stub_dn: "Размер ПНД-втулки",
+      body_material: "Материал корпуса", joining_type: "Присоединение",
+      control: "Управление", bore_type: "Тип прохода"
+    };
+    function tableFor(rows) {
+      const table = el("table", null, "comparison");
+      const head = el("thead"), tr = el("tr");
+      ["Параметр", "В запросе", "В каталоге LD", "Проверка"].forEach(label => tr.append(el("th", label)));
+      head.append(tr); table.append(head);
+      const body = el("tbody");
+      (rows || []).forEach(r => {
+        const item = el("tr");
+        const check = { MATCH: "Совпадает", MISMATCH: "Расхождение", UNKNOWN: "Не подтверждено" }[r.status] || "Не проверено";
+        const checkClass = r.status === "MATCH" ? "match-check" : r.status === "MISMATCH" ? "mismatch-check" : "unknown-check";
+        add(item, el("td", r.label + (r.strict ? " *" : "")), el("td", r.required),
+          el("td", r.catalog), el("td", check, checkClass)); body.append(item);
+      });
+      table.append(body); return table;
+    }
+    function displayCandidate(container, candidate, main) {
+      const shell = el("div", null, "candidate");
+      add(shell, el("b", candidate.name || "Без наименования"),
+        el("p", "Артикул LD: " + (candidate.article || "Не указан")));
+      if (main && candidate.reason) shell.append(el("p", "Пояснение выбора: " + candidate.reason));
+      const rows = candidate.comparison && candidate.comparison.rows || [];
+      if (rows.length) {
+        const details = el("details", null, "candidates");
+        details.append(el("summary", "Сравнить характеристики этого изделия"));
+        details.append(tableFor(rows));
+        shell.append(details);
+      }
+      container.append(shell);
+    }
+    function renderDetail(d) {
+      const detail = el("div", null, "detail-panel");
+      detail.append(el("h3", "Почему такой результат?"));
+      detail.append(el("p", d.message || "Нет дополнительного пояснения.", "detail-copy"));
+      if (d.status === "INSUFFICIENT_PARAMETERS") {
+        const missing = (d.missing_fields || []).map(x => missingLabels[x] || x);
+        if (missing.length) detail.append(el("div", "Уточните: " + missing.join(", ") + ".", "detail-alert"));
+      }
+      if (d.status === "MATCHED") {
+        const main = (d.recommended || [])[0];
+        if (main) {
+          const cmp = main.comparison || {};
+          const rows = cmp.rows || [];
+          const strictIssues = rows.filter(x => x.strict && x.status !== "MATCH");
+          if (strictIssues.length) {
+            detail.append(el("div", "Не все обязательные параметры подтверждены каталогом. Перед закупкой необходима ручная проверка.", "detail-alert"));
+          } else {
+            detail.append(el("div", "Кандидат прошёл доступные проверки. Подтвердите применимость изделия к вашей спецификации перед закупкой.", "detail-alert detail-ok"));
+          }
+          if (rows.length) {
+            const wrap = el("div", null, "detail-block");
+            wrap.append(el("h4", "Сравнение с рекомендованным изделием"));
+            wrap.append(tableFor(rows)); detail.append(wrap);
+          }
+          if (main.reason) detail.append(el("p", "Основание выбора: " + main.reason, "detail-copy"));
+        }
+      }
+      if (Array.isArray(d.parameters) && d.parameters.length) {
+        const wrap = el("div", null, "detail-block");
+        add(wrap, el("h4", "Характеристики, выделенные из запроса"));
+        const tokens = el("div", null, "token-list");
+        d.parameters.forEach(p => tokens.append(el("span", p.label + ": " + p.value, "token")));
+        wrap.append(tokens); detail.append(wrap);
+      }
+      if (d.other_candidates && d.other_candidates.length) {
+        const others = el("details", null, "candidates");
+        others.append(el("summary", "Другие кандидаты (" + d.other_candidates.length + ") · пока не подтверждены"));
+        d.other_candidates.forEach(c => displayCandidate(others, c, false));
+        detail.append(others);
+      }
+      if (d.recommended && d.recommended.length > 1) {
+        const extra = el("details", null, "candidates");
+        extra.append(el("summary", "Ещё рекомендованные варианты (" + (d.recommended.length - 1) + ")"));
+        d.recommended.slice(1).forEach(c => displayCandidate(extra, c, true));
+        detail.append(extra);
+      }
+      detail.append(el("p", "* Строго заданные в запросе параметры. Рекомендация не заменяет инженерную проверку применимости.", "subtle"));
+      return detail;
+    }
+    function renderRow(d, index) {
+      const section = el("article", null, "result-row");
+      const grid = el("div", null, "result-grid");
+      const query = el("div", null, "query-name");
+      add(query, el("span", String(index + 1).padStart(2, "0"), "row-num"), el("span", d.input || "—"));
+      const main = d.recommended && d.recommended[0];
+      const product = el("div");
+      product.append(el("div", main && main.name ? main.name : "Не выбран", "result-name" + (!main ? " missing" : "")));
+      const article = el("div", main && main.article ? main.article : "—", "article-code");
+      const status = el("div", null, "status-cell");
+      status.append(el("span", statusLabels[d.status] || d.status, "status " + (statusLabels[d.status] ? d.status : "NOT_FOUND")));
+      const toggle = el("button", null, "open-detail");
+      toggle.type = "button"; toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-label", "Подробнее о результате для позиции " + (index + 1));
+      add(toggle, el("span", "Подробнее"), iconChevron());
+      status.append(toggle);
+      add(grid, query, product, article, status);
+      const detail = renderDetail(d);
+      detail.id = "detail-" + index;
+      toggle.setAttribute("aria-controls", detail.id);
+      toggle.addEventListener("click", () => {
+        const expanded = section.classList.toggle("expanded");
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.firstChild.textContent = expanded ? "Свернуть" : "Подробнее";
+      });
+      add(section, grid, detail); return section;
+    }
+    function renderResponse(payload) {
+      const results = Array.isArray(payload.results) ? payload.results : [];
+      byId("results-summary").textContent = countLabel(results.length) + " · Результат предварительного подбора";
+      const list = el("div", null, "results-list");
+      const header = el("div", null, "results-header");
+      ["Исходная номенклатура", "Предложенный аналог LD", "Артикул", "Статус"].forEach(s => header.append(el("span", s)));
+      list.append(header);
+      results.forEach((d, i) => list.append(renderRow(d, i)));
+      byId("results").replaceChildren(list);
+      byId("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    async function run() {
+      if (isBusy) return;
+      const products = readInput();
+      showError("");
+      if (!products.length) return showError("Введите хотя бы одну позицию для подбора.");
+      if (products.length > MAX_ITEMS) return showError("Максимум " + MAX_ITEMS + " позиций за один запуск. Уберите лишние строки.");
+      if (products.some(p => p.length > MAX_ITEM_LENGTH)) return showError("Одна из позиций превышает 2000 символов.");
+      isBusy = true;
+      const button = byId("go");
+      button.disabled = true;
+      button.replaceChildren(el("span", null, "spinner"), el("span", "Подбираем аналоги…"));
+      byId("results").setAttribute("aria-busy", "true");
+      try {
+        const response = await fetch("/v1/demo/match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ products })
+        });
+        if (!response.ok) {
+          if (response.status === 413) throw Error("Превышен лимит позиций. Попробуйте меньший список.");
+          if (response.status === 429) throw Error("Слишком много запросов. Попробуйте чуть позже.");
+          if (response.status === 401) throw Error("Для доступа к демо требуется авторизация.");
+          throw Error("Сервис временно недоступен (HTTP " + response.status + ").");
+        }
+        const data = await response.json();
+        if (!Array.isArray(data.results)) throw Error("Получен некорректный ответ сервиса.");
+        renderResponse(data);
+        saveHistory(products);
+      } catch (error) {
+        showError(error.message || "Не удалось выполнить подбор.");
+      } finally {
+        isBusy = false;
+        byId("results").setAttribute("aria-busy", "false");
+        button.disabled = false;
+        button.replaceChildren(el("span", "Найти аналоги"), (() => {
+          const arrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          arrow.setAttribute("width", "16"); arrow.setAttribute("height", "16");
+          arrow.setAttribute("viewBox", "0 0 24 24"); arrow.setAttribute("fill", "none");
+          arrow.setAttribute("stroke", "currentColor"); arrow.setAttribute("stroke-width", "2");
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", "M4 12h15m-6-6 6 6-6 6"); arrow.append(path); return arrow;
+        })());
+      }
+    }
+    byId("go").addEventListener("click", run);
+    renderHistory();
+    refreshInputCount();
+  </script>
+</body>
+</html>
