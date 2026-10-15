@@ -1,0 +1,37 @@
+# Standalone CSV-only experiment. Does not start Qdrant or call OpenAI/DeepSeek.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: rag_tender
+      POSTGRES_USER: rag_tender
+      POSTGRES_PASSWORD: rag_tender
+    volumes:
+      - csv_mapping_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_tender -d rag_tender"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [csv_backend]
+  api:
+    build: .
+    environment:
+      APP_ENV: development
+      MATCH_BACKEND: csv_mapping
+      CSV_MAPPING_DIR: /data/csv_mappings
+      DATABASE_URL: postgresql://rag_tender:rag_tender@postgres:5432/rag_tender
+      MATCH_TRACE_ENABLED: "true"
+      WEB_SEARCH_ENABLED: "false"
+    volumes:
+      - ./data/csv_mappings:/data/csv_mappings:ro
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [csv_backend]
+volumes:
+  csv_mapping_postgres:
+networks:
+  csv_backend:
