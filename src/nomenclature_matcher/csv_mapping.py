@@ -146,6 +146,26 @@ def _compatible(query, src):
     return True
 
 
+def _valid_mapped_pair(item):
+    """A source/target pair must not contradict its explicit technical fields."""
+    source, target = item["source_facts"], item["target_facts"]
+    if source["dn"] is None or target["dn"] is None or int(source["dn"]) != int(target["dn"]):
+        return False
+    if source["pn"] is None or target["pn"] is None or target["pn"] + 1e-9 < source["pn"]:
+        return False
+    left, right = source["connection"], target["connection"]
+    if left and right and not (
+        left == right or left in right or right in left
+    ):
+        return False
+    if source["medium"] and target["medium"] and source["medium"] != target["medium"]:
+        return False
+    if source["thread"] and target["thread"] and source["thread"] != target["thread"]:
+        return False
+    # Unknown optional facts are not proof of equivalence, but a known conflict is fatal.
+    return True
+
+
 class CsvMappingIndex:
     """Read three files, index source identities, reject fuzzy-only matches."""
     FILES = ("competitor_ld_mapping.csv", "butterfly_mapping_results.csv", "mapping_results.csv")
@@ -211,6 +231,21 @@ class CsvMappingIndex:
                         self.by_article[code].append(item)
                 self.rows_by_file[filename] = rows
 
+    def identity_for(self, source):
+        """Recover exact indexed article from original tender line for UI corrections."""
+        candidates = sorted(
+            (key for key in _codes(source) if key in self.by_article),
+            key=len, reverse=True,
+        )
+        if candidates:
+            return candidates[0]
+        compact = _identity(source)
+        candidates = [
+            code for code in self.by_article
+            if len(code) >= 12 and code in compact
+        ]
+        return max(candidates, key=len) if candidates else None
+
     def search(self, query, limit=10):
         normalized = _text(query)
         if not normalized:
@@ -234,7 +269,8 @@ class CsvMappingIndex:
             evidence = "exact_article"
         accepted={}
         for item in matches:
-            if not (_compatible(query,item["source_facts"])
+            if not (_valid_mapped_pair(item)
+                    and _compatible(query,item["source_facts"])
                     and _compatible(query,item["target_facts"])):
                 continue
             # Precomputed mapping rows are not verification of special executions.
@@ -288,6 +324,21 @@ class CsvMappingMatcher:
         }
         facts = {k: v for k, v in facts.items() if v not in (None, "other")}
         hits=self.index.search(query,limit=10)
+        # Catalog-backed facts from CSV are hints, not user-explicit hard gates.
+        if hits:
+            from .query_constraints import canonical_control, canonical_joining_type, canonical_material
+            observed = hits[0]["source_facts"]
+            inferred = {
+                "product_type": canonical_product_type(hits[0]["source_name"]),
+                "dn": int(observed["dn"]) if observed["dn"] is not None else None,
+                "pn_min_mpa": observed["pn"] / 10 if observed["pn"] is not None else None,
+                "joining_type": canonical_joining_type(observed["connection"]),
+                "body_material": canonical_material(observed["material"]),
+                "control": canonical_control(observed["control"]),
+            }
+            inferred = {k: v for k, v in inferred.items() if v not in (None, "other")}
+        else:
+            inferred = {}
         candidates=[]
         selected=[]
         for i,item in enumerate(hits,1):
@@ -317,7 +368,7 @@ class CsvMappingMatcher:
                 "csv_backend": True,
                 "csv_sources": self.index.rows_by_file,
                 "mapping_source": hits[0]["source_file"] if hits else None,
-                "constraints": facts,
+                "constraints": {**inferred, **facts},
                 "hard_constraints": facts,
                 "multiple_alternatives_need_review": len(candidates) > 1,
             })
