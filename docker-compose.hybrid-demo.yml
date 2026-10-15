@@ -1,0 +1,100 @@
+name: rag-tender-hybrid-demo
+
+# Standalone CSV-first + champion RAG demo. Original stack is untouched.
+# Needs 3 CSV mappings, full LD products CSV, Git LFS Qdrant snapshot and API keys.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rag_tender_hybrid_demo}
+      POSTGRES_USER: ${POSTGRES_USER:-rag_tender}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag_tender}
+    volumes:
+      - hybrid_demo_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    volumes:
+      - hybrid_demo_qdrant:/qdrant/storage
+      - ./qdrant:/qdrant/snapshots:ro
+    healthcheck:
+      test: ["CMD", "/bin/sh", "-c", "test -d /qdrant/storage"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  qdrant-init:
+    image: curlimages/curl:8.12.1
+    depends_on:
+      qdrant:
+        condition: service_started
+    environment:
+      QDRANT_COLLECTION_ALIAS: ${QDRANT_COLLECTION_ALIAS:-steel_products_active}
+    volumes:
+      - ./qdrant:/snapshots:ro
+    entrypoint: ["/bin/sh", "-ec"]
+    command: |
+      until curl -fsS http://qdrant:6333/collections >/dev/null; do
+        sleep 2
+      done
+      if curl -fsS "http://qdrant:6333/collections/$$QDRANT_COLLECTION_ALIAS" >/dev/null 2>&1; then
+        echo "Champion collection already restored."
+        exit 0
+      fi
+      SNAPSHOT="/snapshots/$$QDRANT_COLLECTION_ALIAS.snapshot"
+      if [ ! -f "$$SNAPSHOT" ]; then
+        echo "Missing Qdrant snapshot: $$SNAPSHOT (run git lfs pull)"
+        exit 1
+      fi
+      if grep -q "git-lfs.github.com/spec" "$$SNAPSHOT"; then
+        echo "Snapshot is only a Git LFS pointer. Run: git lfs pull"
+        exit 1
+      fi
+      curl -fsS -X PUT "http://qdrant:6333/collections/$$QDRANT_COLLECTION_ALIAS/snapshots/recover?wait=true" \
+        -H "Content-Type: application/json" \
+        -d "{\"location\":\"file:///qdrant/snapshots/$$QDRANT_COLLECTION_ALIAS.snapshot\"}"
+      echo "Champion Qdrant snapshot restored."
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.csv-demo
+    env_file: .env
+    environment:
+      APP_ENV: production
+      MATCH_BACKEND: hybrid
+      CSV_MAPPING_DIR: /data/csv_mappings
+      PRODUCT_CSV_PATH: /data/ld_products_full_nomenclature.csv
+      DATABASE_URL: postgresql://${POSTGRES_USER:-rag_tender}:${POSTGRES_PASSWORD:-rag_tender}@postgres:5432/${POSTGRES_DB:-rag_tender_hybrid_demo}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION_ALIAS: ${QDRANT_COLLECTION_ALIAS:-steel_products_active}
+      COMPETITOR_CATALOG_REGISTRY_PATH: /app/data/competitor_catalogs/sources.json
+      COMPETITOR_KB_PATH: /app/.rag_tender/competitor_kb.sqlite3
+      WEB_SEARCH_ENABLED: "false"
+    volumes:
+      - ./data/csv_mappings:/data/csv_mappings:ro
+      - ${PRODUCT_CSV_HOST_PATH:-./ld_products_full_nomenclature.csv}:/data/ld_products_full_nomenclature.csv:ro
+      - hybrid_demo_kb:/app/.rag_tender
+    ports:
+      - "127.0.0.1:${HYBRID_DEMO_PORT:-8001}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  hybrid_demo_postgres:
+  hybrid_demo_qdrant:
+  hybrid_demo_kb:
