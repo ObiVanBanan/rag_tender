@@ -230,6 +230,9 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
         message = "Недостаточно данных либо позиция вне области текущего поиска."
     elif status == "NOT_FOUND":
         message = "Подходящий товар не подтверждён. Это не доказывает отсутствие аналога в каталоге."
+    elif interpretation.get("csv_fallback") and status == "MATCHED":
+        message = ("Совпадений по CSV нет; кандидаты найдены через RAG. "
+                   "Проверьте характеристики перед выбором.")
     elif interpretation.get("csv_backend"):
         message = ("Кандидаты найдены в CSV-маппинге. Их техническая взаимозаменяемость "
                    "не подтверждена независимой экспертизой; проверьте перед выбором.")
@@ -241,7 +244,9 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
         "message": message,
         "missing_fields": interpretation.get("missing_fields") if status == "INSUFFICIENT_PARAMETERS" else [],
         "normalized_query": interpretation.get("normalized_query") or match.query,
-        "match_source": "CSV_MAPPING" if interpretation.get("csv_backend") else "CATALOG",
+        "match_source": ("CSV_MAPPING" if interpretation.get("csv_backend")
+                         else "RAG_FALLBACK" if interpretation.get("csv_fallback")
+                         else "CATALOG"),
         "mapping_source": interpretation.get("mapping_source") if interpretation.get("csv_backend") else None,
         "editable_constraints": editable_constraints(match.query, interpretation),
         "parameters": parameter_rows(interpretation),
@@ -443,7 +448,7 @@ def _handle_review_error(exc: Exception) -> None:
 def _keep_csv_identity(request: Request, original: str, query: str) -> str:
     """A corrected specification must retain its competitor article for CSV lookup."""
     runtime = request.app.state.runtime
-    if getattr(runtime.settings, "match_backend", "catalog") != "csv_mapping":
+    if getattr(runtime.settings, "match_backend", "catalog") not in {"csv_mapping", "hybrid"}:
         return query
     index = getattr(runtime.matcher, "index", None)
     anchor = index.identity_for(original) if index is not None else None
@@ -575,14 +580,21 @@ def demo_stats_page(request: Request) -> HTMLResponse:
 @router.get("/demo", response_class=HTMLResponse, include_in_schema=False)
 def business_page(request: Request = None) -> HTMLResponse:
     html = (Path(__file__).parent / "business_demo.html").read_text(encoding="utf-8")
-    if request is not None and getattr(request.app.state.runtime.settings, "match_backend", "catalog") == "csv_mapping":
+    backend = (getattr(request.app.state.runtime.settings, "match_backend", "catalog")
+               if request is not None else "catalog")
+    if backend in {"csv_mapping", "hybrid"}:
         # The CSV mode is a specific, limited coverage experiment, NOT the LD catalog.
         html = html.replace(
             "ИНЖЕНЕРНЫЙ ПОИСК · КАТАЛОГ LD",
-            "ЭКСПЕРИМЕНТ · ПОИСК ПО CSV-МАППИНГАМ",
+            "ЭКСПЕРИМЕНТ · CSV + RAG" if backend == "hybrid"
+            else "ЭКСПЕРИМЕНТ · ПОИСК ПО CSV-МАППИНГАМ",
         )
         html = html.replace(
             "Мы выделяем параметры запроса, ищем изделия в каталоге и проверяем их характеристики перед рекомендацией.",
+            ("Сначала проверяем готовые соответствия CSV по артикулу. "
+             "Если кандидатов нет — запускаем RAG для поиска в каталоге LD. "
+             "Любой результат требует технической проверки.")
+            if backend == "hybrid" else
             "Находим готовые пары «конкурент — LD» по точному артикулу. Это кандидаты для технической проверки, а не подтверждённая взаимозаменяемость.",
         )
         html = html.replace(
