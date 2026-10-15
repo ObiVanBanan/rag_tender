@@ -144,3 +144,30 @@ def test_csv_demo_page_shows_real_csv_examples(settings):
     assert 'data-q="SVB-0001-000025"' in page
     assert 'id="history-open"' in page
     assert 'id="append-open"' in page
+
+
+def test_end_to_end_cascade_with_real_csv_index_and_fake_rag(settings):
+    from nomenclature_matcher.cascade_matcher import CsvFirstRagMatcher
+    from nomenclature_matcher.models import MatchResult
+
+    class Rag:
+        competitor_lookup = None
+        def __init__(self):
+            self.calls = []
+        def match_one_hybrid_with_rerank(self, query):
+            self.calls.append(query)
+            return MatchResult(query=query, status="NOT_FOUND")
+
+    rag = Rag()
+    settings.match_backend = "hybrid"
+    matcher = CsvFirstRagMatcher(settings, rag_matcher=rag)
+
+    from_csv = matcher.match_one_hybrid_with_rerank("1184399")
+    assert from_csv.status == "MATCHED"
+    assert build_demo_item(from_csv, 1)["match_source"] == "CSV_MAPPING"
+    assert rag.calls == []
+
+    from_rag = matcher.match_one_hybrid_with_rerank("not-in-mapping-2026")
+    assert from_rag.status == "NOT_FOUND"
+    assert build_demo_item(from_rag, 1)["match_source"] == "RAG_FALLBACK"
+    assert rag.calls == ["not-in-mapping-2026"]
