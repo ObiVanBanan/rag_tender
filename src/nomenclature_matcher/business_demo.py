@@ -440,6 +440,16 @@ def _handle_review_error(exc: Exception) -> None:
     raise exc
 
 
+def _keep_csv_identity(request: Request, original: str, query: str) -> str:
+    """A corrected specification must retain its competitor article for CSV lookup."""
+    runtime = request.app.state.runtime
+    if getattr(runtime.settings, "match_backend", "catalog") != "csv_mapping":
+        return query
+    index = getattr(runtime.matcher, "index", None)
+    anchor = index.identity_for(original) if index is not None else None
+    return (anchor + " " + query) if anchor else query
+
+
 @router.post("/v1/demo/correct")
 def correct_result(payload: CorrectionRequest, request: Request) -> dict[str, Any]:
     store=_store(request)
@@ -453,6 +463,9 @@ def correct_result(payload: CorrectionRequest, request: Request) -> dict[str, An
         for key in list(merged):
             if merged[key] is None: merged.pop(key)
         corrected_query=render_corrected_query(current["input"],merged)
+        corrected_query=_keep_csv_identity(
+            request, current.get("source_input", current["input"]), corrected_query
+        )
         started=perf_counter()
         match=request.app.state.runtime.matcher.match_one_hybrid_with_rerank(corrected_query)
         result=build_demo_item(match,(perf_counter()-started)*1000)
@@ -490,6 +503,7 @@ def append_demo_item(payload: AppendItemRequest, request: Request) -> dict[str, 
             base.update(fields)
             base = {key:value for key,value in base.items() if value is not None}
             query = render_corrected_query(payload.query,base)
+            query = _keep_csv_identity(request, payload.query, query)
         else:
             query = payload.query
         if not query:
