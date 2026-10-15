@@ -230,6 +230,9 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
         message = "Недостаточно данных либо позиция вне области текущего поиска."
     elif status == "NOT_FOUND":
         message = "Подходящий товар не подтверждён. Это не доказывает отсутствие аналога в каталоге."
+    elif interpretation.get("csv_backend"):
+        message = ("Кандидаты найдены в CSV-маппинге. Их техническая взаимозаменяемость "
+                   "не подтверждена независимой экспертизой; проверьте перед выбором.")
     else:
         message = "Рекомендации получены после технической фильтрации и ранжирования."
     return {
@@ -238,6 +241,8 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
         "message": message,
         "missing_fields": interpretation.get("missing_fields") if status == "INSUFFICIENT_PARAMETERS" else [],
         "normalized_query": interpretation.get("normalized_query") or match.query,
+        "match_source": "CSV_MAPPING" if interpretation.get("csv_backend") else "CATALOG",
+        "mapping_source": interpretation.get("mapping_source") if interpretation.get("csv_backend") else None,
         "editable_constraints": editable_constraints(match.query, interpretation),
         "parameters": parameter_rows(interpretation),
         "recommended": recommended,
@@ -247,7 +252,7 @@ def build_demo_item(match: Any, duration_ms: float) -> dict[str, Any]:
             "latency_ms": round(duration_ms, 1),
             "retrieved_count": len(pool),
             "recommended_count": len(recommended),
-            "retrieval_score": match.score,
+            "retrieval_score": None if interpretation.get("csv_backend") else match.score,
         },
     }
 
@@ -554,10 +559,38 @@ def demo_stats_page(request: Request) -> HTMLResponse:
 
 
 @router.get("/demo", response_class=HTMLResponse, include_in_schema=False)
-def business_page() -> HTMLResponse:
-    return HTMLResponse(
-        (Path(__file__).parent / "business_demo.html").read_text(encoding="utf-8")
-    )
+def business_page(request: Request) -> HTMLResponse:
+    html = (Path(__file__).parent / "business_demo.html").read_text(encoding="utf-8")
+    if getattr(request.app.state.runtime.settings, "match_backend", "catalog") == "csv_mapping":
+        # The CSV mode is a specific, limited coverage experiment, NOT the LD catalog.
+        html = html.replace(
+            "ИНЖЕНЕРНЫЙ ПОИСК · КАТАЛОГ LD",
+            "ЭКСПЕРИМЕНТ · ПОИСК ПО CSV-МАППИНГАМ",
+        )
+        html = html.replace(
+            "Мы выделяем параметры запроса, ищем изделия в каталоге и проверяем их характеристики перед рекомендацией.",
+            "Находим готовые пары «конкурент — LD» по точному артикулу. Это кандидаты для технической проверки, а не подтверждённая взаимозаменяемость.",
+        )
+        html = html.replace(
+            'data-q="Фланец стальной ду80мм. под втулку ПНД ду90мм."',
+            'data-q="1184399"',
+        ).replace(
+            'Фланец ПНД DN80 / 90</button>',
+            'Стальной кран Temper</button>',
+        ).replace(
+            'data-q="Фланец стальной плоский приварной, марка стали 20, номинальное давление 1,6 МПа, номинальный диаметр 100 мм"',
+            'data-q="SVB-0001-000025"',
+        ).replace(
+            'Фланец сталь 20 DN100</button>',
+            'Латунный кран STOUT</button>',
+        ).replace(
+            'data-q="Кран шаровый 11Б27П ДУ20 РУ16"',
+            'data-q="PALUR-ZD-3EX-DN1000-PN16-1N-FL-EL-U1-(ST/KR)-(KR/M.KR.G)"',
+        ).replace(
+            'Кран 11Б27П</button>',
+            'Затвор PALUR</button>',
+        )
+    return HTMLResponse(html)
 
 
 @router.post("/v1/demo/match")
@@ -590,8 +623,11 @@ def business_match(payload: DemoRequest, request: Request) -> dict[str, Any]:
         "review_token": session_token,
         "results": results,
         "latency_ms": round((perf_counter()-started)*1000, 1),
+        "backend": getattr(runtime.settings, "match_backend", "catalog"),
         "accuracy_note": (
-            "LLM confidence и retrieval score — не вероятность правильного ответа; "
-            "доля MATCHED — не метрика точности."
+            "CSV-маппинги — предварительные соответствия, а не подтверждение точности."
+            if getattr(runtime.settings, "match_backend", "catalog") == "csv_mapping"
+            else "LLM confidence и retrieval score — не вероятность правильного ответа; "
+                 "доля MATCHED — не метрика точности."
         ),
     }
