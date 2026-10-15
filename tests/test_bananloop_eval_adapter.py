@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def _adapter():
@@ -9,6 +10,46 @@ def _adapter():
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
+
+
+def test_protocol_hash_tracks_measurement_identity_not_candidate_settings(tmp_path, monkeypatch):
+    adapter = _adapter()
+    catalog = tmp_path / "catalog.csv"
+    script = tmp_path / "evaluator.py"
+    adapter_file = tmp_path / "adapter.py"
+    snapshot = tmp_path / "qdrant.snapshot"
+    for path, contents in (
+        (catalog, "catalog"),
+        (script, "evaluator"),
+        (adapter_file, "adapter"),
+        (snapshot, "snapshot"),
+    ):
+        path.write_text(contents, encoding="utf-8")
+    monkeypatch.setattr(adapter, "CATALOG", catalog)
+    evaluator = SimpleNamespace(
+        _EXPECTED_XZ_SHA256="f" * 64,
+        _EXPECTED_TSV_SHA256="e" * 64,
+    )
+
+    first = adapter.build_protocol_sha256(evaluator, script, adapter_file, snapshot)
+    # Tunable retrieval settings are intentionally absent from protocol inputs.
+    first_candidate_settings = {"hybrid_rerank_limit": 20}
+    second_candidate_settings = {"hybrid_rerank_limit": 40}
+    second = adapter.build_protocol_sha256(evaluator, script, adapter_file, snapshot)
+
+    assert first_candidate_settings != second_candidate_settings
+    assert first == second
+
+
+def test_invalid_baseline_when_pipeline_cases_fail():
+    adapter = _adapter()
+    passing_checks = {name: {"passed": True} for name in adapter.REQUIRED_CHECKS}
+
+    assert adapter.evaluation_status(passing_checks, fail_pipeline=0) == "ok"
+    assert adapter.evaluation_status(passing_checks, fail_pipeline=1) == "invalid"
+
+    failing_checks = {**passing_checks, "fixed_dev_sample": {"passed": False}}
+    assert adapter.evaluation_status(failing_checks, fail_pipeline=0) == "invalid"
 
 
 def test_adapter_reduces_public_dev_trace_to_hashed_stage_evidence():

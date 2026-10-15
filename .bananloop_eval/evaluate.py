@@ -31,6 +31,7 @@ REQUIRED_CHECKS = (
     "paired_protocol",
     "gold_isolation",
     "no_final_holdout",
+    "pipeline_success",
 )
 CATALOG = Path("/workspaces/rag_trend/ld_products_full_nomenclature.csv")
 
@@ -47,6 +48,35 @@ def hash_json(value: object) -> str:
     return hashlib.sha256(
         json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+
+
+def build_protocol_sha256(evaluator, script: Path, adapter: Path, snapshot: Path) -> str:
+    """Hash fixed measurement identity, leaving candidate algorithm settings tunable."""
+    protocol = {
+        "benchmark": "embedded:competitor_analog_hit_any_min_v1",
+        "benchmark_xz_sha256": evaluator._EXPECTED_XZ_SHA256,
+        "benchmark_tsv_sha256": evaluator._EXPECTED_TSV_SHA256,
+        "sample": SAMPLE,
+        "seed": SEED,
+        "smoke_cases": SMOKE_CASES,
+        "workers": WORKERS,
+        "cohorts": EXPECTED_GROUPS,
+        "cohort_rule": "case-insensitive substring in query",
+        "catalog_sha256": sha256_file(CATALOG),
+        "qdrant_snapshot_sha256": sha256_file(snapshot) if snapshot.is_file() else None,
+        "evaluator_sha256": sha256_file(script),
+        "adapter_sha256": sha256_file(adapter),
+    }
+    return hash_json(protocol)
+
+
+def evaluation_status(checks: dict[str, dict], fail_pipeline: int) -> str:
+    """Reject failed pipeline runs and any failed fixed-protocol assertion."""
+    if fail_pipeline:
+        return "invalid"
+    if any(name not in checks or not checks[name]["passed"] for name in REQUIRED_CHECKS):
+        return "invalid"
+    return "ok"
 
 
 def check(passed: bool, executed: int) -> dict:
@@ -233,31 +263,13 @@ def main() -> int:
             if n else 0.0
         )
 
-    settings = evaluator.Settings()
-    runtime_settings = settings.model_dump()
-    # Bind measurement settings into protocol identity without ever serializing
-    # runtime credentials or unrelated database connection strings.
-    for sensitive in ("openai_api_key", "deepseek_api_key", "database_url"):
-        runtime_settings.pop(sensitive, None)
     snapshot = root / "qdrant" / "steel_products_active.snapshot"
-    protocol = {
-        "benchmark": "embedded:competitor_analog_hit_any_min_v1",
-        "benchmark_xz_sha256": evaluator._EXPECTED_XZ_SHA256,
-        "benchmark_tsv_sha256": evaluator._EXPECTED_TSV_SHA256,
-        "sample": SAMPLE,
-        "seed": SEED,
-        "smoke_cases": SMOKE_CASES,
-        "workers": WORKERS,
-        "cohorts": EXPECTED_GROUPS,
-        "cohort_rule": "case-insensitive substring in query",
-        "catalog_sha256": sha256_file(CATALOG),
-        "qdrant_snapshot_sha256": sha256_file(snapshot) if snapshot.is_file() else None,
-        "evaluator_sha256": sha256_file(script),
-        "settings": runtime_settings,
-    }
-    protocol_sha256 = hash_json(protocol)
+    protocol_sha256 = build_protocol_sha256(
+        evaluator, script, Path(__file__).resolve(), snapshot,
+    )
 
     cases = []
+    retrieval_case_traces = build_retrieval_case_traces(rows, public_trace)
     for row in rows:
         fingerprint_source = json.dumps(
             {"query": row["query"], "acceptable_ld_ids": sorted(row["acceptable_ld_ids"])},
@@ -290,10 +302,11 @@ def main() -> int:
             len(rows),
         ),
         "no_final_holdout": check(payload["dataset_source"].startswith("embedded:") or args.smoke, len(rows)),
+        "pipeline_success": check(int(summary.get("fail_pipeline", 0)) == 0, len(rows)),
     }
     result = {
         "schema_version": 1,
-        "status": "ok",
+        "status": evaluation_status(checks, int(summary.get("fail_pipeline", 0))),
         "metrics": metrics,
         "checks": checks,
         "protocol_sha256": protocol_sha256,
