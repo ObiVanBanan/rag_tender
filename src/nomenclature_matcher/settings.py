@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     public_demo_rpm: int = 60
     public_demo_max_batch_size: int = 10
     product_csv_path: str = "ld_products_full_nomenclature.csv"
-    match_backend: str = "catalog"  # catalog | csv_mapping
+    match_backend: str = "catalog"  # catalog | csv_mapping | hybrid
     csv_mapping_dir: str = "data/csv_mappings"
     database_url: str = "postgresql://rag_tender:rag_tender@localhost:5432/rag_tender"
     db_pool_min_size: int = 1
