@@ -180,6 +180,8 @@ class ProductionRuntime:
     def ready(self) -> bool:
         if not self.history.ping():
             return False
+        if self.qdrant_store is None:  # CSV-only experiment has no Qdrant
+            return True
         try:
             return bool(
                 self.qdrant_store.client.collection_exists(
@@ -198,6 +200,18 @@ class ProductionRuntime:
 
 
 def _validate_runtime_settings(settings: Settings) -> None:
+    if settings.match_backend == "csv_mapping":
+        from .csv_mapping import CsvMappingIndex
+        missing_files = [
+            str(Path(settings.csv_mapping_dir) / name)
+            for name in CsvMappingIndex.FILES
+            if not (Path(settings.csv_mapping_dir) / name).is_file()
+        ]
+        if missing_files:
+            raise RuntimeError("CSV mapping files are missing: " + ", ".join(missing_files))
+        return
+    if settings.match_backend != "catalog":
+        raise RuntimeError(f"Unsupported MATCH_BACKEND: {settings.match_backend!r}")
     missing = []
     if not settings.openai_api_key:
         missing.append("OPENAI_API_KEY")
@@ -234,6 +248,22 @@ def build_production_runtime(settings: Settings | None = None) -> ProductionRunt
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     _validate_runtime_settings(settings)
+
+    if settings.match_backend == "csv_mapping":
+        from .csv_mapping import CsvMappingMatcher
+        matcher = CsvMappingMatcher(settings)
+        history = PostgresRequestHistory(settings)
+        history.open()
+        logger.info(
+            "CSV mapping runtime ready: source_rows=%s",
+            matcher.index.rows_by_file,
+        )
+        return ProductionRuntime(
+            settings=settings,
+            matcher=matcher,
+            qdrant_store=None,
+            history=history,
+        )
 
     products = load_products_from_csv(settings.product_csv_path)
 
