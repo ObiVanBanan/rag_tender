@@ -573,9 +573,9 @@ def demo_stats_page(request: Request) -> HTMLResponse:
 
 
 @router.get("/demo", response_class=HTMLResponse, include_in_schema=False)
-def business_page(request: Request) -> HTMLResponse:
+def business_page(request: Request = None) -> HTMLResponse:
     html = (Path(__file__).parent / "business_demo.html").read_text(encoding="utf-8")
-    if getattr(request.app.state.runtime.settings, "match_backend", "catalog") == "csv_mapping":
+    if request is not None and getattr(request.app.state.runtime.settings, "match_backend", "catalog") == "csv_mapping":
         # The CSV mode is a specific, limited coverage experiment, NOT the LD catalog.
         html = html.replace(
             "ИНЖЕНЕРНЫЙ ПОИСК · КАТАЛОГ LD",
