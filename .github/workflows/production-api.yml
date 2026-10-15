@@ -8,6 +8,12 @@ on:
   pull_request:
     paths:
       - "src/nomenclature_matcher/api.py"
+      - "src/nomenclature_matcher/cascade_matcher.py"
+      - "src/nomenclature_matcher/csv_mapping.py"
+      - "tests/test_cascade_matcher.py"
+      - "tests/test_csv_demo_integration.py"
+      - "docker-compose.hybrid-demo.yml"
+      - "Dockerfile.csv-demo"
       - "src/nomenclature_matcher/business_demo.py"
       - "src/nomenclature_matcher/business_demo.html"
       - "tests/test_business_demo.py"
@@ -102,6 +108,7 @@ jobs:
           tests/test_business_demo.py
           tests/test_business_demo_ui.py
           tests/test_csv_demo_integration.py
+          tests/test_cascade_matcher.py
           tests/test_stutser_joining.py
           tests/test_demo_feedback_features.py
           tests/test_demo_feedback_postgres.py
@@ -130,6 +137,7 @@ jobs:
           docker network create rag-observability-net
           docker compose config --quiet
           docker compose -f docker-compose.csv-demo.yml config --quiet
+          docker compose -f docker-compose.hybrid-demo.yml config --quiet
 
       - name: Build API image
         run: docker build -t rag-tender-api:test .
