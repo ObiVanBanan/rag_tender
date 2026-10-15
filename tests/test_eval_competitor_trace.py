@@ -80,38 +80,9 @@ def test_public_trace_keeps_stage_labels_but_never_gold_ids():
 
     serialized = repr(public)
     assert "acceptable_ld_ids" not in serialized
-    assert "returned_ld_id" not in serialized
-    assert "rerank_candidate_ids" not in serialized
-    assert '"ld_id"' not in serialized
     assert public["benchmark_outcome"]["failure_stage"] == "RETRIEVAL_MISS"
-    assert "acceptable_in_pretruncate_pool" not in public["benchmark_outcome"]
+    assert public["benchmark_outcome"]["acceptable_in_pretruncate_pool"] is True
 
-
-
-def test_diagnostics_marks_technical_prefilter_drop():
-    case = {"query": "competitor example", "acceptable_ld_ids": [42]}
-    result = _result(
-        {
-            "retriever": {
-                "rrf_pool": [
-                    {"rank": 1, "ld_id": 10},
-                    {"rank": 21, "ld_id": 42},
-                ]
-            },
-            "technical_prefilter": {
-                "applied": True,
-                "selected_ids": [10],
-            },
-            "initial_candidate_ids": [10],
-            "rerank_candidate_ids": [10],
-            "selected_ld_ids": [999],
-        }
-    )
-
-    diagnostics = _diagnostics(case, result, "FAIL_WRONG_LD")
-
-    assert diagnostics["failure_stage"] == "RETRIEVAL_MISS"
-    assert diagnostics["failure_substage"] == "TECHNICAL_PREFILTER_DROP"
 
 def test_catalog_presence_signal_is_boolean_and_public_trace_has_no_target_ids():
     case = {"query": "competitor example", "acceptable_ld_ids": [42]}
@@ -126,3 +97,39 @@ def test_catalog_presence_signal_is_boolean_and_public_trace_has_no_target_ids()
 
     absent = _diagnostics(case, result, "FAIL_NOT_FOUND", {10})
     assert absent["acceptable_present_in_catalog"] is False
+
+
+def test_missing_candidate_stage_signals_remain_unknown_in_public_trace():
+    case = {"query": "competitor example", "acceptable_ld_ids": [42]}
+    result = _result({"retriever": {}})
+
+    diagnostics = _diagnostics(case, result, "FAIL_WRONG_LD")
+    public = _public_case_trace(case, result, diagnostics)
+
+    for field in (
+        "acceptable_in_pretruncate_pool",
+        "acceptable_in_initial_retrieval",
+        "acceptable_in_rerank_candidates",
+        "acceptable_selected",
+    ):
+        assert field not in public["benchmark_outcome"]
+
+
+def test_measured_empty_candidate_stage_is_false_not_unknown():
+    case = {"query": "competitor example", "acceptable_ld_ids": [42]}
+    result = _result(
+        {
+            "retriever": {"rrf_pool": []},
+            "initial_candidate_ids": [],
+            "rerank_candidate_ids": [],
+            "selected_ld_ids": [],
+        }
+    )
+
+    diagnostics = _diagnostics(case, result, "FAIL_NOT_FOUND")
+    public = _public_case_trace(case, result, diagnostics)
+
+    assert public["benchmark_outcome"]["acceptable_in_pretruncate_pool"] is False
+    assert public["benchmark_outcome"]["acceptable_in_initial_retrieval"] is False
+    assert public["benchmark_outcome"]["acceptable_in_rerank_candidates"] is False
+    assert public["benchmark_outcome"]["acceptable_selected"] is False

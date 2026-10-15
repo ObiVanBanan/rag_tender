@@ -291,11 +291,10 @@ def _filter_failure_fields(
 
 
 def _public_case_trace(case: dict, result, diagnostics: dict) -> dict:
-    """Build a commit-safe DEV trace without LD candidate identities."""
+    """Build a DEV-safe trace without acceptable/GOLD identifiers."""
     interpretation = result.query_interpretation or {}
     retrieval = interpretation.get("retrieval_trace") or {}
-    retriever = retrieval.get("retriever") or {}
-    prefilter = retrieval.get("technical_prefilter") or {}
+    returned_ld_id = result.ld_product.ld_id if result.ld_product is not None else None
     benchmark_outcome = {
         "verdict": diagnostics.get("verdict"),
         "failure_stage": diagnostics.get("failure_stage"),
@@ -316,6 +315,7 @@ def _public_case_trace(case: dict, result, diagnostics: dict) -> dict:
         "case_id": hashlib.sha256(case["query"].encode("utf-8")).hexdigest()[:16],
         "query": case["query"],
         "actual_status": result.status,
+        "returned_ld_id": returned_ld_id,
         "benchmark_outcome": benchmark_outcome,
         "source_understanding": {
             "competitor_resolution": interpretation.get("competitor_resolution"),
@@ -327,28 +327,25 @@ def _public_case_trace(case: dict, result, diagnostics: dict) -> dict:
             "source_query": retrieval.get("source_query"),
             "retrieval_query": retrieval.get("retrieval_query"),
             "alternate_query": retrieval.get("alternate_query"),
-            "dense_hit_count": len(retriever.get("dense_hits") or []),
-            "bm25_hit_count": len(retriever.get("bm25_hits") or []),
-            "rrf_pool_size": retriever.get("rrf_pool_size"),
-            "retriever_final_limit": retriever.get("final_limit"),
-            "technical_prefilter": {
-                "applied": bool(prefilter.get("applied")),
-                "pool_size": prefilter.get("pool_size"),
-                "hard_eligible_count": prefilter.get("hard_eligible_count"),
-                "selected_count": len(prefilter.get("selected_ids") or []),
-                "fallback": prefilter.get("fallback"),
-            },
-            "second_chance_used": retrieval.get("second_chance_used"),
-            "second_chance_candidate_count": len(
-                retrieval.get("second_chance_candidate_ids") or []
+            "retriever": retrieval.get("retriever"),
+            "initial_candidate_snapshots": retrieval.get(
+                "initial_candidate_snapshots"
             ),
-            "rerank_candidate_count": retrieval.get("rerank_candidate_count"),
+            "second_chance_used": retrieval.get("second_chance_used"),
+            "second_chance_candidate_ids": retrieval.get(
+                "second_chance_candidate_ids"
+            ),
+            "second_chance_retriever": retrieval.get("second_chance_retriever"),
+            "rerank_candidate_ids": retrieval.get("rerank_candidate_ids"),
         },
         "reranker": {
+            "query": retrieval.get("rerank_query"),
             "status": retrieval.get("reranker_status"),
-            "selected_count": len(retrieval.get("selected_ld_ids") or []),
+            "reason": retrieval.get("reranker_reason"),
+            "selected": retrieval.get("reranker_selected") or [],
         },
     }
+
 
 def _assert_public_trace_has_no_gold(payload) -> None:
     forbidden = {
@@ -359,13 +356,6 @@ def _assert_public_trace_has_no_gold(payload) -> None:
         "acceptable_in_initial_ids",
         "acceptable_in_rerank_ids",
         "acceptable_selected_ids",
-        "returned_ld_id",
-        "selected_ld_ids",
-        "rerank_candidate_ids",
-        "initial_candidate_ids",
-        "second_chance_candidate_ids",
-        "ld_id",
-        "candidate_id",
     }
 
     def walk(value):
@@ -442,14 +432,11 @@ def _diagnostics(
         failure_substage = "RETRIEVAL_NOT_RUN"
     elif not acceptable_in_initial:
         failure_stage = "RETRIEVAL_MISS"
-        if acceptable_in_pretruncate:
-            failure_substage = (
-                "TECHNICAL_PREFILTER_DROP"
-                if (retrieval.get("technical_prefilter") or {}).get("applied")
-                else "RRF_TRUNCATION"
-            )
-        else:
-            failure_substage = "MODALITY_POOL_MISS"
+        failure_substage = (
+            "RRF_TRUNCATION"
+            if acceptable_in_pretruncate
+            else "MODALITY_POOL_MISS"
+        )
     elif not acceptable_in_rerank:
         failure_stage = "FILTER_DROP"
         failure_substage = (
@@ -479,7 +466,9 @@ def _diagnostics(
         "acceptable_present_in_catalog": (
             bool(acceptable & catalog_ids) if catalog_ids is not None else None
         ),
-        "acceptable_in_pretruncate_pool": acceptable_in_pretruncate,
+        "acceptable_in_pretruncate_pool": (
+            bool(acceptable_in_pretruncate) if "rrf_pool" in retriever else None
+        ),
         "best_acceptable_pretruncate_rank": best_pretruncate_rank,
         "best_acceptable_initial_rank": best_initial_rank,
         "best_acceptable_rerank_rank": best_rerank_rank,
@@ -513,9 +502,15 @@ def _diagnostics(
             "web_enrichment_applied": retrieval.get("web_enrichment_applied"),
         },
         "retrieval": retrieval,
-        "acceptable_in_initial_retrieval": acceptable_in_initial,
-        "acceptable_in_rerank_candidates": acceptable_in_rerank,
-        "acceptable_selected": acceptable_selected,
+        "acceptable_in_initial_retrieval": (
+            bool(acceptable_in_initial) if "initial_candidate_ids" in retrieval else None
+        ),
+        "acceptable_in_rerank_candidates": (
+            bool(acceptable_in_rerank) if "rerank_candidate_ids" in retrieval else None
+        ),
+        "acceptable_selected": (
+            bool(acceptable_selected) if "selected_ld_ids" in retrieval else None
+        ),
     }
 
 
