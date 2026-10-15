@@ -202,7 +202,7 @@ class ProductionRuntime:
 
 
 def _validate_runtime_settings(settings: Settings) -> None:
-    if settings.match_backend == "csv_mapping":
+    if settings.match_backend in {"csv_mapping", "hybrid"}:
         from .csv_mapping import CsvMappingIndex
         missing_paths = [
             str(Path(settings.csv_mapping_dir) / filename)
@@ -211,8 +211,9 @@ def _validate_runtime_settings(settings: Settings) -> None:
         ]
         if missing_paths:
             raise RuntimeError("Missing CSV mapping files: " + ", ".join(missing_paths))
-        return
-    if settings.match_backend != "catalog":
+        if settings.match_backend == "csv_mapping":
+            return
+    if settings.match_backend not in {"catalog", "hybrid"}:
         raise RuntimeError(f"Unsupported MATCH_BACKEND: {settings.match_backend!r}")
     missing = []
     if not settings.openai_api_key:
@@ -297,6 +298,14 @@ def build_production_runtime(settings: Settings | None = None) -> ProductionRunt
     )
 
     _warm_web_search(matcher)
+
+    if settings.match_backend == "hybrid":
+        from .cascade_matcher import CsvFirstRagMatcher
+        matcher = CsvFirstRagMatcher(settings, matcher)
+        logger.info(
+            "Hybrid runtime ready: CSV first, RAG fallback on CSV NOT_FOUND; rows=%s",
+            matcher.index.rows_by_file,
+        )
 
     history = PostgresRequestHistory(settings)
     try:
