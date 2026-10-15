@@ -304,6 +304,11 @@ def _public_case_trace(case: dict, result, diagnostics: dict) -> dict:
             "verdict": diagnostics.get("verdict"),
             "failure_stage": diagnostics.get("failure_stage"),
             "failure_substage": diagnostics.get("failure_substage"),
+            "acceptable_present_in_catalog": diagnostics.get("acceptable_present_in_catalog"),
+            "acceptable_in_pretruncate_pool": diagnostics.get("acceptable_in_pretruncate_pool"),
+            "acceptable_in_initial_retrieval": bool(diagnostics.get("acceptable_in_initial_retrieval")),
+            "acceptable_in_rerank_candidates": bool(diagnostics.get("acceptable_in_rerank_candidates")),
+            "acceptable_selected": bool(diagnostics.get("acceptable_selected")),
             "filter_failure_fields": diagnostics.get("filter_failure_fields") or [],
         },
         "source_understanding": {
@@ -374,7 +379,9 @@ def _assert_public_trace_has_no_gold(payload) -> None:
     walk(payload)
 
 
-def _diagnostics(case: dict, result, verdict: str) -> dict:
+def _diagnostics(
+    case: dict, result, verdict: str, catalog_ids: set[int] | None = None
+) -> dict:
     acceptable = set(case["acceptable_ld_ids"])
     interpretation = result.query_interpretation or {}
     retrieval = interpretation.get("retrieval_trace") or {}
@@ -462,6 +469,10 @@ def _diagnostics(case: dict, result, verdict: str) -> dict:
         "verdict": verdict,
         "failure_stage": failure_stage,
         "failure_substage": failure_substage,
+        # DEV teacher-label-derived presence signal; never expose product IDs.
+        "acceptable_present_in_catalog": (
+            bool(acceptable & catalog_ids) if catalog_ids is not None else None
+        ),
         "acceptable_in_pretruncate_pool": acceptable_in_pretruncate,
         "best_acceptable_pretruncate_rank": best_pretruncate_rank,
         "best_acceptable_initial_rank": best_initial_rank,
@@ -581,6 +592,7 @@ def main() -> int:
         return 0
 
     products = load_products_from_csv(args.csv)
+    catalog_ids = {int(product.id) for product in products}
     settings = Settings()
     # Benchmark runs always capture the full retrieval funnel. This changes
     # diagnostics only; search/ranking behavior is identical.
@@ -619,7 +631,7 @@ def main() -> int:
         if verdict == "PASS":
             bucket_pass[bucket] += 1
 
-        diagnostics = _diagnostics(case, result, verdict)
+        diagnostics = _diagnostics(case, result, verdict, catalog_ids)
         failure_stages[diagnostics["failure_stage"]] += 1
         failure_substages[diagnostics["failure_substage"]] += 1
         web_key = (

@@ -112,3 +112,17 @@ def test_diagnostics_marks_technical_prefilter_drop():
 
     assert diagnostics["failure_stage"] == "RETRIEVAL_MISS"
     assert diagnostics["failure_substage"] == "TECHNICAL_PREFILTER_DROP"
+
+def test_catalog_presence_signal_is_boolean_and_public_trace_has_no_target_ids():
+    case = {"query": "competitor example", "acceptable_ld_ids": [42]}
+    result = _result({"initial_candidate_ids": [], "rerank_candidate_ids": []})
+
+    diagnostics = _diagnostics(case, result, "FAIL_NOT_FOUND", {10, 42})
+    public = _public_case_trace(case, result, diagnostics)
+    _assert_public_trace_has_no_gold(public)
+
+    assert public["benchmark_outcome"]["acceptable_present_in_catalog"] is True
+    assert "42" not in repr(public)
+
+    absent = _diagnostics(case, result, "FAIL_NOT_FOUND", {10})
+    assert absent["acceptable_present_in_catalog"] is False
