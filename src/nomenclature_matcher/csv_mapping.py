@@ -172,24 +172,39 @@ class CsvMappingIndex:
                         ld_article, ld_name, url = r["ld_article"], r["name"], r.get("url")
                         src = _facts(r,"c")
                         ld_dn, ld_pn, joining = r["dn"],r["pn"],"резьбовое"
+                        target_medium, target_control = None, _control(ld_name)
+                        target_thread = _text(r.get("thread_type"))
+                        target_material = "латунь"
                     elif filename.startswith("butterfly"):
                         article, source_name = r["steel_marking"], r["steel_marking"]
                         ld_article = ld_name = r["ld_marking"]
                         url = ""
                         src = _facts(r,"bf")
                         ld_dn, ld_pn, joining = r["ld_dn"],r["ld_pn"],r["ld_connection"]
+                        target_medium = None
+                        target_control = _text(r.get("ld_control"))
+                        target_thread = None
+                        target_material = _text(r.get("ld_material"))
                     else:
                         article, source_name = r["steel_article"], r["steel_name"]
                         ld_article, ld_name, url = r["ld_article"],r["ld_name"],r["ld_url"]
                         src = _facts(r,"steel")
                         ld_dn, ld_pn, joining = r["ld_dn"],r["ld_pn_mpa"],r["ld_connection"]
+                        target_medium = _text(r.get("ld_medium"))
+                        target_control = _text(r.get("ld_control"))
+                        target_thread = None
+                        target_material = _text(ld_name)
                     if not article or not ld_article or not source_name:
                         continue
                     item = {"source_file":filename,"source_article":article,
                             "source_name":source_name,"ld_article":ld_article,
                             "ld_name":ld_name,"ld_url":url or "", "ld_dn":_number(ld_dn),
                             "ld_pn":_number(ld_pn),"ld_connection":joining,
-                            "source_facts":src}
+                            "source_facts":src,
+                            "target_facts":dict(dn=_number(ld_dn),pn=_number(ld_pn),
+                                connection=_text(joining),thread=target_thread,
+                                control=target_control,medium=target_medium,
+                                material=target_material)}
                     self.by_name[_text(source_name)].append(item)
                     code = _identity(article)
                     if len(code)>=5 and any(c.isdigit() for c in code):
@@ -219,7 +234,8 @@ class CsvMappingIndex:
             evidence = "exact_article"
         accepted={}
         for item in matches:
-            if not _compatible(query,item["source_facts"]):
+            if not (_compatible(query,item["source_facts"])
+                    and _compatible(query,item["target_facts"])):
                 continue
             # Precomputed mapping rows are not verification of special executions.
             source_name = _text(item["source_name"])
