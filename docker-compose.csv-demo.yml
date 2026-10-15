@@ -1,3 +1,5 @@
+name: rag-tender-csv-demo
+
 # Isolated offline CSV-mapping business demo. Does not launch Qdrant or LLM.
 # Source files must be placed under data/csv_mappings/ (gitignored).
 services:
