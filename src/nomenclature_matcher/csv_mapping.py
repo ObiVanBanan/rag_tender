@@ -153,10 +153,10 @@ def _valid_mapped_pair(item):
         return False
     if source["pn"] is None or target["pn"] is None or target["pn"] + 1e-9 < source["pn"]:
         return False
-    left, right = source["connection"], target["connection"]
-    if left and right and not (
-        left == right or left in right or right in left
-    ):
+    from .query_constraints import canonical_joining_type
+    left = canonical_joining_type(source["connection"])
+    right = canonical_joining_type(target["connection"])
+    if left not in (None, "other") and right not in (None, "other") and left != right:
         return False
     if source["medium"] and target["medium"] and source["medium"] != target["medium"]:
         return False
