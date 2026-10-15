@@ -19,5 +19,8 @@ mcp_web_search_test.json
 *.log
 *_smoke.json
 ld_products_full_nomenclature.csv
+# Mapping rows are local runtime evidence and must not contaminate frozen GOLD
+# or be accidentally published in this experiment.
+data/csv_mappings/
 *.egg-info/
 .rag_tender/
