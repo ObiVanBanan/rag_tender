@@ -1351,6 +1351,12 @@
       const main = state.decision==="REJECTED"?null:(manual || (d.recommended && d.recommended[0]));
       const product = el("div");
       product.append(el("div", main && main.name ? main.name : "Не выбран", "result-name" + (!main ? " missing" : "")));
+      const sourceLabels = {
+        CSV_MAPPING: "Источник: готовое CSV-соответствие · нужна проверка",
+        RAG_FALLBACK: "Источник: RAG · в CSV подходящего аналога нет",
+        CATALOG: "Источник: каталог LD / RAG"
+      };
+      product.append(el("div", sourceLabels[d.match_source] || "Источник не указан", "subtle"));
       if (manual) product.append(el("div","Выбрано пользователем вместо рекомендации системы","subtle"));
       if (state.edited) product.append(el("div","Характеристики были исправлены пользователем","subtle"));
       const article = el("div", main && main.article ? main.article : "—", "article-code");

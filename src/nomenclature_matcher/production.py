@@ -182,6 +182,8 @@ class ProductionRuntime:
     def ready(self) -> bool:
         if not self.history.ping():
             return False
+        if self.qdrant_store is None:
+            return True
         try:
             return bool(
                 self.qdrant_store.client.collection_exists(
@@ -200,6 +202,19 @@ class ProductionRuntime:
 
 
 def _validate_runtime_settings(settings: Settings) -> None:
+    if settings.match_backend in {"csv_mapping", "hybrid"}:
+        from .csv_mapping import CsvMappingIndex
+        missing_paths = [
+            str(Path(settings.csv_mapping_dir) / filename)
+            for filename in CsvMappingIndex.FILES
+            if not (Path(settings.csv_mapping_dir) / filename).is_file()
+        ]
+        if missing_paths:
+            raise RuntimeError("Missing CSV mapping files: " + ", ".join(missing_paths))
+        if settings.match_backend == "csv_mapping":
+            return
+    if settings.match_backend not in {"catalog", "hybrid"}:
+        raise RuntimeError(f"Unsupported MATCH_BACKEND: {settings.match_backend!r}")
     missing = []
     if not settings.openai_api_key:
         missing.append("OPENAI_API_KEY")
@@ -237,6 +252,17 @@ def build_production_runtime(settings: Settings | None = None) -> ProductionRunt
     )
     _validate_runtime_settings(settings)
 
+    if settings.match_backend == "csv_mapping":
+        from .csv_mapping import CsvMappingMatcher
+        matcher = CsvMappingMatcher(settings)
+        history = PostgresRequestHistory(settings)
+        history.open()
+        logger.info("CSV demo matcher ready: %s", matcher.index.rows_by_file)
+        return ProductionRuntime(
+            settings=settings, matcher=matcher, qdrant_store=None,
+            history=history,
+        )
+
     products = load_products_from_csv(settings.product_csv_path)
 
     base_embedder = OpenAIEmbedder(settings)
@@ -272,6 +298,14 @@ def build_production_runtime(settings: Settings | None = None) -> ProductionRunt
     )
 
     _warm_web_search(matcher)
+
+    if settings.match_backend == "hybrid":
+        from .cascade_matcher import CsvFirstRagMatcher
+        matcher = CsvFirstRagMatcher(settings, matcher)
+        logger.info(
+            "Hybrid runtime ready: CSV first, RAG fallback on CSV NOT_FOUND; rows=%s",
+            matcher.index.rows_by_file,
+        )
 
     history = PostgresRequestHistory(settings)
     try:

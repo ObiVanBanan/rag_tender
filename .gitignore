@@ -21,3 +21,6 @@ mcp_web_search_test.json
 ld_products_full_nomenclature.csv
 *.egg-info/
 .rag_tender/
+
+# Runtime CSV mappings contain example answers; keep them out of public Git and evaluation.
+data/csv_mappings/
