@@ -296,21 +296,27 @@ def _public_case_trace(case: dict, result, diagnostics: dict) -> dict:
     retrieval = interpretation.get("retrieval_trace") or {}
     retriever = retrieval.get("retriever") or {}
     prefilter = retrieval.get("technical_prefilter") or {}
+    benchmark_outcome = {
+        "verdict": diagnostics.get("verdict"),
+        "failure_stage": diagnostics.get("failure_stage"),
+        "failure_substage": diagnostics.get("failure_substage"),
+        "filter_failure_fields": diagnostics.get("filter_failure_fields") or [],
+    }
+    for field in (
+        "acceptable_present_in_catalog",
+        "acceptable_in_pretruncate_pool",
+        "acceptable_in_initial_retrieval",
+        "acceptable_in_rerank_candidates",
+        "acceptable_selected",
+    ):
+        value = diagnostics.get(field)
+        if value is not None:
+            benchmark_outcome[field] = bool(value)
     return {
         "case_id": hashlib.sha256(case["query"].encode("utf-8")).hexdigest()[:16],
         "query": case["query"],
         "actual_status": result.status,
-        "benchmark_outcome": {
-            "verdict": diagnostics.get("verdict"),
-            "failure_stage": diagnostics.get("failure_stage"),
-            "failure_substage": diagnostics.get("failure_substage"),
-            "acceptable_present_in_catalog": diagnostics.get("acceptable_present_in_catalog"),
-            "acceptable_in_pretruncate_pool": diagnostics.get("acceptable_in_pretruncate_pool"),
-            "acceptable_in_initial_retrieval": bool(diagnostics.get("acceptable_in_initial_retrieval")),
-            "acceptable_in_rerank_candidates": bool(diagnostics.get("acceptable_in_rerank_candidates")),
-            "acceptable_selected": bool(diagnostics.get("acceptable_selected")),
-            "filter_failure_fields": diagnostics.get("filter_failure_fields") or [],
-        },
+        "benchmark_outcome": benchmark_outcome,
         "source_understanding": {
             "competitor_resolution": interpretation.get("competitor_resolution"),
             "constraints": interpretation.get("constraints"),
