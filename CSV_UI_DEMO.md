@@ -25,12 +25,13 @@ docker compose -f docker-compose.csv-demo.yml up -d --build
 **http://localhost:8001/demo/stats** — статистика с отдельными
 `PUBLIC_DEMO_ADMIN_USERNAME` / `PUBLIC_DEMO_ADMIN_PASSWORD`.
 
-Для проверки API:
+Для проверки доступности API (отвечает без авторизации):
 
 ```powershell
-curl.exe -u "demo:ВАШ_ПАРОЛЬ" http://localhost:8001/health/ready
-curl.exe -u "demo:ВАШ_ПАРОЛЬ" -X POST http://localhost:8001/v1/demo/match -H "Content-Type: application/json" -d '{\"products\":[\"1184399\"]}'
+curl.exe http://localhost:8001/health/ready
 ```
+
+Удобнее проверять поиск и историю непосредственно в веб-интерфейсе.
 
 Поддерживаемые демонстрационные артикулы:
 - стальной кран: `1184399`
