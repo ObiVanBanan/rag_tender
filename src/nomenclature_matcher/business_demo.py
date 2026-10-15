@@ -616,6 +616,13 @@ def business_page(request: Request = None) -> HTMLResponse:
             'Кран 11Б27П</button>',
             'Затвор PALUR</button>',
         )
+        if backend == "hybrid":
+            html = html.replace(
+                'data-q="PALUR-ZD-3EX-DN1000-PN16-1N-FL-EL-U1-(ST/KR)-(KR/M.KR.G)"',
+                'data-q="Фланец стальной плоский приварной, марка стали 20, номинальное давление 1,6 МПа, номинальный диаметр 100 мм"',
+            ).replace(
+                'Затвор PALUR</button>', 'RAG fallback: фланец</button>'
+            )
     return HTMLResponse(html)
 
 
