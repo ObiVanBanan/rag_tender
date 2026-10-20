@@ -1,0 +1,75 @@
+{
+  "schema_version": 2,
+  "dataset": "frozen competitor analogue hit any v1; E08 seed53 sample",
+  "source_csv_sha256": "86fb3c6ef49b000a032181335f7c90f9c653ebcf9b998766eb56d2c7df9e0719",
+  "frozen_original_unchanged": true,
+  "evaluation_type": "offline_relabel_same_predictions_NOT_MODEL_RERUN",
+  "sample_size": 100,
+  "original_hit_any_count": 34,
+  "original_hit_any_rate": 0.34,
+  "revised_hit_any_count": 39,
+  "revised_hit_any_rate": 0.39,
+  "delta_percentage_points": 5,
+  "confirmed_new_gold_pairs": 5,
+  "unresolved_original_nonhits": 61,
+  "by_brand": {
+    "ALSO": {
+      "cases": 46,
+      "old_hits": 13,
+      "new_hits": 17,
+      "new_labels": 4
+    },
+    "BROEN": {
+      "cases": 1,
+      "old_hits": 0,
+      "new_hits": 0,
+      "new_labels": 0
+    },
+    "MARSHAL": {
+      "cases": 45,
+      "old_hits": 17,
+      "new_hits": 17,
+      "new_labels": 0
+    },
+    "TEMPER": {
+      "cases": 8,
+      "old_hits": 4,
+      "new_hits": 5,
+      "new_labels": 1
+    }
+  },
+  "intentional_exclusions": [
+    "construction/face-to-face length L — deliberately not compared or scored",
+    "individual gases within gas phase (methane/propane/biogas/etc) — deliberately not compared or scored"
+  ],
+  "retained_critical_checks": [
+    "gas-service versus liquid-service application and necessary certification",
+    "DN",
+    "minimum PN",
+    "joining interface (combined ends, stutser, etc)",
+    "full/reduced bore",
+    "steel grade if specified",
+    "installed drive vs actuator-ready",
+    "special executions"
+  ],
+  "approved_case_numbers": [
+    3,
+    70,
+    74,
+    80,
+    98
+  ],
+  "note": "Offline historical DEV relabel, not a new model run. Frozen data unchanged. Manufacturer marking exposes mismatch between original MARSHAL actuation and original GOLD under-electric actuator; GOLD v1 itself needs separate QA.",
+  "deep30_audit": {
+    "scope_count": 30,
+    "confirmed_current_rag_mismatch": 26,
+    "additional_approved": 1,
+    "pending_independent_exact_variant_review": 3,
+    "pending_case_numbers": [
+      29,
+      34,
+      50
+    ],
+    "source": "docs/gold_e08_seed53_deep30_audit.md"
+  }
+}
