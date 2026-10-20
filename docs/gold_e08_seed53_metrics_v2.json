@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "dataset": "frozen competitor analogue hit any v1; E08 seed53 sample",
   "source_csv_sha256": "86fb3c6ef49b000a032181335f7c90f9c653ebcf9b998766eb56d2c7df9e0719",
   "frozen_original_unchanged": true,
@@ -7,17 +7,17 @@
   "sample_size": 100,
   "original_hit_any_count": 34,
   "original_hit_any_rate": 0.34,
-  "revised_hit_any_count": 38,
-  "revised_hit_any_rate": 0.38,
-  "delta_percentage_points": 4,
-  "confirmed_new_gold_pairs": 4,
-  "unresolved_original_nonhits": 62,
+  "revised_hit_any_count": 39,
+  "revised_hit_any_rate": 0.39,
+  "delta_percentage_points": 5,
+  "confirmed_new_gold_pairs": 5,
+  "unresolved_original_nonhits": 61,
   "by_brand": {
     "ALSO": {
       "cases": 46,
       "old_hits": 13,
-      "new_hits": 16,
-      "new_labels": 3
+      "new_hits": 17,
+      "new_labels": 4
     },
     "BROEN": {
       "cases": 1,
@@ -55,8 +55,21 @@
   "approved_case_numbers": [
     3,
     70,
+    74,
     80,
     98
   ],
-  "note": "DEV-only offline re-score of same predictions. Never claim 38% is model improvement or validated gas safety. Original frozen benchmark untouched."
+  "note": "Offline historical DEV relabel, not a new model run. Frozen data unchanged. Manufacturer marking exposes mismatch between original MARSHAL actuation and original GOLD under-electric actuator; GOLD v1 itself needs separate QA.",
+  "deep30_audit": {
+    "scope_count": 30,
+    "confirmed_current_rag_mismatch": 26,
+    "additional_approved": 1,
+    "pending_independent_exact_variant_review": 3,
+    "pending_case_numbers": [
+      29,
+      34,
+      50
+    ],
+    "source": "docs/gold_e08_seed53_deep30_audit.md"
+  }
 }
