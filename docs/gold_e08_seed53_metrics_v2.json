@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "dataset": "frozen competitor analogue hit any v1; E08 seed53 sample",
+  "source_csv_sha256": "86fb3c6ef49b000a032181335f7c90f9c653ebcf9b998766eb56d2c7df9e0719",
+  "frozen_original_unchanged": true,
+  "evaluation_type": "offline_relabel_same_predictions_NOT_MODEL_RERUN",
+  "sample_size": 100,
+  "original_hit_any_count": 34,
+  "original_hit_any_rate": 0.34,
+  "revised_hit_any_count": 38,
+  "revised_hit_any_rate": 0.38,
+  "delta_percentage_points": 4,
+  "confirmed_new_gold_pairs": 4,
+  "unresolved_original_nonhits": 62,
+  "by_brand": {
+    "ALSO": {
+      "cases": 46,
+      "old_hits": 13,
+      "new_hits": 16,
+      "new_labels": 3
+    },
+    "BROEN": {
+      "cases": 1,
+      "old_hits": 0,
+      "new_hits": 0,
+      "new_labels": 0
+    },
+    "MARSHAL": {
+      "cases": 45,
+      "old_hits": 17,
+      "new_hits": 17,
+      "new_labels": 0
+    },
+    "TEMPER": {
+      "cases": 8,
+      "old_hits": 4,
+      "new_hits": 5,
+      "new_labels": 1
+    }
+  },
+  "intentional_exclusions": [
+    "construction/face-to-face length L — deliberately not compared or scored",
+    "individual gases within gas phase (methane/propane/biogas/etc) — deliberately not compared or scored"
+  ],
+  "retained_critical_checks": [
+    "gas-service versus liquid-service application and necessary certification",
+    "DN",
+    "minimum PN",
+    "joining interface (combined ends, stutser, etc)",
+    "full/reduced bore",
+    "steel grade if specified",
+    "installed drive vs actuator-ready",
+    "special executions"
+  ],
+  "approved_case_numbers": [
+    3,
+    70,
+    80,
+    98
+  ],
+  "note": "DEV-only offline re-score of same predictions. Never claim 38% is model improvement or validated gas safety. Original frozen benchmark untouched."
+}
