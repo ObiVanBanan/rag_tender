@@ -1,55 +1,62 @@
-# E08 frozen-100 seed 53 — review of GOLD labels
+# E08 seed 53 — бизнес-ревизия GOLD v2 (2026-10-20)
 
-**Historical benchmark:** 34/100 existing PASS, 66/100 other Top-1, with **no changes to the frozen v1 dataset or model**. This is a DEV evidence review, not a new benchmark. Full GOLD and candidate LD identities remain outside GitHub.
+> **Historical frozen v1 must remain untouched.** This is an additive, separately versioned **DEV-only GOLD review**, not a model retrain, rerun, benchmark-agnostic improvement, or production certification.
 
-## Updated adjudication rules (20 October 2026)
+## Итог по тому же 100-кейсовому прогону
 
-Per product owner's business criteria, **face-to-face / construction length is not a blocking GOLD condition** in this use case. It is not used to reject an otherwise suitable analogue. Where it changes installation requirements it can be noted to the operator, but not independently scored as a failure.
+| Метрика | Original GOLD v1 | Reviewed GOLD v2 |
+|---|---:|---:|
+| Top-1 hit-any | **34 / 100 = 34%** | **38 / 100 = 38%** |
+| Дополнительные подтверждённые допустимые ответы | — | **4** |
+| Осталось несовпадений | 66 | **62** |
 
-**Working medium must not be guessed from a legacy mapping or a one-word LD category.** Evaluate it in this order:
-1. The customer's explicit medium or exact manufacturer's stated mandatory application, if any.
-2. Exact LD product **supported-media list and certifications**, not just its catalogue's headline `Рабочая среда: Жидкость/Газ` classification.
-3. Missing medium on the competitor request is **UNKNOWN**, not an implicit gas requirement merely because older GOLD contains `Gas` products.
-4. The relevant gas-regulatory use (e.g., public gas distribution) may require special documentation or certification even if methane appears among allowed fluids; document this separately.
-5. Distinguish `под электропривод` from installed electric actuation, check bore, DN, PN, material, joining and other explicit requirements independently.
+Новые альтернативы (ссылка на версионированный CSV: [`gold_e08_seed53_approved_additions_v2.csv`](gold_e08_seed53_approved_additions_v2.csv)):
 
-## Exact reassessment of 11 previous “medium conflict” flags
+| Случай E08 | Запрос | Добавленный LD ID | Основание |
+|---|---|---:|---|
+| #3 | ALSO КШ.Ф.З.150.25-01, для жидких сред, DN150 PN25 стандартнопроходной | **285** | Жидкость; DN150/125, PN25, фланец, сталь 20, редуцированный проход |
+| #70 | ALSO КШ.Ф.П.040.40-03, DN40 PN40, сталь 12Х18Н10Т, полный проход | **2463** | Универсальная/водная серия, тот же DN/PN, фланец, сталь и полный проход |
+| #80 | TEMPER 28220300 DN300 PN16 | **2884** | Производителем/продавцом подтверждены вода, приварка, редуцированный проход, сталь 20, редуктор; LD совпадает |
+| #98 | ALSO КШ.Ф.250.16-01, DN250 PN16, сталь 20, стандартнопроходной | **1273** | Водное/универсальное исполнение, DN250/200, PN16, фланец, сталь 20, редуцированный проход |
 
-The previous blanket flag **SOURCE_MEDIUM_DIFF was misleading** and is replaced with three evidence categories:
+Подтверждающие ссылки:
+- #3 LD https://ld-global.uz/products/285--kran_sarovoj_ld_kscf_iz_stali_20_du150_125_ru2_5mpa/
+- #70 ALSO https://dn.ru/sharovyi-kran/teplosnabzhenie/flantcevyi-kran/standartnyi/also/kshf-03/dn40-pn40
+- #80 TEMPER https://temper.ru/catalog/product/kran-sarovoj-standartnoprohodnoj-282-privarnoeprivarnoe ; product https://novosibirsk.proconsim.ru/product/121300238/
+- #98 ALSO https://ekaterinburg.proconsim.ru/product/122100532 ; LD https://xn--d1an.xn--p1ai/products/1273--kran_sarovoj_ld_kscf_iz_stali_20_du250_200_ru1_6mpa/
 
-| Case | What is actually in E08 | Revised finding |
-|---|---|---|
-| **#2 TEMPER 99220015 MAX** | Source resolver: **gas**; selected LD is **Gas**; legacy GOLD products are labelled **liquid** | **No medium mismatch in selected answer**. The mapping/GOLD is potentially narrower or differently classified; assess other explicit constraints independently |
-| **#35 ALSO КШ.ФПА.GAS.032.16-03** | Competitor is explicitly GAS; selected LD product **name and variant are Gas**, but exported `working_medium_json=[]` | **Missing LD medium field, not a proven conflict**; verify official card/certification |
-| **#18,#20,#42,#70,#74,#76,#84,#88,#98 ALSO** | The original request does **not explicitly say gas**. Legacy GOLD entries are gas products; selected LD are classified “liquid” | **Media requirement unspecified**, not a demonstrated mismatch. Judge on independent allowed-media evidence and remaining engineering constraints |
+## ⚠ Намеренно исключённые сравнения — явное решение владельца проекта
 
-### Case #98 is especially informative
+**Это именно сознательное упрощение метрики под бизнес-задачу, а НЕ техническое доказательство полной взаимозаменяемости.**
 
-ALSO `КШ.Ф.250.16-01` → selected LD ordinary flanged DN250/200 PN16, steel 20, **LD ID 1273**.
+1. **Строительная длина L / face-to-face** намеренно **не сопоставляется и не влияет на PASS/FAIL**. Даже разные L сами по себе не запрещают добавить аналог в данный GOLD. Для замены без переделки трубопровода длину надо проверять отдельно.
+2. **Отдельные вещества внутри газовой фазы** намеренно **не сопоставляются**: различие по перечислению метана, пропана, бутана, биогаза и т.п. **само по себе не штрафует**. Это не разрешение применять арматуру в любой токсичной/агрессивной среде.
+3. **Сопоставление газового назначения и жидкостного назначения НЕ исключено.** Установка водяного/жидкостного крана вместо предназначенного для газа без подтверждённой пригодности и требуемых разрешений/сертификации — **критический конфликт**, кандидат не должен засчитываться просто потому, что в произвольном перечне веществ встречается метан. Для газораспределения проверять назначение и паспорт/сертификацию. Модель `GAS` и серия для жидкости не считаются автоматически взаимозаменяемыми.
+4. Остались обязательными DN, минимальный PN, **тип присоединения и его комбинация (в т.ч. штуцер/муфта/приварка)**, материал/марка стали при указании, полный/редуцированный проход, ручное/редуктор/**под** привод vs **с** приводом и существенные специальные исполнения.
 
-- Primary field on LD official card: `Рабочая среда: Жидкость`.
-- **Same official card's `Допустимые рабочие среды` list includes methane, biogas, butane gas and gaseous propane** as well as water. Thus “LD liquid cannot work with gas” is **false as an absolute claim**.
-- Original competitor text does not require gas; it also does not establish a specific gas-network certification. Mark **strong candidate for expanding a separately versioned GOLD-v2**, requiring a final service/certification judgement only if the use case demands one.
+В 100 записях встречаются изделия двойного назначения (газ/жидкость) и случаи с неуказанной средой. **UNKNOWN ≠ утверждение «можно использовать на газе».** Нельзя присваивать допуск к газовой эксплуатации по одной метке классификатора или по совпадению отдельного вещества.
 
-Sources:
-- https://xn--d1an.xn--p1ai/products/1273--kran_sarovoj_ld_kscf_iz_stali_20_du250_200_ru1_6mpa/
-- https://alsoarm.com/series/rs-series/ (RS application includes heating network water *and* certain gaseous media)
-- https://alsoarm.ru/series/gas-series/ (dedicated GAS series and use in gas distribution)
+## Неизменённые спорные случаи
 
-## Other unresolved questions (not construction length)
+Не добавлены в GOLD v2 оставшиеся 62 результата без полного подтверждения по выбранным **критичным** признакам; это не эквивалентно «62 технически неправильных ответа».
 
-- **#18,#42,#84**: “под редуктор/электропривод” was mapped to hard `control=electric`. This is about actuator readiness rather than installed drive and remains a material review issue.
-- **#1,#91**: Special anti-vandal and underground installations. Check whether these executions are appropriate.
-- **#2,#67**: The term `MAX` denotes a series/variant; assess required performance, not length itself.
-- **#3,#70**: Earlier review used *length-only* rejection. That rejection is now **withdrawn** under owner's criteria. Both go to positive analogue review by their other mandatory parameters, not automatically into GOLD.
-- **#98**: Candidate technically close; gas/liquid label alone no longer prevents addition.
+Типовые причины:
+- #2, #67 TEMPER MAX: серия со специальными рабочими свойствами; совпадения газа/DN/PN/прохода и намеренно опущенной L недостаточно для бесспорного зачёта.
+- #18, #42, #84: `под редуктор/электропривод` нельзя превращать в наличие установленного электропривода.
+- Некоторые MARSHAL / ALSO: GOLD и кандидат существенно отличаются по присоединению, исполнительному механизму, проходу, комбинированным концам или подземному/антивандальному исполнению.
+- Для ALSO RS: технически допускается несколько фаз среды; если газ нужен реально, у выбранного LD должен быть отдельно подтверждён **газовый** допуск — надпись «Жидкость» не подтверждает его.
 
-## Current annotation accounting
+Индивидуальные статусы и причины сохранены в [`gold_e08_seed53_decisions.csv`](gold_e08_seed53_decisions.csv). Ответы всех 100 запросов и полный GOLD v1 не публикуются в runtime/agent inputs.
 
-- 34 already-in-GOLD PASS retained (cases 4,7,8,13,15,21,22,26,33,37,39,40,45,47,51,52,56,58,59,60,61,62,63,71,72,78,82,83,86,89,94,95,96,97).
-- 66 non-GOLD responses remain under review. **Do not infer that all are technically wrong.**
-- 0 additional rows written into GOLD-v2 **yet**: requests alone are not signed-off installation/design specifications, and the technical review has not been converted into new authorized labels.
-- The `docs/gold_e08_seed53_decisions.csv` contains all 100 case-level remarks with corrected medium categories. No answer-bearing LD/GOLD IDs are in that public CSV.
-- Original `competitor_analog_hit_any_min_v1`, SHA, E08 Top-1 and original mapping remain unchanged.
+## Пересчёт и воспроизводимость
 
-A future approved GOLD-v2 overlay must be versioned and explicitly separated from frozen E08 v1 scoring. Never place private acceptable ID answers in runtime resolver prompts, holdout or agent optimization state.
+- Original trace: `git_head 32ff3fba925e159d9f77fb75c5f70d4a5d322e22`, `--sample 100 --seed 53`.
+- Входной CSV от владельца: `competitor_analog_100_seed53_top20.csv`, SHA256: `86fb3c6ef49b000a032181335f7c90f9c653ebcf9b998766eb56d2c7df9e0719`.
+- Для каждого случая: `GOLD_v2 = GOLD_v1 ∪ approved_additions[case_id]`. Предсказанный RAG `returned_ld_id` **не меняется**.
+- Baseline: 34 выбранных ID входят в `GOLD_v1`. После дополнений: 38 входят в `GOLD_v2`. Никаких других меток не удалено, ни один запрос не пересоздан.
+- Данные для локальной независимой сверки владельцу: `E08_gold_v2_seed53_complete_review.csv`. Сам CSV с ответами/GOLD не предназначен для передачи агенту-оптимизатору (анти-leakage).
+- Machine-readable отчёт в [`gold_e08_seed53_metrics_v2.json`](gold_e08_seed53_metrics_v2.json).
+
+### Методологическое ограничение
+
+**38% — это пересчёт истории на той же DEV-выборке с расширенным набором допустимых ответов, а не новая точность модели после исправлений.** Изменений в RAG, Qdrant, каталогах и frozen-100 не было. В неиспользованном holdout этот результат не подтверждён.
