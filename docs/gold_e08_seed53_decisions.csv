@@ -1,0 +1,101 @@
+case_number,case_id,brand,original_benchmark_verdict,decision,issue_flags,review_comment
+1,215ea57e58427ba1,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF|SPECIAL_ANTIVANDAL,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Антивандальное исполнение не подтверждено заданием
+2,067a0f18b0fdf197,TEMPER,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|TEMPER_MAX_LENGTH,"Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски Серия MAX: подтвердить строительную длину и точное исполнение"
+3,1301b79f12e405b8,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE|DOCUMENTED_REVIEW,"Проверено по каталогу ALSO: модель КШ.Ф.З.150.25-01 имеет L=280 мм (исполнение под задвижку); предложенный LD — L=380 мм. Дополнение запрещено без экспертной проверки. Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+4,38df24192decf404,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+5,7171f1891ecd1381,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+6,4dcae7dff317b64b,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+7,a1d387bca73f8ac6,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+8,912da34e56b0207a,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+9,2f8aef0ab73cfa67,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+10,e46c647a8a63ed66,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF|EXTRA_KIT,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Проверить допустимость дополнительной комплектации
+11,6f319e7a2f17c701,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+12,62cd09ebfb176e1c,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+13,cae13c528ec5cc6c,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+14,e97607e0b0b9563c,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+15,ec02a2883550f6be,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+16,204ef8b668ecd865,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+17,55618fb94d9e4912,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+18,26f15f8b10b92ad3,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|SOURCE_CONTROL_DIFF|ACTUATOR_READY_AMBIGUITY|RS_GEOMETRY|DOCUMENTED_REVIEW,"Извлекатель свёл «под редуктор/электропривод» к electric; конфликт интерпретации и фактической комплектации. Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Фраза «под редуктор/электропривод» не подтверждает уже установленный электропривод Для серии RS необходимы сравнение строит. длины и монтажных параметров"
+19,e23ba19aafc01433,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+20,b1880d2fa884e15a,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|RS_GEOMETRY|DOCUMENTED_REVIEW,"В исходном маппинге среда газ, у выбранного LD жидкость; совпадение DN/PN/прохода не решает вопрос допуска по среде. Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски Для серии RS необходимы сравнение строит. длины и монтажных параметров"
+21,88be32f3cc2371c0,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+22,4703101403d3090a,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+23,482e55d39650b70a,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+24,c55f7f9a1fdfefd4,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+25,c401d52705345876,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+26,9629484faa618ac8,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+27,acc8ac69cb9373a9,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+28,00ae37aef1c58841,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+29,1049904d1a451673,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF|RS_GEOMETRY,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Для серии RS необходимы сравнение строит. длины и монтажных параметров
+30,1a7f4dcf6950deaa,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+31,ba04cadf9e2333b2,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+32,3085358cd239f8fa,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+33,d1113a663611e0d1,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+34,ee74d3e11ff779bd,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,RS_GEOMETRY,Для серии RS необходимы сравнение строит. длины и монтажных параметров
+35,96f6d68475f29b20,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF,"Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски"
+36,7ac291951b15988d,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+37,596ff9663237cf0e,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+38,2fbcec4f258d63b2,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+39,f5801e83a4b9580e,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+40,5051084bcf88472e,TEMPER,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+41,8ea71e5873aa06fe,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+42,8e6eaad9b30f10a2,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|SOURCE_CONTROL_DIFF|ACTUATOR_READY_AMBIGUITY|DOCUMENTED_REVIEW,"Извлекатель свёл «под редуктор/электропривод» к electric; конфликт интерпретации и фактической комплектации. Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Фраза «под редуктор/электропривод» не подтверждает уже установленный электропривод"
+43,1b8bbb58417f08b4,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+44,e86594ae98533b44,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+45,b3369a00deac7b4c,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+46,a9754cdadb4cb9a9,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF|EXTRA_KIT,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Проверить допустимость дополнительной комплектации
+47,f2ec4ed9c25c4d4d,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+48,27df702a811db556,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+49,d577aa3e2ecc44ba,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+50,00476dbb68deb279,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+51,2c86130d4f374bb5,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+52,18806b14f656c77d,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+53,85723a10a9f39a5a,TEMPER,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+54,2bc3e81e07ef5e21,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+55,d293361e15bd5afe,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+56,688970b38426da2b,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+57,a717216230dd2a3d,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+58,6b365a663fc3b6b7,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+59,382a36a0ca60cef0,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+60,5f546285e8d58dd6,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+61,daa00b2417c07786,TEMPER,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+62,48b8741999a8f040,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+63,454ba0e6b64714e2,TEMPER,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+64,15a5af26e1e19a7d,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,RS_GEOMETRY,Для серии RS необходимы сравнение строит. длины и монтажных параметров
+65,d4c9d877a4e6bf28,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+66,6049bd7bbe5535bf,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+67,2326014b8f5bc9ee,TEMPER,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,TEMPER_MAX_LENGTH,Серия MAX: подтвердить строительную длину и точное исполнение
+68,e361ba21cda4ac95,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+69,e87c8ede1957f0c4,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+70,09c5eaae32a73540,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|DOCUMENTED_REVIEW,"По каталогу ALSO КШ.Ф.П.040.40-03 имеет L=200 мм, у выбранного LD L=290 мм; дополнение не одобрено. Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски"
+71,663c0f177eb8f0b3,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+72,a6d6fa864ed7439d,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+73,dc0b58b1fe10cd3b,BROEN,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+74,197c64ceac27db76,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF,"Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски"
+75,f32a31c55fa0e2e3,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+76,cea792b622523873,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|RS_GEOMETRY|DOCUMENTED_REVIEW,"Полнопроходной LD соответствует ряду параметров, но исходный маппинг указывает газ, а карточка LD — жидкость; не добавлять. Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски Для серии RS необходимы сравнение строит. длины и монтажных параметров"
+77,27e39ff4951477c2,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+78,092334602de9f870,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+79,20a4b2636c3a0f69,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,RS_GEOMETRY,Для серии RS необходимы сравнение строит. длины и монтажных параметров
+80,74dcfe42202e7eb8,TEMPER,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+81,cd3c01157e4573ea,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+82,d50516446dabba01,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+83,26f3005d4b92fd1a,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+84,0f675843c0cce624,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|SOURCE_CONTROL_DIFF|ACTUATOR_READY_AMBIGUITY|RS_GEOMETRY|DOCUMENTED_REVIEW,"Извлекатель свёл «под редуктор/электропривод» к electric; конфликт интерпретации и фактической комплектации. Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Фраза «под редуктор/электропривод» не подтверждает уже установленный электропривод Для серии RS необходимы сравнение строит. длины и монтажных параметров"
+85,056180feca868373,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,RS_GEOMETRY,Для серии RS необходимы сравнение строит. длины и монтажных параметров
+86,c534b4de79b30f00,TEMPER,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+87,be27a805e49958df,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,UNPROVEN_EQUIVALENCE,"Совпадения DN/PN/типа недостаточно: нет независимого подтверждения размеров, среды, исполнения и полноты эталона"
+88,873d4e64d7e81cd1,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|RS_GEOMETRY,"Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски Для серии RS необходимы сравнение строит. длины и монтажных параметров"
+89,3d8425d111bc5af3,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+90,abb81646561bb5d3,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+91,7079f9b824f3dcf6,MARSHAL,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF|SPECIAL_UNDERGROUND,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Специальное подземное исполнение не подтверждено заданием
+92,00144be169eb362e,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF|EXTRA_KIT,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод) Проверить допустимость дополнительной комплектации
+93,e87d323524f37cb5,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,RS_GEOMETRY,Для серии RS необходимы сравнение строит. длины и монтажных параметров
+94,dd718f4d34f366df,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+95,54a5e746fcce8e7c,MARSHAL,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+96,e73a7b8d2cfb8302,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+97,31e9ed41aff04072,ALSO,PASS,KEEP_ORIGINAL_GOLD,BENCHMARK_PASS,Исходный эталонный вердикт PASS; не менялся.
+98,2da2d08cdb945cf5,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_MEDIUM_DIFF|DOCUMENTED_REVIEW,"По карточкам ALSO/LD совпадают DN250, PN16, сталь20, фланцы, проход 200 мм, L530 и размеры фланца. Однако исходная маппинг-строка отмечена «газ», а LD 1273 — «жидкость». Спорная среда: оставить GOLD без изменений до подтверждения. Рабочая среда LD отличается от среды, записанной в исходном маппинге; нужны исходная спецификация и допуски"
+99,b35aa5ce81bd1937,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
+100,5955d0e2ce03f5d4,ALSO,FAIL_WRONG_LD,REVIEW_REQUIRED_NO_GOLD_CHANGE,SOURCE_CONTROL_DIFF,Управление LD расходится с исходным маппингом (ручное / редуктор / привод / подготовка под привод)
