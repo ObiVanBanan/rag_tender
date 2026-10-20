@@ -1,3 +1,5 @@
+> **UPDATE 2026-10-20, v3 — authoritative latest result:** 39/100 (39%) after approval of fifth analogue, #74 → LD1532. After independent audit of 30 cases: 26 selected answers rejected, 1 approved, 3 still need detailed verification. **Use [the deep30 audit](gold_e08_seed53_deep30_audit.md), [status index](gold_e08_seed53_deep30_status.csv) and [updated metrics](gold_e08_seed53_metrics_v2.json) instead of the superseded v2 counts below.** The older v2 section is preserved as historical decision trail. Intentional exclusions (construction length; individual gas species) remain unchanged, while gas↔liquid service is critical.
+
 # E08 seed 53 — бизнес-ревизия GOLD v2 (2026-10-20)
 
 > **Historical frozen v1 must remain untouched.** This is an additive, separately versioned **DEV-only GOLD review**, not a model retrain, rerun, benchmark-agnostic improvement, or production certification.
