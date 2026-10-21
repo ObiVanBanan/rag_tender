@@ -34,9 +34,11 @@ class PostgresRequestHistory:
                     )
                 migrated = conn.execute(
                     """
-                    SELECT EXISTS (
-                        SELECT 1 FROM rag_schema_migrations
-                        WHERE version = '0001_request_history'
+                    SELECT COUNT(DISTINCT version) = 2
+                    FROM rag_schema_migrations
+                    WHERE version IN (
+                        '0001_request_history',
+                        '0002_request_history_surrogate_id'
                     )
                     """
                 ).fetchone()
