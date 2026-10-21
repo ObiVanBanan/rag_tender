@@ -64,7 +64,11 @@ def classify_medium_text(values: list[str]) -> CatalogMedium:
         has_gas = _contains_term(clause, _GAS_TERMS)
         has_liquid = _contains_term(clause, _LIQUID_TERMS)
         if has_gas and has_liquid:
-            return CatalogMedium.UNKNOWN
+            # A single catalog value may state "вода и газ" without separators.
+            # Both explicitly allowed phases must be retained, rather than
+            # demoting the product to UNKNOWN and losing useful evidence.
+            categories.update({CatalogMedium.GAS, CatalogMedium.LIQUID})
+            continue
         if has_gas:
             categories.add(CatalogMedium.GAS)
         if has_liquid:

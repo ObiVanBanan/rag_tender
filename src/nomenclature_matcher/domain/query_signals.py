@@ -223,15 +223,21 @@ def explicit_joining_type_from_query(query: str) -> str | None:
         return "wafer"
     if re.search(r"компресс|обжим", text):
         return "compression"
+    if re.search(r"штуцер", text):
+        return "fitting"
     if re.search(r"резьб|муфт", text):
         return "threaded"
-    if re.search(r"фланц|\bф\s*/\s*ф\b", text):
-        return "flanged"
-    if re.search(
-        r"под\s+привар|приварн|сварка\s*[/\-–—]\s*сварка|"
+    has_flange = bool(re.search(r"фланц|фланец|\bф\s*/\s*ф\b", text))
+    has_weld = bool(re.search(
+        r"под\s+привар|\bпривар\w*|сварка\s*[/\-–—]\s*сварка|"
         r"сварн(?:ой|ые)?\s+(?:конец|патруб)",
         text,
-    ):
+    ))
+    if has_flange and has_weld:
+        return "mixed_flange_weld"
+    if has_flange:
+        return "flanged"
+    if has_weld:
         return "welded"
     return None
 
@@ -241,9 +247,9 @@ def explicit_working_medium_from_query(query: str) -> str | None:
     text = normalize_query_text(query)
     matches: list[str] = []
     for pattern, value in (
-        (r"\bвода\b", "вода"),
+        (r"\bвод(?:а|ы|е|у|ой|ою)\b|\bводян\w*\b", "вода"),
         (r"\bпар\b", "пар"),
-        (r"\bгаз\b", "газ"),
+        (r"\bгаз(?:а|у|е|ом|ы|ов)?\b|\bгазов\w*\b", "газ"),
         (r"\bмасло\b", "масло"),
         (r"\bгликол\b", "гликол"),
     ):

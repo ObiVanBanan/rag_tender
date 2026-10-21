@@ -134,7 +134,16 @@ def candidate_pn_mpa(product: LDProduct) -> float | None:
         number = _first_number(value)
         if number is None:
             continue
-        if number > 10:
+        text = _norm(value)
+        # An explicit PN/Ru class is measured in bar (PN10 == 1.0 MPa),
+        # including classes <= 10 that the former >10 heuristic missed.
+        # Explicit MPa always takes precedence (e.g. "Ру1,0МПа").
+        if (
+            re.search(r"(?<![a-zа-я])(?:pn|ру)\s*[-:]?\s*\d", text)
+            and not re.search(r"(?:мпа|mpa)", text)
+        ):
+            number /= 10.0
+        elif number > 10:
             number /= 10.0
         return number
     return None
@@ -182,11 +191,19 @@ def canonical_joining_type(text: Any) -> str | None:
         return "wafer"
     if "компресс" in value or "обжим" in value:
         return "compression"
-    if "привар" in value or "сварн" in value:
+    # Keep dissimilar end configurations distinct. Treating a flange/weld
+    # combination as an ordinary welded end can approve incompatible items.
+    has_flange = "флан" in value
+    has_weld = "привар" in value or ("сварн" in value and "цельносвар" not in value)
+    if has_flange and has_weld:
+        return "mixed_flange_weld"
+    if "штуцер" in value:
+        return "fitting"
+    if has_weld:
         return "welded"
     if "резьб" in value or "муфт" in value:
         return "threaded"
-    if "флан" in value:
+    if has_flange:
         return "flanged"
     return "other"
 
