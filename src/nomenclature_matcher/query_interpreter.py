@@ -95,6 +95,14 @@ class DeepSeekQueryInterpreter:
         text = query.lower().replace("ё", "е")
         if "под электропривод" in text:
             return "electric_ready"
+        if "под редуктор" in text or "для установки редуктора" in text:
+            return "gearbox_ready"
+        if "под привод" in text or "для установки привода" in text:
+            return "actuator_ready"
+        if "пневмогидравл" in text:
+            return "pneumohydraulic"
+        if "гидропривод" in text:
+            return "hydraulic"
         if "электропривод" in text:
             return "electric"
         if "пневмопривод" in text or "пневматическ" in text:
