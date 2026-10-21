@@ -194,7 +194,7 @@ def canonical_joining_type(text: Any) -> str | None:
     # Keep dissimilar end configurations distinct. Treating a flange/weld
     # combination as an ordinary welded end can approve incompatible items.
     has_flange = "флан" in value
-    has_weld = "привар" in value or "сварн" in value
+    has_weld = "привар" in value or ("сварн" in value and "цельносвар" not in value)
     if has_flange and has_weld:
         return "mixed_flange_weld"
     if "штуцер" in value:
