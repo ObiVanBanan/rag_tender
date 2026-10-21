@@ -229,7 +229,7 @@ def explicit_joining_type_from_query(query: str) -> str | None:
         return "threaded"
     has_flange = bool(re.search(r"фланц|\bф\s*/\s*ф\b", text))
     has_weld = bool(re.search(
-        r"под\s+привар|приварн|сварка\s*[/\-–—]\s*сварка|"
+        r"под\s+привар|\bпривар\w*|сварка\s*[/\-–—]\s*сварка|"
         r"сварн(?:ой|ые)?\s+(?:конец|патруб)",
         text,
     ))
