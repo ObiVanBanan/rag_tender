@@ -11,7 +11,7 @@ docker run -d --name "$container" \
   -e POSTGRES_DB=rag_tender postgres:16-alpine >/dev/null
 
 for attempt in $(seq 1 60); do
-  if docker exec "$container" pg_isready -U postgres -d rag_tender >/dev/null 2>&1; then
+  if docker exec "$container" pg_isready -h 127.0.0.1 -U postgres -d rag_tender >/dev/null 2>&1; then
     break
   fi
   if [ "$attempt" -eq 60 ]; then
