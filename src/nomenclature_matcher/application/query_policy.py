@@ -93,3 +93,42 @@ def hard_constraints(query: str, pre_interpretation, enriched_interpretation=Non
         "ambiguous": pre.ambiguous,
         "comment": "hard constraints derived only from explicit QUERY facts",
     }
+
+
+def apply_verified_catalog_constraints(
+    explicit: dict, resolution
+) -> tuple[dict, list[str]]:
+    """Enforce verified manufacturer facts decoded from an exact identity.
+
+    A merely SUPPORTED web inference or UNKNOWN field must not become hard.
+    If an explicit query disagrees with the catalog, refuse the query.
+    """
+    merged = dict(explicit)
+    conflicts: list[str] = []
+    if resolution is None or not resolution.resolved:
+        return merged, conflicts
+
+    for field, fact in (resolution.facts or {}).items():
+        if field not in merged or fact.status != "VERIFIED" or fact.value is None:
+            continue
+        expected, incoming = merged[field], fact.value
+        if expected not in (None, ""):
+            if field == "pn_min_mpa":
+                same = abs(float(expected) - float(incoming)) < 1e-6
+            elif field == "working_medium":
+                def phase(value):
+                    text = str(value).lower().replace("ё", "е")
+                    if "газ" in text or text == "gas":
+                        return "gas"
+                    if any(word in text for word in ("вод", "жидк", "нефт", "масл")):
+                        return "liquid"
+                    return text
+                same = phase(expected) == phase(incoming)
+            else:
+                same = expected == incoming
+            if not same:
+                conflicts.append(field)
+                continue
+        merged[field] = incoming
+
+    return merged, conflicts

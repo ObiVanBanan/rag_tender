@@ -396,8 +396,14 @@
         "control": {
           "group": "execution",
           "map": {
+            "0": "actuator_ready",
             "1": "manual",
-            "3": "gearbox"
+            "3": "gearbox",
+            "6": "pneumatic",
+            "7": "hydraulic",
+            "9": "electric",
+            "10": "t_key",
+            "6(7)": "pneumohydraulic"
           },
           "default": null
         },
@@ -406,7 +412,7 @@
           "regex_map": [
             {
               "regex": "(?:ФП|ПФ)",
-              "value": null
+              "value": "mixed_flange_weld"
             },
             {
               "regex": "Ф$",
@@ -427,7 +433,7 @@
           "group": "family",
           "regex_map": [
             {
-              "regex": "^(?:2ЦП|2ЦФ)$",
+              "regex": "^(?:2ЦП|2ЦФ|2ЦПФ|2ЦФП)$",
               "value": "reduced"
             },
             {
@@ -448,11 +454,11 @@
         }
       ],
       "source": {
-        "url": "https://lztamarshal.ru/upload/2023-catalogue/2025%20Marshal_Catalogue.pdf",
-        "source_type": "official_catalog_pdf",
+        "url": "https://lztamarshal.ru/support/tekhnicheskaya-dokumentatsiya/struktura-oboznacheniy-sharovykh-kranov-marshal/",
+        "source_type": "official_nomenclature_page",
         "identity_level": "FAMILY_LEVEL",
         "evidence_scope": "nomenclature_schema",
-        "evidence_text": "Official MARSHAL catalog documents 11с67п designation families including ЦП/2ЦП and 2ЦФ, material executions 00/01, DN/PN tables and control executions."
+        "evidence_text": "Manufacturer's marking structure defines controls 0/1/3/6/7/6(7)/9/10, and welded/flanged ends. Schema decoding does not prove that every syntactically valid article was made."
       }
     },
     {
@@ -511,12 +517,30 @@
               "value": null
             },
             {
-              "regex": "^(?:ФП|ПП)(?:\\.|$)",
+              "regex": "^(?:ФПР|ФП|Ф[.]П(?:[.]Р)?)(?:[.]|$)",
               "value": "full"
             },
             {
-              "regex": ".*",
+              "regex": "^(?:ППТР|ПП)(?:[.]|$)",
+              "value": "full"
+            },
+            {
+              "regex": "^(?:Ф|П|ФР|ПР)(?:[.]|$)",
               "value": "reduced"
+            },
+            {
+              "regex": ".*",
+              "value": null
+            }
+          ],
+          "default": null
+        },
+        "control": {
+          "group": "body",
+          "regex_map": [
+            {
+              "regex": "(?:^|[.])Р(?:[.]|$)|(?:ФПР|ФР|ПР|ФЗР|ППТР|ПТР)(?:[.]|$)",
+              "value": "gearbox_ready"
             }
           ],
           "default": null
@@ -536,7 +560,7 @@
         "source_type": "official_series_page",
         "identity_level": "FAMILY_LEVEL",
         "evidence_scope": "nomenclature_schema",
-        "evidence_text": "Official ALSO series pages publish the ball-valve designation structure; connection prefix П denotes welded connection and must not itself be treated as a full-bore marker. Full bore is inferred only from explicit full-bore body codes."
+        "evidence_text": "ALSO official product pages show Ф.П.Р full-bore gearbox-ready valves; readiness for a gearbox does not mean it is installed. Do not infer bore from unknown/З-series suffixes without exact SKU evidence."
       }
     }
   ]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from dataclasses import replace
 
 from ..domain.competitor import (
     FACT_FIELDS,
@@ -24,14 +25,34 @@ class CompetitorResolver:
         self.registry = registry
 
     def resolve(self, query: str) -> CompetitorResolution:
+        # Re-evaluate official schemas on each hit: saved KB records may have
+        # been decoded by an older, incomplete version of the schema.
         cached = self.store.find(query)
-        if cached is not None:
-            return cached
-
         catalog = self.registry.resolve(query)
         if catalog is not None and catalog.resolved:
-            self.store.put(catalog)
-            return catalog
+            if cached is None:
+                self.store.put(catalog)
+                return catalog
+            merged = dict(cached.facts or {})
+            for field, fact in (catalog.facts or {}).items():
+                previous = merged.get(field)
+                if fact.status == "VERIFIED" or previous is None:
+                    merged[field] = fact
+                elif any(
+                    source.get("evidence_scope") == "nomenclature_schema"
+                    for source in previous.sources
+                ):
+                    # Discard obsolete schema guesses when current official
+                    # rules intentionally leave a field UNKNOWN.
+                    merged[field] = fact
+            if merged != (cached.facts or {}):
+                refreshed = replace(cached, facts=merged)
+                self.store.put(refreshed)
+                return refreshed
+            return cached
+
+        if cached is not None:
+            return cached
 
         return CompetitorResolution(
             status="MISS",

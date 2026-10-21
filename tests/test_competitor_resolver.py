@@ -268,7 +268,7 @@ def test_marshal_designation_schema_resolves_exact_variant(tmp_path):
     assert full.attributes()["control"] == "gearbox"
 
 
-def test_marshal_ambiguous_combined_family_does_not_invent_joining(tmp_path):
+def test_marshal_combined_family_preserves_two_different_pipe_ends(tmp_path):
     resolver = CompetitorResolver(settings(tmp_path))
 
     result = resolver.resolve(
@@ -277,7 +277,7 @@ def test_marshal_ambiguous_combined_family_does_not_invent_joining(tmp_path):
 
     assert result.status == "CATALOG_DESIGNATION_RESOLVED"
     assert result.attributes()["dn"] == 50
-    assert result.attributes().get("joining_type") is None
+    assert result.attributes().get("joining_type") == "mixed_flange_weld"
 
 
 def test_also_designation_schema_resolves_official_model_structure(tmp_path):
@@ -377,3 +377,54 @@ def test_also_welded_prefix_does_not_force_full_bore(tmp_path):
     assert result.attributes()["pn_min_mpa"] == 4.0
     assert result.attributes()["joining_type"] == "welded"
     assert result.attributes()["bore_type"] == "reduced"
+
+
+def test_marshal_official_actuator_code_coverage(tmp_path):
+    import pytest
+    resolver = CompetitorResolver(settings(tmp_path))
+    cases = [
+        ("0", "actuator_ready"),
+        ("1", "manual"),
+        ("3", "gearbox"),
+        ("6", "pneumatic"),
+        ("7", "hydraulic"),
+        ("6(7)", "pneumohydraulic"),
+        ("9", "electric"),
+        ("10", "t_key"),
+    ]
+    for code, expected in cases:
+        query = f"Кран шаровой MARSHAL 11с67п 2ЦФ.00.{code}.025.100"
+        result = resolver.resolve(query)
+        assert result.attributes()["control"] == expected, query
+        assert result.attributes()["bore_type"] == "reduced"
+
+
+def test_marshal_old_cached_unknown_drive_is_refreshed_from_catalog(tmp_path):
+    from nomenclature_matcher.domain.competitor import ResolvedFact
+    resolver = CompetitorResolver(settings(tmp_path))
+    query = "MARSHAL 11с67п ЦФ.00.9.016.050"
+    old = resolver.resolve(query)
+    from dataclasses import replace
+    obsolete = replace(old, facts={
+        **(old.facts or {}),
+        "control": ResolvedFact(None, "UNKNOWN", [{
+            "evidence_scope": "nomenclature_schema",
+            "source_type": "official_catalog_pdf"
+        }]),
+    })
+    resolver.store.put(obsolete)
+    upgraded = resolver.resolve(query)
+    assert upgraded.status == "KB_HIT"
+    assert upgraded.attributes()["control"] == "electric"
+
+
+def test_also_ready_is_not_equivalent_to_installed_gearbox(tmp_path):
+    resolver = CompetitorResolver(settings(tmp_path))
+    full = resolver.resolve("Кран шаровой ALSO КШ.ФПР.GAS.200.25-02")
+    assert full.attributes()["bore_type"] == "full"
+    assert full.attributes()["control"] == "gearbox_ready"
+    flanged = resolver.resolve("Кран шаровой ALSO КШ.Ф.П.Р.400.16-01")
+    assert flanged.attributes()["bore_type"] == "full"
+    assert flanged.attributes()["control"] == "gearbox_ready"
+    unknown = resolver.resolve("Кран шаровой ALSO КШ.КПА.100.16-01")
+    assert unknown.attributes().get("bore_type") is None

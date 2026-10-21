@@ -16,7 +16,7 @@ from .ports import (
     QueryInterpreterPort,
     TelemetryPort,
 )
-from .query_policy import enrichment_gate, hard_constraints
+from .query_policy import enrichment_gate, hard_constraints, apply_verified_catalog_constraints
 from .telemetry import NullTelemetry
 
 if TYPE_CHECKING:
@@ -261,6 +261,7 @@ class QueryPreparationService:
             lookup_debug = {"attempted": False, "accepted": False, "reason": gate_reason}
 
         hard = hard_constraints(query, pre, enriched)
+        hard, catalog_conflicts = apply_verified_catalog_constraints(hard, competitor_resolution)
         payload = interpretation.model_dump()
         payload["hard_constraints"] = hard
         if competitor_resolution is not None:
@@ -278,6 +279,15 @@ class QueryPreparationService:
             interpretation=interpretation,
             hard=hard,
         )
+
+        if catalog_conflicts:
+            payload["catalog_conflicts"] = catalog_conflicts
+            return MatchResult(
+                query=query,
+                status="NOT_FOUND",
+                reason="QUERY_REJECTED: VERIFIED_CATALOG_CONFLICT: " + ", ".join(catalog_conflicts),
+                query_interpretation=payload,
+            )
 
         if not interpretation.searchable:
             return MatchResult(

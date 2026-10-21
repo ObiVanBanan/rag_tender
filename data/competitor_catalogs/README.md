@@ -61,3 +61,36 @@ one JSON record per SKU.
    cannot affect resolver-v2.
 6. Adding a generic official catalog/schema is allowed; adding exact products
    only because they appeared in the benchmark is not.
+
+## Catalog-first safety and coverage audit (2026-10-21)
+
+The official nomenclature rules are the authority for decoded model attributes;
+the LLM only helps interpret the request. Exact *syntactic* model identity is not
+proof that a specific manufactured variant exists. Never create a GOLD mapping
+or an LD article from a source manufacturer's identity.
+
+- **MARSHAL:** the official marking specification confirms drive codes
+  0/1/3/6/7/6(7)/9/10. Mixed ПФ/ФП joining is preserved. Special
+  deliveries, gas certifications and exact manufacturer SKU existence remain
+  unverified unless supported by an exact product document.
+- **ALSO:** confirmed explicit full-bore under-reducer Ф.П.Р and ФПР
+  designations. Gearbox *ready* does not mean the gearbox is supplied.
+  Unknown and З-series bore remain unverified. Several RS, short-body and
+  special executions still require exact datasheets before auto-approval.
+- **TEMPER:** local schemas cover 282/284/287/292/294/299 and
+  special MAX 980/982/983/990/992/993, but control, exact product existence
+  and some PN ranges are not known from the article alone. Do not invent
+  unknown fields, especially PN for MAX 992 DN300+.
+
+Verified schema-derived facts are promoted into the same hard constraints as
+explicit query facts. If these two sources disagree, matching is rejected
+with VERIFIED_CATALOG_CONFLICT. SUPPORTED-only web claims are not promoted.
+The existing runtime avoids web calls on resolved catalog hits; missing
+catalog facts must be completed through a separate source-backed catalog
+acquisition/review process, not guessed by the model. Results still need
+frozen100 E2E validation before production promotion.
+
+Official references:
+- MARSHAL https://lztamarshal.ru/support/tekhnicheskaya-dokumentatsiya/struktura-oboznacheniy-sharovykh-kranov-marshal/
+- ALSO https://alsoarm.ru/catalog/dlya-zhidkikh-sred/flantsevye/polnoprokhodnye-flantsevye-dlya-zhidkikh-sred/kran-sharovoy-also-dlya-zhidkikh-sred-flantsevyy-polnoprokhodnoy-pod-reduktor-dn-400-pn-16/
+- TEMPER https://temper.ru/catalog/1-stalnaa-armatura-sarovye-krany-dla-zidkih-sred?per-page=30&view=full

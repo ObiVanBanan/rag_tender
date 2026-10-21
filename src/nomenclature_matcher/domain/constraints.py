@@ -300,10 +300,18 @@ def canonical_control(text: Any) -> str | None:
         return None
     if "под электропривод" in value:
         return "electric_ready"
+    if "под редуктор" in value or "для установки редуктора" in value:
+        return "gearbox_ready"
+    if "под привод" in value or "для установки привода" in value:
+        return "actuator_ready"
+    if "пневмогидравл" in value:
+        return "pneumohydraulic"
     if "электропривод" in value:
         return "electric"
     if "пневмопривод" in value:
         return "pneumatic"
+    if "гидропривод" in value:
+        return "hydraulic"
     if "редуктор" in value:
         return "gearbox"
     if "ручн" in value or "рукоят" in value or "ручка" in value:
@@ -316,8 +324,7 @@ def candidate_control(product: LDProduct) -> str | None:
         result = canonical_control(value)
         if result:
             return result
-    if candidate_product_type(product) == "ball_valve":
-        return "manual"
+    # An absent catalog control field is UNKNOWN, not a manual lever.
     return None
 
 
