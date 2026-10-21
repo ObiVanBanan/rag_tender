@@ -29,6 +29,7 @@ from .observability import (
     set_request_id,
 )
 from .domain.medium import CatalogMedium, WorkingMedium, classify_medium_text
+from .application.admission import AdmissionRejected, RequestAdmission
 from .application.matching import match_products
 from .application.request_history import RequestHistoryRecorder, RequestHistoryRecord
 from .application.shortlist import shortlist_product
@@ -170,6 +171,14 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
         app.state.runtime = runtime
         telemetry = getattr(runtime.matcher, "telemetry", None) or NullTelemetry()
         app.state.history_recorder = RequestHistoryRecorder(runtime.history, telemetry)
+        app.state.request_admission = RequestAdmission(
+            max_inflight_batches=getattr(
+                runtime.settings, "api_max_inflight_batches", 1
+            ),
+            max_items_per_hour=getattr(
+                runtime.settings, "api_max_items_per_hour", 500
+            ),
+        )
         try:
             yield
         finally:
@@ -292,7 +301,10 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
         )
 
         try:
-            raw_results = match_products(runtime.matcher, payload.products)
+            # Admission is shared between /v1/match and /v1/shortlist.
+            # Only the expensive matcher run occupies an inflight slot.
+            with request.app.state.request_admission.reserve(len(payload.products)):
+                raw_results = match_products(runtime.matcher, payload.products)
             latency_ms = round((perf_counter() - started) * 1000, 3)
             response = MatchResponse(
                 request_id=request_id,
@@ -354,6 +366,13 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
                 slow_request=latency_ms >= 10000,
             )
             return response
+        except AdmissionRejected as exc:
+            record_api_error(exc.reason)
+            raise HTTPException(
+                status_code=429,
+                detail={"code": exc.reason, "message": "Matcher capacity exhausted"},
+                headers={"Retry-After": str(exc.retry_after_seconds)},
+            ) from exc
         except Exception as exc:
             latency_ms = round((perf_counter() - started) * 1000, 3)
             completed_at = datetime.now(timezone.utc)
@@ -424,15 +443,24 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
             max_candidates=payload.max_candidates,
         )
 
-        results = [
-            shortlist_product(
-                runtime.matcher,
-                item.query,
-                item.working_medium,
-                max_candidates=payload.max_candidates,
-            )
-            for item in payload.queries
-        ]
+        try:
+            with request.app.state.request_admission.reserve(len(payload.queries)):
+                results = [
+                    shortlist_product(
+                        runtime.matcher,
+                        item.query,
+                        item.working_medium,
+                        max_candidates=payload.max_candidates,
+                    )
+                    for item in payload.queries
+                ]
+        except AdmissionRejected as exc:
+            record_api_error(exc.reason)
+            raise HTTPException(
+                status_code=429,
+                detail={"code": exc.reason, "message": "Matcher capacity exhausted"},
+                headers={"Retry-After": str(exc.retry_after_seconds)},
+            ) from exc
         latency_ms = round((perf_counter() - started) * 1000, 3)
         response = ShortlistResponse(
             request_id=request_id,
