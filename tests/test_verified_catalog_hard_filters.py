@@ -74,3 +74,14 @@ def test_supported_web_facts_do_not_become_verified_hard_filters():
     hard, conflicts = apply_verified_catalog_constraints({"control": None}, source)
     assert hard["control"] is None
     assert not conflicts
+
+
+@pytest.mark.parametrize(("words", "control"), [
+    ("под редуктор", "gearbox_ready"),
+    ("под привод", "actuator_ready"),
+    ("пневмогидравлический привод", "pneumohydraulic"),
+    ("гидропривод", "hydraulic"),
+])
+def test_query_interpreter_preserves_drive_execution(words, control):
+    from nomenclature_matcher.query_interpreter import DeepSeekQueryInterpreter
+    assert DeepSeekQueryInterpreter._explicit_control(words) == control
