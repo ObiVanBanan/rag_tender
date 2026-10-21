@@ -1,4 +1,4 @@
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,7 +22,11 @@ class Settings(BaseSettings):
 
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    api_max_batch_size: int = 100
+    api_max_batch_size: int = Field(default=100, ge=1)
+    # Process-local admission: one costly batch active by default, no more
+    # than 500 item attempts per rolling hour (not a monetary guarantee).
+    api_max_inflight_batches: int = Field(default=1, ge=1)
+    api_max_items_per_hour: int = Field(default=500, ge=1)
     api_auth_token: SecretStr = SecretStr("")
     product_csv_path: str = "ld_products_full_nomenclature.csv"
     database_url: str = ""

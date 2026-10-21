@@ -10,6 +10,7 @@ on:
       - "src/nomenclature_matcher/**"
       - "tests/**"
       - "migrations/**"
+      - "scripts/smoke_**"
       - "scripts/eval_competitor_analogs.py"
       - "data/competitor_catalogs/**"
       - "Dockerfile"
@@ -36,6 +37,14 @@ jobs:
 
       - name: Run full test suite including domain/application regressions
         run: uv run python -m pytest -q tests
+
+      - name: Validate smoke tooling
+        run: |
+          python -m py_compile scripts/smoke_production_e2e.py
+          bash -n scripts/smoke_history_migration.sh
+
+      - name: PostgreSQL 16 migration and duplicate-ID preservation smoke
+        run: bash scripts/smoke_history_migration.sh
 
       - name: Validate Docker Compose
         run: |
