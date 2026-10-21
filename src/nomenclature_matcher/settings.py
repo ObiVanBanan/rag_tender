@@ -21,8 +21,15 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_max_batch_size: int = 100
+    # Set password before exposing demo to Internet. Production fails closed.
+    public_demo_username: str = "demo"
+    public_demo_password: str = ""
+    public_demo_admin_username: str = "ld-admin"
+    public_demo_admin_password: str = ""
+    public_demo_rpm: int = 60
+    public_demo_max_batch_size: int = 10
     product_csv_path: str = "ld_products_full_nomenclature.csv"
-    database_url: str = "postgresql://rag_tender:rag_tender@localhost:5432/rag_tender"
+    database_url: str = ""
     db_pool_min_size: int = 1
     db_pool_max_size: int = 5
     db_connect_timeout_seconds: float = 10

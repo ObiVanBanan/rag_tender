@@ -49,7 +49,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-rag_tender}
       POSTGRES_USER: ${POSTGRES_USER:-rag_tender}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag_tender}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env to a random strong password}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -79,12 +79,12 @@ services:
       APP_ENV: production
       QDRANT_URL: http://rag-tender-qdrant:6333
       PRODUCT_CSV_PATH: /data/ld_products_full_nomenclature.csv
-      DATABASE_URL: postgresql://${POSTGRES_USER:-rag_tender}:${POSTGRES_PASSWORD:-rag_tender}@postgres:5432/${POSTGRES_DB:-rag_tender}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-rag_tender}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env to a random strong password}@postgres:5432/${POSTGRES_DB:-rag_tender}
       COMPETITOR_KB_PATH: /app/.rag_tender/competitor_kb.sqlite3
       COMPETITOR_CATALOG_REGISTRY_PATH: /app/data/competitor_catalogs/sources.json
       WEB_SEARCH_ENABLED: ${WEB_SEARCH_ENABLED:-false}
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${API_PUBLISH_BIND:-127.0.0.1:8000}:8000"
     volumes:
       - ${PRODUCT_CSV_HOST_PATH:-./ld_products_full_nomenclature.csv}:/data/ld_products_full_nomenclature.csv:ro
       - competitor_kb:/app/.rag_tender

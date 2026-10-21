@@ -1,4 +1,23 @@
 .env
+.env.*
+!.env.example
+!.env.sample
+# Private credentials / signing material
+*.pem
+*.p12
+*.pfx
+*.key
+*.jks
+*.keystore
+*.kdbx
+id_rsa
+id_ed25519
+.netrc
+.pypirc
+.npmrc
+credentials.json
+service-account.json
+secrets/
 __pycache__/
 .pytest_cache/
 .pytest_tmp/
