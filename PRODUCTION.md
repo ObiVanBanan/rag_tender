@@ -152,9 +152,85 @@ For `NOT_FOUND`, `matched_name`, `matched_article`, `score`, and `confidence` ar
 
 The maximum batch size is controlled by `API_MAX_BATCH_SIZE`.
 
+## Inference admission, load and provider budget
+
+Both `/v1/match` and `/v1/shortlist` share the **same** process-local
+admission gate, before any retrieval/DeepSeek/OpenAI call. Configure in `.env`:
+
+```ini
+API_MAX_BATCH_SIZE=100
+API_MAX_INFLIGHT_BATCHES=1
+API_MAX_ITEMS_PER_HOUR=500
+```
+
+- Only one batch can execute expensive matching at a time by default.
+  Another request receives HTTP **429** with a stable
+  `detail.code=MATCHER_BUSY` and `Retry-After`, rather than piling up threads.
+- The quota charges **items attempted**, not requests. A 100-product batch
+  consumes 100 units; failed provider attempts are **not refunded**.
+  Exhaustion returns HTTP **429** with `HOURLY_ITEM_LIMIT_REACHED` and
+  `Retry-After`; batches larger than the hourly limit are rejected.
+- Reservations and the rolling 60-minute window are per **one Uvicorn worker**.
+  They reset on restart and are not synchronized across replicas. They are
+  **not** guaranteed dollar budgets or LLM-token budgets; configure a monetary
+  spending cap with OpenAI/DeepSeek and an ingress/global rate limit as needed.
+- Products in a batch still run **sequentially**; this patch deliberately
+  prefers bounded safe execution to untested shared matcher parallelism.
+  There is no promise of lower single-batch latency.
+
+Gas/liquid use remains a **critical compatibility distinction**.
+Shortlist results are never automatically approved, liquid-only candidates for
+gas requests go in `blocked_candidates`, and UNKNOWN medium or UNVERIFIED gas
+certification always needs expert review. The intentionally omitted comparison
+of construction length and individual gas species is for historical GOLD
+scoring only; it does not authorize physical installation.
+
+## Live E2E and migration checks
+
+CI tests on **real isolated PostgreSQL 16** that a legacy row survives migration
+`0002_request_history_surrogate_id.sql` and a second snapshot with the
+**same** `X-Request-ID` is inserted independently. It also checks the item view
+has `history_id` per snapshot. This is separate from a real external-model E2E.
+
+For real-stack validation, first configure API secrets and materialize the
+Qdrant snapshot with `git lfs pull`, then start the stack:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+$env:API_AUTH_TOKEN = ((Get-Content .env | Where-Object { $_ -match '^API_AUTH_TOKEN=' }) -split '=', 2)[1]
+uv run python scripts/smoke_production_e2e.py --base-url http://127.0.0.1:8000
+```
+
+This makes **two real provider-backed matching calls**: one gas shortlist and
+one liquid match using the same `X-Request-ID`. It checks health/readiness,
+review-only and gas/liquid safeguards, and valid response snapshots without
+assuming any particular LD ID. It deliberately fails if no shortlist candidates
+are retrieved. Therefore it can consume API credits.
+
+To verify the actual two PostgreSQL snapshots as well, supply a read-capable
+`RAG_TENDER_SMOKE_READ_DSN` in the shell (do not commit the password), and
+add `--verify-history`. The runtime `rag_tender_api` role is intentionally
+**INSERT-only**, not a suitable smoke-test read account.
+
+```sql
+SELECT history_id, request_id, created_at, status, request_json, response_json
+FROM rag_match_requests
+WHERE request_id = '<id output by smoke>'
+ORDER BY created_at, history_id;
+```
+
+**Before rollout to a populated production database**, take a verified
+PostgreSQL backup. The additive migration changes the table's primary key
+from the client-supplied request identifier to a generated UUID; the
+`request_id` column stays intact as a non-unique indexed correlation label.
+The migration is transactional and preserves existing request/response JSON.
+New runtime startup refuses an unmigrated schema. Validate the migration on
+a copy of the real DB before first production start.
+
 ## Request history
 
-Every completed matching API call is written to PostgreSQL table `rag_match_requests`, including:
+Every completed matching API call is written to PostgreSQL table `rag_match_requests` with a unique generated `history_id` per snapshot, including:
 
 - request ID and timestamps;
 - full request JSON;
