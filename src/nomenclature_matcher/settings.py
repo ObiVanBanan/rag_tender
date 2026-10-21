@@ -1,3 +1,5 @@
+from pydantic import SecretStr
+
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except ImportError:  # pragma: no cover - only for a not-yet-installed environment
@@ -21,8 +23,9 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_max_batch_size: int = 100
+    api_auth_token: SecretStr = SecretStr("")
     product_csv_path: str = "ld_products_full_nomenclature.csv"
-    database_url: str = "postgresql://rag_tender:rag_tender@localhost:5432/rag_tender"
+    database_url: str = ""
     db_pool_min_size: int = 1
     db_pool_max_size: int = 5
     db_connect_timeout_seconds: float = 10
@@ -49,7 +52,7 @@ class Settings(BaseSettings):
     query_interpreter_system_prompt_path: str = "src/nomenclature_matcher/prompts/query_interpreter_system.md"
 
     web_search_enabled: bool = False
-    web_search_mcp_command: str = "uvx"
+    web_search_mcp_command: str = "duckduckgo-mcp-server"
     web_search_mcp_package: str = "duckduckgo-mcp-server[browser]"
     web_search_max_results: int = 6
     web_search_fetch_pages: int = 3

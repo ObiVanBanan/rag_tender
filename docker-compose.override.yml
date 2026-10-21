@@ -1,26 +1,29 @@
 # Overrides for the observability stack, so it can run side by side with the
 # rag_tender stack on the same host:
-#   - unique container names (rag-observability-*) instead of rag-tender-*
-#   - API published on 0.0.0.0:8002 (8000 is used by rag-tender-api)
-#   - PostgreSQL published on 127.0.0.1:5436 (5432 is used by rag-tender-postgres)
+#   - project-scoped container names so it can run beside the main stack
+#   - API published on 127.0.0.1:8002
+#   - PostgreSQL published on 127.0.0.1:5436
 #   - Qdrant snapshots dir mounted rw (Qdrant needs to write snapshot temp files)
 #   - qdrant-init script passed as a single argv entry (Compose v5 shlex-split
 #     breaks multi-line `command: |` scripts)
-#   - internal hostnames updated to the renamed containers
+#   - internal traffic uses Compose service DNS names
 services:
   qdrant:
-    container_name: !override rag-observability-qdrant
     volumes: !override
       - qdrant_storage:/qdrant/storage
       - ./qdrant:/qdrant/snapshots:rw
+    networks: !override
+      backend: {}
+      observability:
+        aliases:
+          - rag-observability-qdrant
 
   qdrant-init:
-    container_name: !override rag-observability-qdrant-init
     entrypoint: !override ["/bin/sh", "-ec"]
     command: !override
       - |
-        until curl -fsS http://rag-observability-qdrant:6333/collections >/dev/null; do sleep 2; done
-        if curl -fsS "http://rag-observability-qdrant:6333/collections/${QDRANT_COLLECTION_ALIAS:-steel_products_active}" >/dev/null 2>&1; then
+        until curl -fsS http://qdrant:6333/collections >/dev/null; do sleep 2; done
+        if curl -fsS "http://qdrant:6333/collections/${QDRANT_COLLECTION_ALIAS:-steel_products_active}" >/dev/null 2>&1; then
           echo "Qdrant collection already exists; snapshot restore skipped."
           exit 0
         fi
@@ -29,23 +32,30 @@ services:
           echo "Snapshot not found: $$SNAPSHOT"
           exit 1
         fi
-        curl -fsS -X PUT "http://rag-observability-qdrant:6333/collections/${QDRANT_COLLECTION_ALIAS:-steel_products_active}/snapshots/recover?wait=true" -H "Content-Type: application/json" -d "{\"location\":\"file:///qdrant/snapshots/${QDRANT_COLLECTION_ALIAS:-steel_products_active}.snapshot\"}"
+        curl -fsS -X PUT "http://qdrant:6333/collections/${QDRANT_COLLECTION_ALIAS:-steel_products_active}/snapshots/recover?wait=true" -H "Content-Type: application/json" -d "{\"location\":\"file:///qdrant/snapshots/${QDRANT_COLLECTION_ALIAS:-steel_products_active}.snapshot\"}"
         echo "Qdrant snapshot restored."
 
   postgres:
-    container_name: !override rag-observability-postgres
     ports: !override
       - "127.0.0.1:5436:5432"
 
   api:
-    container_name: !override rag-observability-api
     ports: !override
-      - "${API_PORT:-8002}:8000"
+      - "127.0.0.1:${API_PORT:-8002}:8000"
+    networks: !override
+      backend: {}
+      observability:
+        aliases:
+          - rag-observability-api
     environment: !override
       APP_ENV: production
-      QDRANT_URL: http://rag-observability-qdrant:6333
+      API_AUTH_TOKEN: "${API_AUTH_TOKEN:?Set API_AUTH_TOKEN in .env}"
+      POSTGRES_USER: ""
+      POSTGRES_PASSWORD: ""
+      API_DATABASE_PASSWORD: ""
+      QDRANT_URL: http://qdrant:6333
       PRODUCT_CSV_PATH: /data/ld_products_full_nomenclature.csv
-      DATABASE_URL: postgresql://${POSTGRES_USER:-rag_tender}:${POSTGRES_PASSWORD:-rag_tender}@postgres:5432/${POSTGRES_DB:-rag_tender}
+      DATABASE_URL: "postgresql://${API_DATABASE_USER:-rag_tender_api}:${API_DATABASE_PASSWORD:?Set API_DATABASE_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-rag_tender}"
       COMPETITOR_KB_PATH: /app/.rag_tender/competitor_kb.sqlite3
       COMPETITOR_CATALOG_REGISTRY_PATH: /app/data/competitor_catalogs/sources.json
       WEB_SEARCH_ENABLED: ${WEB_SEARCH_ENABLED:-false}
@@ -53,4 +63,4 @@ services:
       HTTPS_PROXY: ${OUTBOUND_PROXY_URL:-}
       ALL_PROXY: ${OUTBOUND_PROXY_URL:-}
       WEB_SEARCH_PROXY_URL: ${WEB_SEARCH_PROXY_URL:-}
-      NO_PROXY: localhost,127.0.0.1,rag-observability-qdrant,rag-observability-postgres,postgres,qdrant,.local,172.16.0.0/12,10.0.0.0/8
+      NO_PROXY: localhost,127.0.0.1,postgres,qdrant,.local,172.16.0.0/12,10.0.0.0/8

@@ -1,18 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-
-@dataclass
-class LDProduct:
-    id: int
-    name: str
-    article: str | None = None
-    price: Any = None
-    dn: Any = None
-    pn: Any = None
-    joining_type: str | None = None
-    url: str | None = None
-    properties: Any = field(default_factory=dict)
+from .domain.product import LDProduct
 
 
 @dataclass

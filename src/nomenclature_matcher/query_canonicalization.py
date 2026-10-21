@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from .query_constraints import QueryConstraints
+from .domain.constraints import QueryConstraints
 
 
 _DESIGNATION_CONFUSABLES = str.maketrans(

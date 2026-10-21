@@ -4,9 +4,9 @@ Short decision history for frozen-100 DEV runs. Per-case traces and full GOLD-be
 
 ## Current checkpoint
 
-Branch: `codex/competitor-resolver-v2`  
-Current HEAD: `b733910`  
-Best measured DEV result: **E07-CAT**
+Branch: `codex/competitor-resolver-v2`
+Latest measured commit: `38f596f`
+Best measured DEV result: **E08 / current-model replay**, both at **34% top-1**
 
 Decoder baseline:
 - top1: 26%
@@ -28,6 +28,10 @@ The architecture is no longer blocked by source understanding in the same way as
 - success: 30
 
 The exact causes inside those buckets were **not known from E06**, so stage-wise tracing was added before attempting more tuning.
+
+Latest replay on 2026-10-20 is recorded below. It supersedes the historical
+checkpoint figures in this introductory summary for the current model/index
+configuration; the experiment sections below remain historical records.
 
 ## What is already decided
 
@@ -251,6 +255,65 @@ Next inspection:
 4. inspect the seven remaining `MODALITY_POOL_MISS` cases only after the GOLD alternatives are confirmed.
 
 Trace: `docs/experiments/traces/E08-wide-prefilter-seed53.json` (DEV labels only, no LD candidate IDs). Full candidate/GOLD details remain local at `.tmp/e08-wide-prefilter-full-gold.json` and must not be committed.
+
+### E08 current-model replay — full local trace (2026-10-20)
+
+Setup: commit `38f596f8691fd664b41c6f4ce155cc340e5f31b3`; same deterministic
+100-case sample, seed 53; DeepSeek `deepseek-v4-flash`; OpenAI
+`text-embedding-3-small` (1536D); runtime web OFF; isolated Qdrant restored
+from the branch snapshot. The query list matches
+`data/competitor_analog_100_seed53.txt` exactly.
+
+Metrics:
+- top-1 hit-any: **34/100**;
+- acceptable ID in the wide pre-truncation pool: **92/100**;
+- acceptable ID in the reranker top-20: **83/100**;
+- `RERANK_NOT_SELECTED`: **49**;
+- `TECHNICAL_PREFILTER_DROP`: **9**;
+- `MODALITY_POOL_MISS`: **8**;
+- pipeline errors / NOT_FOUND: **0 / 0**.
+
+The recorded E08 run above had 93% wide-pool recall, 84% top-20 recall,
+50 reranker misses, and 7 modality misses. This replay kept top-1 at 34% but
+shifted one case between the wide-pool, top-20, and reranker/modality buckets.
+Treat the replay as the current configured run, and do not merge its per-case
+metrics with the historical E08 trace.
+
+The complete candidate-level trace, including GOLD IDs, DeepSeek selections,
+reasons, and top-20 characteristics, remains in the local `.tmp` artifacts.
+Only aggregate DEV metrics are recorded here.
+
+### Post-hoc reviewed GOLD v3 rescore (2026-10-20)
+
+The same saved predictions were re-scored with the latest reviewed GOLD overlay
+from GitHub `audit/e08-gold-review-seed53`: four earlier additions (#3, #70,
+#80, #98) plus the later exact-item approval #74. No DeepSeek call, retrieval,
+or candidate selection was repeated. All five added IDs were already the
+returned top-1 IDs in the saved run.
+
+- Frozen GOLD v1 top-1: **34/100**; reviewed GOLD v3 top-1: **39/100**.
+- Five previously uncredited outputs now pass due to additional confirmed GOLD
+  alternatives; this is a label correction, not a model gain.
+- GOLD in the wide RRF pool: **92/100** under either label set.
+- GOLD in reranker top-20: **83/100** under v1; **84/100** under v3.
+- Remaining 61 nonhits under v3: 45 reranker-selection, 8 modality-pool, and 8
+  technical-prefilter cases. These are nonhits against current reviewed labels,
+  not 61 independently confirmed engineering mismatches.
+- The GitHub PR body still summarizes the earlier v2 state (38/100, four
+  additions); the branch's top update and machine-readable metrics now report
+  v3 at 39/100 with five additions, including #74.
+
+Product decision: supervised analyst shortlist pilot only. No automatic
+substitution or purchasing. The API's default single-match response does not
+yet expose the detailed top-20 review contract. Gas versus liquid service,
+required certification, DN/PN, connection, bore, specified material, drive,
+and special execution must remain explicit gates; only construction length
+and gas species are waived for this GOLD metric.
+
+Post-hoc artifacts: `.tmp/competitor_analog_100_seed53_gold_v3_report.md`,
+`.tmp/competitor_analog_100_seed53_gold_v3_scorecard.csv`, and
+`.tmp/competitor_analog_100_seed53_top20_gold_v3.csv`. Original v1 run files
+remain unchanged; the v3 top-20 is an annotated copy with extra GOLD flags.
 
 ## Promotion rule
 

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import hmac
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from time import perf_counter
-from typing import Callable, Literal
+from typing import Annotated, Any, Callable, Literal
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 from .observability import (
     PROMETHEUS_CONTENT_TYPE,
@@ -20,20 +22,31 @@ from .observability import (
     log_operational_event,
     record_api_error,
     record_batch_size,
-    record_history_write,
     record_http_request,
     render_metrics,
     reset_request_id,
     resolve_request_id,
     set_request_id,
 )
-from .production import ProductionRuntime, build_production_runtime, match_products
+from .domain.medium import CatalogMedium, WorkingMedium, classify_medium_text
+from .application.matching import match_products
+from .application.request_history import RequestHistoryRecorder, RequestHistoryRecord
+from .application.shortlist import shortlist_product
+from .application.telemetry import NullTelemetry
+from .domain.query_signals import explicit_working_medium_from_query
+from .production import (
+    ProductionRuntime,
+    build_production_runtime,
+)
 
 logger = logging.getLogger(__name__)
 
 
+MatchQuery = Annotated[str, StringConstraints(min_length=1, max_length=4000)]
+
+
 class MatchRequest(BaseModel):
-    products: list[str] = Field(min_length=1)
+    products: list[MatchQuery] = Field(min_length=1)
 
     @field_validator("products")
     @classmethod
@@ -60,6 +73,91 @@ class MatchResponse(BaseModel):
     latency_ms: float
 
 
+class AnalystQuery(BaseModel):
+    query: str = Field(min_length=1, max_length=4000)
+    working_medium: WorkingMedium
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("query must be a non-empty string")
+        return value
+
+    @model_validator(mode="after")
+    def validate_medium_consistency(self) -> AnalystQuery:
+        explicit = explicit_working_medium_from_query(self.query)
+        if explicit is None:
+            return self
+        parsed = classify_medium_text([explicit])
+        if parsed is CatalogMedium.UNKNOWN:
+            return self
+        if self.working_medium is WorkingMedium.UNKNOWN:
+            raise ValueError("working_medium must reflect the medium stated in query")
+        if parsed.value != self.working_medium.value:
+            raise ValueError("working_medium conflicts with the medium stated in query")
+        return self
+
+
+class ShortlistRequest(BaseModel):
+    queries: list[AnalystQuery] = Field(min_length=1)
+    max_candidates: int = Field(default=20, ge=1, le=20)
+
+
+class ShortlistMediumDetails(BaseModel):
+    requested: WorkingMedium
+    catalog_classification: Literal["GAS", "LIQUID", "BOTH", "UNKNOWN"]
+    disposition: Literal[
+        "MEDIUM_MATCH_REVIEW_REQUIRED",
+        "NEEDS_EVIDENCE",
+        "BLOCKED_CONFLICT",
+    ]
+
+
+class ShortlistCandidate(BaseModel):
+    rank: int
+    ld_id: int
+    article: str | None
+    name: str
+    url: str | None
+    retrieval_score: float | None
+    dense_score: float | None
+    dense_rank: int | None
+    bm25_score: float | None
+    bm25_rank: int | None
+    rrf_score: float | None
+    retrieval_sources: list[str]
+    attributes: dict[str, Any]
+    properties: list[dict[str, Any]]
+    reranker: dict[str, Any]
+    working_medium: ShortlistMediumDetails
+    gas_certification: Literal["UNVERIFIED"]
+    human_review_required: Literal[True]
+    automatic_approval: Literal[False]
+
+
+class ShortlistResult(BaseModel):
+    input: str
+    status: Literal["REVIEW_REQUIRED", "NO_CANDIDATES", "ERROR"]
+    error_code: str | None
+    requested_medium: WorkingMedium
+    decision: Literal["REVIEW_REQUIRED"]
+    human_review_required: Literal[True]
+    automatic_approval: Literal[False]
+    candidates: list[ShortlistCandidate]
+    blocked_candidates: list[ShortlistCandidate]
+    candidate_count: int
+    blocked_candidate_count: int
+    candidate_pool_truncated: bool
+    pool_size: int
+
+
+class ShortlistResponse(BaseModel):
+    request_id: str
+    results: list[ShortlistResult]
+    latency_ms: float
+
+
 RuntimeFactory = Callable[[], ProductionRuntime]
 
 
@@ -70,6 +168,8 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         runtime = runtime_factory()
         app.state.runtime = runtime
+        telemetry = getattr(runtime.matcher, "telemetry", None) or NullTelemetry()
+        app.state.history_recorder = RequestHistoryRecorder(runtime.history, telemetry)
         try:
             yield
         finally:
@@ -85,6 +185,32 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    def openapi_with_bearer_auth():
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        schema.setdefault("components", {}).setdefault("securitySchemes", {})[
+            "BearerAuth"
+        ] = {"type": "http", "scheme": "bearer"}
+        for path, path_item in schema.get("paths", {}).items():
+            for operation in path_item.values():
+                if not isinstance(operation, dict):
+                    continue
+                operation["security"] = (
+                    []
+                    if path in {"/health/live", "/health/ready"}
+                    else [{"BearerAuth": []}]
+                )
+        app.openapi_schema = schema
+        return app.openapi_schema
+
+    app.openapi = openapi_with_bearer_auth
+
     @app.middleware("http")
     async def request_context_middleware(request: Request, call_next):
         request_id = resolve_request_id(request.headers.get("X-Request-ID"))
@@ -95,6 +221,14 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
         status_code = 500
         response = None
         try:
+            if not _is_authorized(request):
+                response = JSONResponse(
+                    status_code=401,
+                    content={"detail": "unauthorized"},
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+                status_code = response.status_code
+                return response
             response = await call_next(request)
             status_code = response.status_code
             return response
@@ -175,18 +309,19 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
                 if any(item.status == "ERROR" for item in response.results)
                 else "OK"
             )
-            _record_history_safely(
-                runtime,
-                request_id=request_id,
-                created_at=created_at,
-                completed_at=completed_at,
-                status=history_status,
-                http_status=200,
-                product_count=len(payload.products),
-                matched_count=matched_count,
-                latency_ms=latency_ms,
-                request_payload=request_payload,
-                response_payload=response_payload,
+            _history_recorder(request).record(
+                RequestHistoryRecord(
+                    request_id=request_id,
+                    created_at=created_at,
+                    completed_at=completed_at,
+                    status=history_status,
+                    http_status=200,
+                    product_count=len(payload.products),
+                    matched_count=matched_count,
+                    latency_ms=latency_ms,
+                    request_payload=request_payload,
+                    response_payload=response_payload,
+                ),
                 trace_enabled=trace_enabled,
             )
             not_found_count = sum(
@@ -228,19 +363,20 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
                 "request_id": request_id,
                 "error": "internal_error",
             }
-            _record_history_safely(
-                runtime,
-                request_id=request_id,
-                created_at=created_at,
-                completed_at=completed_at,
-                status="ERROR",
-                http_status=500,
-                product_count=len(payload.products),
-                matched_count=0,
-                latency_ms=latency_ms,
-                request_payload=request_payload,
-                response_payload=response_payload,
-                error=f"{type(exc).__name__}: {exc}",
+            _history_recorder(request).record(
+                RequestHistoryRecord(
+                    request_id=request_id,
+                    created_at=created_at,
+                    completed_at=completed_at,
+                    status="ERROR",
+                    http_status=500,
+                    product_count=len(payload.products),
+                    matched_count=0,
+                    latency_ms=latency_ms,
+                    request_payload=request_payload,
+                    response_payload=response_payload,
+                    error=f"{type(exc).__name__}: {exc}",
+                ),
                 trace_enabled=trace_enabled,
             )
             log_match_trace(
@@ -263,60 +399,112 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
             )
             return JSONResponse(status_code=500, content=response_payload)
 
+    @app.post("/v1/shortlist", response_model=ShortlistResponse)
+    def shortlist(payload: ShortlistRequest, request: Request):
+        runtime: ProductionRuntime = request.app.state.runtime
+        if len(payload.queries) > runtime.settings.api_max_batch_size:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    "Batch is too large. "
+                    f"Maximum size is {runtime.settings.api_max_batch_size}."
+                ),
+            )
+
+        request_id = get_request_id() or resolve_request_id(None)
+        created_at = datetime.now(timezone.utc)
+        started = perf_counter()
+        request_payload = payload.model_dump(mode="json")
+        trace_enabled = bool(getattr(runtime.settings, "match_trace_enabled", True))
+        record_batch_size(len(payload.queries))
+        log_match_trace(
+            "shortlist_request_started",
+            enabled=trace_enabled,
+            batch_size=len(payload.queries),
+            max_candidates=payload.max_candidates,
+        )
+
+        results = [
+            shortlist_product(
+                runtime.matcher,
+                item.query,
+                item.working_medium,
+                max_candidates=payload.max_candidates,
+            )
+            for item in payload.queries
+        ]
+        latency_ms = round((perf_counter() - started) * 1000, 3)
+        response = ShortlistResponse(
+            request_id=request_id,
+            results=results,
+            latency_ms=latency_ms,
+        )
+        response_payload = response.model_dump(mode="json")
+        completed_at = datetime.now(timezone.utc)
+        errors = sum(item["status"] == "ERROR" for item in results)
+        _history_recorder(request).record(
+            RequestHistoryRecord(
+                request_id=request_id,
+                created_at=created_at,
+                completed_at=completed_at,
+                status="PARTIAL_ERROR" if errors else "OK",
+                http_status=200,
+                product_count=len(results),
+                matched_count=sum(item["candidate_count"] > 0 for item in results),
+                latency_ms=latency_ms,
+                request_payload=request_payload,
+                response_payload=response_payload,
+            ),
+            trace_enabled=trace_enabled,
+        )
+        log_match_trace(
+            "shortlist_request_completed",
+            enabled=trace_enabled,
+            duration_ms=latency_ms,
+            batch_size=len(results),
+            error_count=errors,
+            suggestion_count=sum(item["candidate_count"] for item in results),
+        )
+        return response
+
     return app
 
 
-def _record_history_safely(
-    runtime: ProductionRuntime,
-    *,
-    request_id: str,
-    created_at: datetime,
-    completed_at: datetime,
-    status: str,
-    http_status: int,
-    product_count: int,
-    matched_count: int,
-    latency_ms: float,
-    request_payload: dict,
-    response_payload: dict,
-    error: str | None = None,
-    trace_enabled: bool = True,
-) -> None:
-    started = perf_counter()
-    log_match_trace("persist_started", enabled=trace_enabled)
-    try:
-        runtime.history.record(
-            request_id=request_id,
-            created_at=created_at,
-            completed_at=completed_at,
-            status=status,
-            http_status=http_status,
-            product_count=product_count,
-            matched_count=matched_count,
-            latency_ms=latency_ms,
-            request_payload=request_payload,
-            response_payload=response_payload,
-            error=error,
+def _is_authorized(request: Request) -> bool:
+    """Require bearer auth outside development; health probes stay public."""
+    if request.url.path in {
+        "/health/live",
+        "/health/ready",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/docs/oauth2-redirect",
+    }:
+        return True
+    runtime = getattr(request.app.state, "runtime", None)
+    settings = getattr(runtime, "settings", None)
+    configured = getattr(settings, "api_auth_token", "")
+    token = (
+        configured.get_secret_value()
+        if callable(getattr(configured, "get_secret_value", None))
+        else str(configured or "")
+    )
+    environment = str(getattr(settings, "app_env", "development")).lower()
+    if not token:
+        return environment not in {"production", "prod"}
+    scheme, separator, supplied = request.headers.get("Authorization", "").partition(" ")
+    return bool(
+        separator
+        and scheme.lower() == "bearer"
+        and hmac.compare_digest(
+            supplied.strip().encode("utf-8"),
+            token.encode("utf-8"),
         )
-    except Exception as exc:
-        duration = perf_counter() - started
-        record_history_write("ERROR", duration)
-        record_api_error("HISTORY_WRITE_FAILED")
-        log_match_trace(
-            "persist_failed",
-            enabled=trace_enabled,
-            duration_ms=round(duration * 1000, 3),
-            error_type=type(exc).__name__,
-        )
-        logger.exception("Failed to persist request/response history")
-    else:
-        duration = perf_counter() - started
-        record_history_write("OK", duration)
-        log_match_trace(
-            "persist_completed",
-            enabled=trace_enabled,
-            duration_ms=round(duration * 1000, 3),
-        )
+    )
+
+
+def _history_recorder(request: Request) -> RequestHistoryRecorder:
+    return request.app.state.history_recorder
 
 
 app = create_app()

@@ -10,6 +10,13 @@ from threading import RLock
 from time import perf_counter
 from typing import Any
 
+from .application.diagnostics import (
+    DIAGNOSTIC_CONSTRAINT_FIELDS as _DIAGNOSTIC_CONSTRAINT_FIELDS,
+    build_attribute_diagnostic,
+    classify_match_reason,
+    trim_text,
+)
+
 REQUEST_ID_HEADER = "X-Request-ID"
 PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 DEFAULT_HISTOGRAM_BUCKETS = (
@@ -106,62 +113,6 @@ def log_operational_event(
         summary=" ".join(str(summary or "").split())[:600],
         **payload,
     )
-
-
-def trim_text(value: Any, limit: int = 600) -> str:
-    return " ".join(str(value or "").split())[:limit]
-
-
-def classify_match_reason(status: str, reason: str | None) -> str:
-    if status == "MATCHED":
-        return "MATCHED"
-    text = str(reason or "").strip()
-    upper = text.upper()
-    if "HARD_CONSTRAINT_FILTER" in upper:
-        return "HARD_CONSTRAINT_FILTER"
-    if upper.startswith("QUERY_REJECTED"):
-        return "QUERY_REJECTED"
-    if upper.startswith("QUERY_INTERPRET_FAILED"):
-        return "QUERY_INTERPRET_FAILED"
-    if status in {"ERROR", "RERANK_FAILED"} or "RERANK_FAILED" in upper:
-        return "RERANK_FAILED"
-    if "NO EXACT MATCH" in upper or "NOT_FOUND" in upper:
-        return "RERANK_NOT_FOUND"
-    if not text:
-        return "UNSPECIFIED"
-    return "OTHER"
-
-
-def build_attribute_diagnostic(
-    before: dict[str, Any] | None,
-    after: dict[str, Any] | None,
-    hard: dict[str, Any] | None,
-) -> dict[str, Any]:
-    before = before or {}
-    after = after or {}
-    hard = hard or {}
-    changed_fields: list[str] = []
-    hard_conflicts: dict[str, dict[str, Any]] = {}
-    for field in _DIAGNOSTIC_CONSTRAINT_FIELDS:
-        before_value = before.get(field)
-        after_value = after.get(field)
-        hard_value = hard.get(field)
-        if before_value != after_value:
-            changed_fields.append(field)
-        if (
-            hard_value not in (None, "")
-            and after_value not in (None, "")
-            and hard_value != after_value
-        ):
-            hard_conflicts[field] = {
-                "hard": hard_value,
-                "enriched": after_value,
-            }
-    return {
-        "changed_fields": changed_fields,
-        "hard_conflict_fields": sorted(hard_conflicts),
-        "hard_conflicts": hard_conflicts,
-    }
 
 
 def log_match_trace(stage: str, *, enabled: bool = True, **payload: Any) -> None:
@@ -574,6 +525,9 @@ class ObservedEmbedder(_ObservedProxy):
 
 
 class ObservedQdrantStore(_ObservedProxy):
+    def collection_exists(self, name: str) -> bool:
+        return bool(self._target.collection_exists(name))
+
     def search(self, vector, limit):
         started = perf_counter()
         log_match_trace(

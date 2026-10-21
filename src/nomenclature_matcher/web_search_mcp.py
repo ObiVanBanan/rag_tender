@@ -8,7 +8,7 @@ from time import monotonic
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from .query_signals import has_product_identity, product_identity_anchors
+from .domain.query_signals import has_product_identity, product_identity_anchors
 
 
 _TARGET = re.compile(r"(?:https?://[^\s<>\"')\]]+|ref://[A-Za-z0-9._~-]+)")
@@ -211,15 +211,17 @@ class MCPWebSearchLookup:
         return ""
 
     def _server_args(self) -> list[str]:
-        return [
-            "--with",
-            self.package,
-            "--with",
-            "socksio>=1,<2",
-            "duckduckgo-mcp-server",
-            "--fetch-backend",
-            "auto",
-        ]
+        if self.command.rsplit("/", 1)[-1].lower() == "uvx":
+            return [
+                "--with",
+                self.package,
+                "--with",
+                "socksio>=1,<2",
+                "duckduckgo-mcp-server",
+                "--fetch-backend",
+                "auto",
+            ]
+        return ["--fetch-backend", "auto"]
 
     def _server_environment(self) -> dict[str, str]:
         env = {

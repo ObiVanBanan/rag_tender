@@ -15,6 +15,7 @@ dependencies = [
   "rank-bm25>=0.2.2",
   "duckdb>=1.1,<2",
   "mcp>=2.2,<3",
+  "duckduckgo-mcp-server[browser]",
   "fastapi>=0.116,<1",
   "uvicorn[standard]>=0.35,<1",
   "psycopg[binary]>=3.2,<4",

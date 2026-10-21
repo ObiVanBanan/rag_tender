@@ -1,6 +1,6 @@
 # Production API
 
-This branch wraps the validated rag-tender champion in a production-oriented HTTP service without changing the matching algorithm.
+This branch wraps the matcher in a production-oriented HTTP service. It adds a review-only candidate shortlist and explicit gas/liquid medium policy while preserving the existing `/v1/match` response contract.
 
 ## Runtime
 
@@ -13,7 +13,19 @@ This branch wraps the validated rag-tender champion in a production-oriented HTT
 
 The API runs with one Uvicorn worker by default because the product catalog and BM25 index are kept in memory. Increasing workers duplicates that memory.
 
-Qdrant and PostgreSQL are bound to `127.0.0.1` on the host by default; only the API port is exposed on all interfaces.
+The production image installs Python dependencies from `uv.lock` with `uv sync --locked`. Update dependencies by reviewing `pyproject.toml`, regenerating `uv.lock`, running the test suite, and rebuilding the image. The DuckDuckGo MCP executable is installed from that same lock; `WEB_SEARCH_MCP_COMMAND=uvx` remains supported for deployments that intentionally prefer the legacy ephemeral runner.
+
+PostgreSQL and the API publish host ports on `127.0.0.1` by default. Qdrant has no published host port and is reachable only on the Compose backend network. Remote API access should go through a TLS-terminating reverse proxy.
+Compose generates project-scoped container names to avoid collisions with
+other deployments. Services use Compose DNS names (`qdrant`, `postgres`) for
+internal traffic and stable network aliases for the shared observability
+network.
+The API container runs as UID 10001 with a read-only root filesystem, a bounded
+temporary filesystem, all Linux capabilities dropped, and privilege escalation
+disabled. Its competitor knowledge database is stored on the dedicated writable
+`competitor_kb` volume. Before API startup, a one-shot isolated init container
+assigns that volume to UID 10001; it has only the `CHOWN` capability, no network,
+and does not read or modify database contents.
 
 ## First start
 
@@ -30,8 +42,27 @@ Set at least these values in `.env`:
 ```text
 OPENAI_API_KEY=...
 DEEPSEEK_API_KEY=...
-POSTGRES_PASSWORD=change-me
+POSTGRES_PASSWORD=<unique random password>
+API_DATABASE_USER=rag_tender_api
+API_DATABASE_PASSWORD=<unique random password>
+API_AUTH_TOKEN=<unique random bearer token, at least 32 characters>
 ```
+
+Generate high-entropy values locally, for example with
+`python -c "import secrets; print(secrets.token_urlsafe(48))"`; generate a distinct value for each secret. The API refuses
+to start in production without a sufficiently long `API_AUTH_TOKEN`. The normal
+Compose profile publishes the API only on `127.0.0.1`; put a TLS reverse proxy
+in front of it for remote access. `/health/live` and `/health/ready` remain
+unauthenticated for container health checks. The docs and OpenAPI schema are
+public and declare bearer auth for operational routes; matching and metrics
+require `Authorization: Bearer <API_AUTH_TOKEN>`.
+
+`POSTGRES_USER` and `POSTGRES_PASSWORD` are reserved for the database
+administration and migration job. Compose provisions `API_DATABASE_USER` as a
+separate non-superuser role; each migration run resets its role memberships and
+public-schema grants to an allowlist. The API can connect, read the schema
+migration version, and insert request-history records, but cannot create or
+alter schema. Keep `API_DATABASE_USER` distinct from `POSTGRES_USER`.
 
 Then start the stack:
 
@@ -40,7 +71,10 @@ docker compose up -d --build
 docker compose ps
 ```
 
-The `qdrant-init` one-shot container restores `qdrant/steel_products_active.snapshot` only when the collection does not already exist. It fails with a clear message if the snapshot is still a Git LFS pointer.
+The `qdrant-init` one-shot container restores `qdrant/steel_products_active.snapshot` only when the collection does not already exist. It fails with a clear message if the snapshot is still a Git LFS pointer. The `db-migrate` one-shot container applies versioned SQL migrations before the API starts. The API checks the migration state and never changes the database schema itself.
+The `competitor-kb-init` one-shot container normalizes ownership on the existing
+knowledge volume before API startup so the non-root API can update its SQLite
+database. It is isolated from the network and receives only `CAP_CHOWN`.
 
 ## Health and docs
 
@@ -81,9 +115,16 @@ $body = @{
 Invoke-RestMethod `
   -Method Post `
   -Uri http://localhost:8000/v1/match `
+  -Headers @{ Authorization = "Bearer $env:API_AUTH_TOKEN" } `
   -ContentType "application/json" `
   -Body $body
 ```
+
+For the analyst shortlist use `POST /v1/shortlist` with each query's requested
+`working_medium` (`GAS`, `LIQUID`, or `UNKNOWN`). Each result contains the
+candidate pool and evidence, with conflicting media separated into
+`blocked_candidates`. A medium match still requires human review; it does not
+establish product suitability or gas certification.
 
 Response contract:
 
@@ -122,6 +163,11 @@ Every completed matching API call is written to PostgreSQL table `rag_match_requ
 - product count and match count;
 - HTTP/status information;
 - request-level error, when present.
+
+Database schema changes are stored under `migrations/` and tracked in
+`rag_schema_migrations`. Compose runs this migration step before the API. For
+manual deployments, apply the SQL migration and record its version before
+starting the service.
 
 Inspect recent calls:
 

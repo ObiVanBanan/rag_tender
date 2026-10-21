@@ -138,15 +138,18 @@ docker network inspect rag-observability-net >/dev/null 2>&1 || \
   docker network create rag-observability-net
 ```
 
-The current shared monitoring stack scrapes:
+The Compose project generates container names from the project and service,
+so monitoring integrations should not depend on fixed Docker container names.
+Stable DNS aliases on `rag-observability-net` are:
 
 ```text
 rag-observability-api:8000/metrics
 rag-observability-qdrant:6333/metrics
 ```
 
-Alloy discovers both `rag-tender-api` and `rag-observability-api` container
-names and normalizes them to the Loki label:
+For Docker log discovery, Alloy should select containers through the Compose
+labels `com.docker.compose.project` and `com.docker.compose.service`, then
+normalize the service label for Loki:
 
 ```text
 service=rag-tender-api

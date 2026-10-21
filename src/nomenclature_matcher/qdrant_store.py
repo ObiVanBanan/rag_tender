@@ -11,6 +11,9 @@ class QdrantStore:
         if not self.client.collection_exists(name):
             self.client.create_collection(name, vectors_config={self.settings.qdrant_dense_vector_name: models.VectorParams(size=self.settings.embedding_dimension, distance=models.Distance.COSINE)})
 
+    def collection_exists(self, name: str) -> bool:
+        return bool(self.client.collection_exists(name))
+
     def upsert(self, points):
         self.client.upsert(self.settings.qdrant_collection_alias, points=models.Batch(ids=[p[0] for p in points], vectors={self.settings.qdrant_dense_vector_name: [p[1] for p in points]}, payloads=[p[2] for p in points]))
 

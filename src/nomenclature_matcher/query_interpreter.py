@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from .competitor_decoding import decode_competitor_query
 from .query_canonicalization import build_constraint_rendered_query
-from .query_constraints import QueryConstraints
-from .query_signals import (
+from .domain.constraints import QueryConstraints
+from .domain.query_signals import (
     explicit_dn_from_query,
     explicit_joining_type_from_query,
     explicit_pn_mpa_from_query,

@@ -1,18 +1,18 @@
 services:
   qdrant:
     image: qdrant/qdrant:v1.19.1
-    container_name: rag-tender-qdrant
     volumes:
       - qdrant_storage:/qdrant/storage
       - ./qdrant:/qdrant/snapshots:ro
     restart: unless-stopped
     networks:
-      - backend
-      - observability
+      backend: {}
+      observability:
+        aliases:
+          - rag-tender-qdrant
 
   qdrant-init:
     image: curlimages/curl:8.12.1
-    container_name: rag-tender-qdrant-init
     depends_on:
       qdrant:
         condition: service_started
@@ -22,10 +22,10 @@ services:
       - ./qdrant:/snapshots:ro
     entrypoint: ["/bin/sh", "-ec"]
     command: |
-      until curl -fsS http://rag-tender-qdrant:6333/collections >/dev/null; do
+      until curl -fsS http://qdrant:6333/collections >/dev/null; do
         sleep 2
       done
-      if curl -fsS "http://rag-tender-qdrant:6333/collections/$$QDRANT_COLLECTION_ALIAS" >/dev/null 2>&1; then
+      if curl -fsS "http://qdrant:6333/collections/$$QDRANT_COLLECTION_ALIAS" >/dev/null 2>&1; then
         echo "Qdrant collection $$QDRANT_COLLECTION_ALIAS already exists; snapshot restore skipped."
         exit 0
       fi
@@ -38,18 +38,17 @@ services:
         echo "Snapshot is only a Git LFS pointer. Run: git lfs pull"
         exit 1
       fi
-      curl -fsS -X PUT "http://rag-tender-qdrant:6333/collections/$$QDRANT_COLLECTION_ALIAS/snapshots/recover?wait=true" -H "Content-Type: application/json" -d "{\"location\":\"file:///qdrant/snapshots/$$QDRANT_COLLECTION_ALIAS.snapshot\"}"
+      curl -fsS -X PUT "http://qdrant:6333/collections/$$QDRANT_COLLECTION_ALIAS/snapshots/recover?wait=true" -H "Content-Type: application/json" -d "{\"location\":\"file:///qdrant/snapshots/$$QDRANT_COLLECTION_ALIAS.snapshot\"}"
       echo "Qdrant snapshot restored."
     networks:
       - backend
 
   postgres:
     image: postgres:16-alpine
-    container_name: rag-tender-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-rag_tender}
       POSTGRES_USER: ${POSTGRES_USER:-rag_tender}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag_tender}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -68,31 +67,121 @@ services:
       - backend
       - observability
 
+  db-migrate:
+    image: postgres:16-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-rag_tender}
+      PGUSER: ${POSTGRES_USER:-rag_tender}
+      PGPASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+      API_DATABASE_USER: ${API_DATABASE_USER:-rag_tender_api}
+      API_DATABASE_PASSWORD: "${API_DATABASE_PASSWORD:?Set API_DATABASE_PASSWORD in .env}"
+    volumes:
+      - ./migrations:/migrations:ro
+    entrypoint: ["/bin/sh", "-ec"]
+    command: |
+      psql -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS rag_schema_migrations (version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())"
+      for migration in /migrations/*.sql; do
+        [ -f "$$migration" ] || continue
+        version=$${migration##*/}
+        version=$${version%.sql}
+        case "$$version" in [0-9][0-9][0-9][0-9]_[a-z0-9_]*) ;; *) echo "Invalid migration name: $$version"; exit 1 ;; esac
+        if ! psql -Atqc "SELECT 1 FROM rag_schema_migrations WHERE version = '$$version'" | grep -q 1; then
+          psql -v ON_ERROR_STOP=1 -f "$$migration"
+          psql -v ON_ERROR_STOP=1 -c "INSERT INTO rag_schema_migrations (version) VALUES ('$$version') ON CONFLICT DO NOTHING"
+        fi
+      done
+      if [ "$$API_DATABASE_USER" = "$$PGUSER" ]; then
+        echo "API_DATABASE_USER must differ from the PostgreSQL admin user"
+        exit 1
+      fi
+      psql -v ON_ERROR_STOP=1 <<'SQL'
+      \getenv app_user API_DATABASE_USER
+      \getenv app_password API_DATABASE_PASSWORD
+      \getenv app_database PGDATABASE
+      SELECT format(
+        'CREATE ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
+        :'app_user', :'app_password'
+      ) WHERE NOT EXISTS (
+        SELECT 1 FROM pg_roles WHERE rolname = :'app_user'
+      )
+      \gexec
+      SELECT format(
+        'ALTER ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
+        :'app_user', :'app_password'
+      )
+      \gexec
+      SELECT format('REVOKE %I FROM %I', granted_role.rolname, member_role.rolname)
+      FROM pg_auth_members AS memberships
+      JOIN pg_roles AS granted_role ON granted_role.oid = memberships.roleid
+      JOIN pg_roles AS member_role ON member_role.oid = memberships.member
+      WHERE member_role.rolname = :'app_user'
+      \gexec
+      REVOKE ALL PRIVILEGES ON DATABASE :"app_database" FROM :"app_user";
+      REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM :"app_user";
+      REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM :"app_user";
+      REVOKE ALL PRIVILEGES ON SCHEMA public FROM :"app_user";
+      GRANT CONNECT ON DATABASE :"app_database" TO :"app_user";
+      GRANT USAGE ON SCHEMA public TO :"app_user";
+      GRANT SELECT ON TABLE rag_schema_migrations TO :"app_user";
+      GRANT INSERT ON TABLE rag_match_requests TO :"app_user";
+      SQL
+    restart: "no"
+    networks:
+      - backend
+
+  competitor-kb-init:
+    image: python:3.11-slim@sha256:e88e9763f943ec1834f992a4b51e0f24500486803e8bc534e5767af9ea65f6ce
+    user: "0:0"
+    command: ["chown", "-R", "10001:10001", "/data"]
+    volumes:
+      - competitor_kb:/data
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+    network_mode: none
+    restart: "no"
+
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: rag-tender-api
     env_file:
       - .env
     environment:
       APP_ENV: production
-      QDRANT_URL: http://rag-tender-qdrant:6333
+      API_AUTH_TOKEN: "${API_AUTH_TOKEN:?Set API_AUTH_TOKEN in .env}"
+      # The env_file carries both compose and application settings. Remove
+      # database administration credentials before the API process starts.
+      POSTGRES_USER: ""
+      POSTGRES_PASSWORD: ""
+      API_DATABASE_PASSWORD: ""
+      QDRANT_URL: http://qdrant:6333
       PRODUCT_CSV_PATH: /data/ld_products_full_nomenclature.csv
-      DATABASE_URL: postgresql://${POSTGRES_USER:-rag_tender}:${POSTGRES_PASSWORD:-rag_tender}@postgres:5432/${POSTGRES_DB:-rag_tender}
+      DATABASE_URL: "postgresql://${API_DATABASE_USER:-rag_tender_api}:${API_DATABASE_PASSWORD:?Set API_DATABASE_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-rag_tender}"
       COMPETITOR_KB_PATH: /app/.rag_tender/competitor_kb.sqlite3
       COMPETITOR_CATALOG_REGISTRY_PATH: /app/data/competitor_catalogs/sources.json
       WEB_SEARCH_ENABLED: ${WEB_SEARCH_ENABLED:-false}
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     volumes:
       - ${PRODUCT_CSV_HOST_PATH:-./ld_products_full_nomenclature.csv}:/data/ld_products_full_nomenclature.csv:ro
       - competitor_kb:/app/.rag_tender
     depends_on:
       qdrant-init:
         condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      competitor-kb-init:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
@@ -105,10 +194,19 @@ services:
       timeout: 5s
       retries: 10
       start_period: 60s
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     networks:
-      - backend
-      - observability
+      backend: {}
+      observability:
+        aliases:
+          - rag-tender-api
 
 volumes:
   qdrant_storage:

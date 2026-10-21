@@ -11,11 +11,18 @@ Prerequisites: Docker, Docker Compose, Git LFS and API keys from `.env.example`.
 ```bash
 git lfs pull
 cp .env.example .env
+# Set OPENAI_API_KEY and DEEPSEEK_API_KEY, plus unique values for
+# POSTGRES_PASSWORD, API_DATABASE_PASSWORD, and API_AUTH_TOKEN (32+ random
+# characters; use distinct values). Run this command three times and paste
+# each output into its corresponding .env entry.
+python -c 'import secrets; print(secrets.token_urlsafe(48))'
 docker network inspect rag-observability-net >/dev/null 2>&1 || \
   docker network create rag-observability-net
 docker compose up -d --build
+set -a; . ./.env; set +a
 curl http://127.0.0.1:8000/health/ready
-curl http://127.0.0.1:8000/metrics | grep rag_tender_
+curl -H "Authorization: Bearer $API_AUTH_TOKEN" \
+  http://127.0.0.1:8000/metrics | grep rag_tender_
 ```
 
 The local catalog export `ld_products_full_nomenclature.csv` is intentionally
@@ -37,6 +44,7 @@ Example smoke request:
 ```bash
 curl -i -X POST http://127.0.0.1:8000/v1/match \
   -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $API_AUTH_TOKEN" \
   -H 'X-Request-ID: tender-smoke-001' \
   -d '{"products":["ball valve DN50 PN16"]}'
 ```
@@ -51,7 +59,8 @@ uv run pytest -q
 docker compose config
 ```
 
-The service joins the external Docker network `rag-observability-net` so the
+Compose applies the versioned request-history migration before starting the
+API. The service joins the external Docker network `rag-observability-net` so the
 shared Prometheus, Loki, Alloy and Grafana stack can observe it. Qdrant and
 PostgreSQL remain reachable through the application network; host exposure is
 kept only where local e2e workflows require it.

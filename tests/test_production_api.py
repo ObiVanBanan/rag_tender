@@ -4,7 +4,12 @@ from fastapi.testclient import TestClient
 
 from nomenclature_matcher.api import create_app
 from nomenclature_matcher.models import MatchResult, SearchCandidate, SelectedMatch
-from nomenclature_matcher.production import PostgresRequestHistory, _warm_web_search, match_products
+from nomenclature_matcher.production import (
+    PostgresRequestHistory,
+    ProductionRuntime,
+    _warm_web_search,
+    match_products,
+)
 
 
 class FakeMatcher:
@@ -34,6 +39,7 @@ class FakeMatcher:
             status="MATCHED",
             score=0.031,
             ld_product=candidate,
+            candidates=[candidate],
             selected=[selected],
         )
 
@@ -135,15 +141,85 @@ def test_api_rejects_oversized_batch():
     assert response.status_code == 413
 
 
+def test_api_rejects_unbounded_product_query():
+    runtime = FakeRuntime()
+    app = create_app(runtime_factory=lambda: runtime)
 
-def test_history_schema_accepts_external_request_ids():
+    with TestClient(app) as client:
+        response = client.post("/v1/match", json={"products": ["x" * 4001]})
+
+    assert response.status_code == 422
+    assert runtime.history.records == []
+
+
+def test_shortlist_route_returns_review_only_evidence():
+    runtime = FakeRuntime()
+    app = create_app(runtime_factory=lambda: runtime)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/shortlist",
+            json={
+                "queries": [
+                    {"query": "ball valve DN25", "working_medium": "GAS"}
+                ]
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json()["results"][0]
+    assert result["status"] == "REVIEW_REQUIRED"
+    assert result["decision"] == "REVIEW_REQUIRED"
+    assert result["human_review_required"] is True
+    assert result["automatic_approval"] is False
+    assert result["candidate_count"] == 1
+    assert result["candidates"][0]["gas_certification"] == "UNVERIFIED"
+    assert result["candidates"][0]["working_medium"]["requested"] == "GAS"
+    assert runtime.history.records[0]["product_count"] == 1
+
+
+def test_production_api_requires_bearer_token():
+    runtime = FakeRuntime()
+    runtime.settings.app_env = "production"
+    runtime.settings.api_auth_token = "production-test-token-at-least-32-chars"
+    app = create_app(runtime_factory=lambda: runtime)
+
+    with TestClient(app) as client:
+        unauthorized = client.post("/v1/match", json={"products": ["ok"]})
+        wrong_token = client.post(
+            "/v1/match",
+            headers={"Authorization": "Bearer wrong-token"},
+            json={"products": ["ok"]},
+        )
+        authorized = client.post(
+            "/v1/match",
+            headers={
+                "Authorization": f"Bearer {runtime.settings.api_auth_token}"
+            },
+            json={"products": ["ok"]},
+        )
+
+    assert unauthorized.status_code == 401
+    assert wrong_token.status_code == 401
+    assert authorized.status_code == 200
+
+
+
+def test_history_open_requires_applied_request_history_migration():
     class FakeConnection:
         def __init__(self):
             self.statements = []
+            self.current_statement = ""
 
         def execute(self, statement, *args):
             self.statements.append(str(statement))
+            self.current_statement = str(statement)
             return self
+
+        def fetchone(self):
+            if "to_regclass" in self.current_statement:
+                return ("rag_schema_migrations",)
+            return (True,)
 
     class ConnectionContext:
         def __init__(self, connection):
@@ -166,15 +242,18 @@ def test_history_schema_accepts_external_request_ids():
         def connection(self):
             return ConnectionContext(self.connection_object)
 
+        def close(self):
+            pass
+
     history = object.__new__(PostgresRequestHistory)
     history.open_timeout = 1
     history.pool = FakePool()
     history.open()
 
     sql = "\n".join(history.pool.connection_object.statements)
-    assert "request_id TEXT PRIMARY KEY" in sql
-    assert "ALTER COLUMN request_id TYPE TEXT" in sql
-    assert "USING request_id::text" in sql
+    assert "to_regclass('public.rag_schema_migrations')" in sql
+    assert "0001_request_history" in sql
+    assert "CREATE TABLE" not in sql
 
 
 
@@ -196,3 +275,31 @@ def test_runtime_warms_web_lookup_without_making_it_mandatory():
     bad = Lookup(fail=True)
     assert _warm_web_search(SimpleNamespace(competitor_lookup=bad)) is False
     assert bad.calls == 1
+
+
+def test_production_runtime_uses_health_ports_and_closes_resource_scope_once():
+    from contextlib import ExitStack
+
+    class History:
+        def ping(self):
+            return True
+
+    class Catalog:
+        def collection_exists(self, name):
+            return name == "steel_products_active"
+
+    closed = []
+    resources = ExitStack()
+    resources.callback(closed.append, "closed")
+    runtime = ProductionRuntime(
+        settings=SimpleNamespace(qdrant_collection_alias="steel_products_active"),
+        matcher=object(),
+        qdrant_store=Catalog(),
+        history=History(),
+        resources=resources,
+    )
+
+    assert runtime.ready() is True
+    runtime.close()
+    runtime.close()
+    assert closed == ["closed"]
