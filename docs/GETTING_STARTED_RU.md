@@ -17,7 +17,7 @@
 ```bash
 git clone https://github.com/ObiVanBanan/rag_trend.git
 cd rag_trend
-git switch docs/rag-tender-product-showcase-20261029
+git switch codex/catalog-first-technical-compatibility-v2
 git lfs install
 git lfs pull
 ```
@@ -27,7 +27,7 @@ git lfs pull
 ```powershell
 git clone https://github.com/ObiVanBanan/rag_trend.git
 Set-Location rag_trend
-git switch docs/rag-tender-product-showcase-20261029
+git switch codex/catalog-first-technical-compatibility-v2
 git lfs install
 git lfs pull
 Copy-Item .env.example .env
