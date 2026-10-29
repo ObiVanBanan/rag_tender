@@ -1,69 +1,167 @@
-# RAG Tender Observability
+<div align="center">
 
-Observability-enabled production branch of the RAG tender matcher. It keeps
-the matching pipeline and adds request correlation, Prometheus metrics and a
-structured stage trace for every request.
+# RAG Tender
 
-## Quick start
+**Поиск технически подходящих позиций каталога LD по строкам промышленных тендеров**
 
-Prerequisites: Docker, Docker Compose, Git LFS and API keys from `.env.example`.
+*Industrial tender nomenclature matching · Catalog-first + Hybrid RAG*
+
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Vector_DB-Qdrant-DC382D)
+![Status](https://img.shields.io/badge/status-Technical_Preview-orange)
+
+[Быстрый запуск](docs/GETTING_STARTED_RU.md) · [Архитектура](docs/ARCHITECTURE_RU.md) · [API](docs/API_RU.md) · [Качество](docs/QUALITY_RU.md) · [Roadmap](docs/ROADMAP_RU.md)
+
+</div>
+
+---
+
+## Задача
+
+В промышленном тендере товар часто описан свободным текстом: сокращения, ГОСТ, Ду/Ру, торговые обозначения, артикулы других производителей. Обычный семантический поиск может предложить похожий по названию, но **технически несовместимый** товар.
+
+**RAG Tender** принимает список таких строк и формирует предложения из каталога LD. В основе — разбор технических параметров, распознавание обозначений конкурентов, гибридный поиск и проверка ограничений. Для инженерной проверки предусмотрен отдельный маршрут с кандидатами и объясняющими атрибутами.
+
+> **Статус: Technical Preview.** Это рабочая кодовая база API и исследовательский прототип для подбора *с обязательной проверкой специалистом*, а не сертифицированный автоматический подбор промышленной арматуры. Не использовать ответ как разрешение на монтаж или закупку без инженерной верификации.
+
+## Возможности текущей ветки
+
+| Возможность | Реализация |
+|---|---|
+| Пакетный подбор | `POST /v1/match`, вход — массив строк `products` |
+| Инженерный shortlist | `POST /v1/shortlist`: список кандидатов, характеристики, признаки блокировки и необходимость ручной проверки |
+| Распознавание технических параметров | DN/PN, материалы, присоединение, управление, проход, среда и идентичность модели — в пределах поддерживаемых правил |
+| Конкурентные обозначения | Каталог-ориентированный resolver и provenance-aware база знаний для MARSHAL / ALSO / TEMPER |
+| Поиск | Dense embeddings (OpenAI) + BM25 + Reciprocal Rank Fusion + технический prefilter |
+| Выбор кандидата | DeepSeek-интерпретация запроса и reranking; second-chance retrieval при необходимости |
+| Надёжность API | Bearer token, лимит размера пакета, process-local admission/quota, health checks |
+| Аудит запросов | PostgreSQL хранит снимки полных запросов и ответов; `X-Request-ID` для корреляции |
+| Наблюдаемость | `/metrics` (Prometheus), структурированные stage traces для внешнего Grafana/Loki |
+
+**Чего пока нет в этой интеграционной ветке:** единого законченного веб-кабинета, интерактивного изменения top-10 и атрибутов, интегрированного CSV-first UI. Эти направления исследуются в отдельных ветках/PR; см. [план](docs/ROADMAP_RU.md). Не путать `CSV` товарного каталога (он уже используется для BM25) с отдельным режимом CSV-first matching.
+
+## Как устроено решение
+
+```mermaid
+flowchart LR
+    A["Тендерные строки"] --> B["FastAPI"]
+    B --> C["Интерпретация и ограничения"]
+    C --> D["Catalog-first resolver"]
+    D --> E["Hybrid retrieval"]
+    E --> F["Dense / Qdrant"]
+    E --> G["BM25 / LD CSV"]
+    F --> H["RRF + technical prefilter"]
+    G --> H
+    H --> I["DeepSeek rerank"]
+    I --> J["Compatibility / review policy"]
+    J --> K["Ответ API"]
+    B --> L[("PostgreSQL history")]
+    K --> L
+```
+
+Подробнее: [архитектурные слои, зависимости и sequence diagram](docs/ARCHITECTURE_RU.md).
+
+## Быстрый старт
+
+**Нужно:** Docker + Compose, Git LFS, Python 3.11+ (для локальной разработки), доступные OpenAI и DeepSeek API, оригинальный LD CSV с требуемой схемой. CSV **не входит в Git**. Подготовьте его до запуска в корне как `ld_products_full_nomenclature.csv`; Qdrant snapshot поставляется через Git LFS. Для демонстрации **без данных и API-ключей** подойдут только offline unit-тесты — API не запустится.
 
 ```bash
+git clone https://github.com/ObiVanBanan/rag_trend.git
+cd rag_trend
+git switch codex/catalog-first-technical-compatibility-v2
+git lfs install
 git lfs pull
 cp .env.example .env
-# Set OPENAI_API_KEY and DEEPSEEK_API_KEY, plus unique values for
-# POSTGRES_PASSWORD, API_DATABASE_PASSWORD, and API_AUTH_TOKEN (32+ random
-# characters; use distinct values). Run this command three times and paste
-# each output into its corresponding .env entry.
-python -c 'import secrets; print(secrets.token_urlsafe(48))'
-docker network inspect rag-observability-net >/dev/null 2>&1 || \
-  docker network create rag-observability-net
+# Заполните .env: OPENAI_API_KEY, DEEPSEEK_API_KEY,
+# POSTGRES_PASSWORD, API_DATABASE_PASSWORD, API_AUTH_TOKEN.
+# Разместите ld_products_full_nomenclature.csv в корне.
+docker network create rag-observability-net
 docker compose up -d --build
-set -a; . ./.env; set +a
 curl http://127.0.0.1:8000/health/ready
-curl -H "Authorization: Bearer $API_AUTH_TOKEN" \
-  http://127.0.0.1:8000/metrics | grep rag_tender_
 ```
 
-The local catalog export `ld_products_full_nomenclature.csv` is intentionally
-not stored in Git. Provide it through `PRODUCT_CSV_PATH` when running an index
-build or start-up workflow.
+Команда `docker network create` выполняется один раз; если сеть уже существует, используйте её. Никаких реальных токенов или паролей в репозитории быть не должно. Для каждого из трёх локальных секретов используйте **разные** случайные значения; token не короче 32 символов. `.env` не коммитить.
 
-## Observability contract
+Пошаговая установка для Windows/PowerShell и Linux/macOS, диагностика и безопасное развёртывание: **[GETTING_STARTED_RU.md](docs/GETTING_STARTED_RU.md)**. Полное описание production: [PRODUCTION.md](PRODUCTION.md).
 
-- `X-Request-ID` is accepted or generated by the API.
-- The ID is returned in the response header and JSON payload.
-- Request history is persisted in PostgreSQL.
-- Structured `match_trace` logs cover `interpreter`, `embedding`, `qdrant`,
-  `rerank` and `persist` stages.
-- Metrics use the `rag_tender_` prefix and include latency, batch size,
-  outcomes and dependency errors.
+## Пример API
 
-Example smoke request:
+**Запрос** (с установленной переменной `API_AUTH_TOKEN`):
 
 ```bash
-curl -i -X POST http://127.0.0.1:8000/v1/match \
-  -H 'Content-Type: application/json' \
+curl -X POST http://127.0.0.1:8000/v1/match \
   -H "Authorization: Bearer $API_AUTH_TOKEN" \
-  -H 'X-Request-ID: tender-smoke-001' \
-  -d '{"products":["ball valve DN50 PN16"]}'
+  -H "Content-Type: application/json" \
+  -d '{"products":["Кран шаровой стальной Ду50 Ру16 для воды"]}'
 ```
 
-Search Loki/Grafana for `request_id=tender-smoke-001`.
+**Структура ответа (иллюстрация, не результат реального прогона):**
 
-## Development
+```json
+{
+  "request_id": "generated-id",
+  "results": [
+    {
+      "input": "Кран шаровой стальной Ду50 Ру16 для воды",
+      "status": "NOT_FOUND",
+      "matched_name": null,
+      "matched_article": null,
+      "score": null,
+      "confidence": null,
+      "error_code": null
+    }
+  ],
+  "latency_ms": 0.0
+}
+```
+
+В реальном ответе `status` может быть `MATCHED`, `NOT_FOUND` или `ERROR`. `matched_name` и `matched_article` заполняются только при подборе. `confidence` — оценка reranker, **не** подтверждённая вероятность инженерной совместимости. Для ревью используйте `/v1/shortlist`, а не автоматически принимайте `/v1/match`.
+
+Полный контракт: [docs/API_RU.md](docs/API_RU.md) · интерактивная OpenAPI: `http://127.0.0.1:8000/docs` после запуска.
+
+## Качество и ограничения
+
+Контрольный **DEV frozen-100, seed 53** на конфигурации от **20 октября 2026 г.**: **34/100 top-1 hit-any**, **92/100 acceptable в широком pool**, **83/100 в top-20 reranker**. Постфактум после корректировки эталонных меток — **39/100**, *без нового прогона модели*. Это показатели попаданий относительно GOLD, не сертификат безопасности и **не** финальный holdout/production SLA. Подробнее о методике и оговорках: [QUALITY_RU.md](docs/QUALITY_RU.md) и [эксперименты](docs/EXPERIMENTS.md).
+
+Критичные параметры — рабочая среда (газ/жидкость), DN, PN, присоединение, материалы, тип прохода, привод и исполнение. Неизвестные факты требуют дополнительного подтверждения. Строительная длина и виды газа намеренно не входили в отдельную метрику ревизии GOLD; это **не** освобождает от инженерной проверки.
+
+## Структура проекта
+
+```text
+src/nomenclature_matcher/
+  api.py                # FastAPI, auth, request contracts
+  application/          # use cases, selection, reranking, history
+  domain/               # products, constraints, medium, identity
+  infrastructure/       # Postgres, catalog KB, adapters
+  matcher.py            # facade к конвейеру подбора
+  production.py         # composition root
+data/competitor_catalogs/ # правила и источники по конкурентам
+migrations/             # версия схемы истории
+qdrant/                 # snapshot в Git LFS
+scripts/                # batch, index, smoke и evaluation
+tests/                  # контрактные и регрессионные тесты
+docs/                   # руководство, архитектура, качество
+```
+
+## Разработка
 
 ```bash
-uv sync
-uv run pytest -q
-docker compose config
+uv sync --locked --extra test
+uv run python -m pytest -q tests
 ```
 
-Compose applies the versioned request-history migration before starting the
-API. The service joins the external Docker network `rag-observability-net` so the
-shared Prometheus, Loki, Alloy and Grafana stack can observe it. Qdrant and
-PostgreSQL remain reachable through the application network; host exposure is
-kept only where local e2e workflows require it.
+Тесты не заменяют full-stack проверку с настоящими поставщиками API, Qdrant и PostgreSQL. Перед production rollout проверьте [release gates](docs/ROADMAP_RU.md) и [security policy](SECURITY.md).
 
-See [OBSERVABILITY.md](OBSERVABILITY.md) and [PRODUCTION.md](PRODUCTION.md)
-for operational details.
+## Документация
+
+- [Установка и конфигурация](docs/GETTING_STARTED_RU.md)
+- [Архитектура и обработка запроса](docs/ARCHITECTURE_RU.md)
+- [API и примеры](docs/API_RU.md)
+- [Бенчмарки и политика технической совместимости](docs/QUALITY_RU.md)
+- [Roadmap / критерии релиза](docs/ROADMAP_RU.md)
+- [Эксплуатация](PRODUCTION.md) · [Observability](OBSERVABILITY.md)
+- [Вклад в проект](CONTRIBUTING.md) · [Уязвимости](SECURITY.md)
+
+**License:** лицензия пока не выбрана; наличие публичного исходного кода само по себе не предоставляет разрешения на использование или распространение.
+
