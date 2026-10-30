@@ -14,7 +14,7 @@
 
 ## Technical-preview checks and remaining production gates
 
-- [x] UI-integrated `main` CI (merge commit `a7f48d7`): **267 passed, 1 skipped, 1 deprecation warning** — [GitHub Actions run 40999898702](https://github.com/ObiVanBanan/rag_trend/actions/runs/40999898702).
+- [x] UI-integrated `main` CI (merge commit `a7f48d7`): **267 passed, 1 skipped, 1 deprecation warning** — [GitHub Actions run 40999898702](https://github.com/ObiVanBanan/rag_tender/actions/runs/40999898702).
 - [x] PostgreSQL 16 migration smoke (including demo review schema), Compose validation and Docker image build passed in that run.
 - [ ] Independently validate the deployed browser UI against actual Qdrant/LD catalog/LLM providers.
 - [ ] Live E2E with real OpenAI/DeepSeek/Qdrant/PostgreSQL and correctly materialized LFS snapshot.

@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![Qdrant](https://img.shields.io/badge/Vector_DB-Qdrant-DC382D)
 ![Status](https://img.shields.io/badge/status-Technical_Preview-orange)
-[![CI](https://github.com/ObiVanBanan/rag_trend/actions/workflows/production-api.yml/badge.svg?branch=main)](https://github.com/ObiVanBanan/rag_trend/actions/workflows/production-api.yml)
+[![CI](https://github.com/ObiVanBanan/rag_tender/actions/workflows/production-api.yml/badge.svg?branch=main)](https://github.com/ObiVanBanan/rag_tender/actions/workflows/production-api.yml)
 
 [Демонстрация](docs/DEMO_RU.md) · [Быстрый запуск](docs/GETTING_STARTED_RU.md) · [Архитектура](docs/ARCHITECTURE_RU.md) · [API](docs/API_RU.md) · [Качество](docs/QUALITY_RU.md) · [Roadmap](docs/ROADMAP_RU.md)
 
@@ -74,8 +74,8 @@ flowchart LR
 **Нужно:** Docker + Compose, Git LFS, Python 3.11+ (для локальной разработки), доступные OpenAI и DeepSeek API, оригинальный LD CSV с требуемой схемой. CSV **не входит в Git**. Подготовьте его до запуска в корне как `ld_products_full_nomenclature.csv`; Qdrant snapshot поставляется через Git LFS. Для демонстрации **без данных и API-ключей** подойдут только offline unit-тесты — API не запустится.
 
 ```bash
-git clone https://github.com/ObiVanBanan/rag_trend.git
-cd rag_trend
+git clone https://github.com/ObiVanBanan/rag_tender.git
+cd rag_tender
 git lfs install
 git lfs pull
 cp .env.example .env

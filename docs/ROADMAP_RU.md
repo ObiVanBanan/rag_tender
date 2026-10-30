@@ -28,14 +28,14 @@
 | P1 | Безопасная публикация | TLS proxy, provider spend cap, секреты вне репо, мониторинг и backup/restore |
 | P2 | Deployment/scale | Нагрузочные тесты, общая quota при multi-worker, отдельный deploy наблюдаемости |
 
-UI перенесён из [PR #22](https://github.com/ObiVanBanan/rag_trend/pull/22); CSV-first из PR #27 намеренно не перенесён. Перенос исходного кода ещё не подтверждает успешный live E2E. Ссылки для навигации: [PR #15 business demo](https://github.com/ObiVanBanan/rag_trend/pull/15), [PR #27 CSV-first](https://github.com/ObiVanBanan/rag_trend/pull/27), [PR #32 verified catalog constraints](https://github.com/ObiVanBanan/rag_trend/pull/32).
+UI перенесён из [PR #22](https://github.com/ObiVanBanan/rag_tender/pull/22); CSV-first из PR #27 намеренно не перенесён. Перенос исходного кода ещё не подтверждает успешный live E2E. Ссылки для навигации: [PR #15 business demo](https://github.com/ObiVanBanan/rag_tender/pull/15), [PR #27 CSV-first](https://github.com/ObiVanBanan/rag_tender/pull/27), [PR #32 verified catalog constraints](https://github.com/ObiVanBanan/rag_tender/pull/32).
 
 ## Release gates
 
 ### Для Technical Preview
 
-- [x] Объединить catalog-first архитектуру и бизнес-демо в `main` ([PR #35](https://github.com/ObiVanBanan/rag_trend/pull/35), [PR #36](https://github.com/ObiVanBanan/rag_trend/pull/36)).
-- [x] Выполнить CI на интегрированном `main`: 267 passed, 1 skipped ([run 40999898702](https://github.com/ObiVanBanan/rag_trend/actions/runs/40999898702)).
+- [x] Объединить catalog-first архитектуру и бизнес-демо в `main` ([PR #35](https://github.com/ObiVanBanan/rag_tender/pull/35), [PR #36](https://github.com/ObiVanBanan/rag_tender/pull/36)).
+- [x] Выполнить CI на интегрированном `main`: 267 passed, 1 skipped ([run 40999898702](https://github.com/ObiVanBanan/rag_tender/actions/runs/40999898702)).
 - [x] Проверить Compose config, PostgreSQL migration smoke и Docker build в том же CI.
 - [ ] Поднять стенд с лицензированным LD CSV, materialized LFS snapshot и API-ключами.
 - [ ] Выполнить `scripts/smoke_production_e2e.py` и проверить два отдельных history snapshots на одинаковом `X-Request-ID`.

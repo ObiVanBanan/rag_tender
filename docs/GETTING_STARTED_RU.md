@@ -15,8 +15,8 @@
 ## 2. Получить код и данные
 
 ```bash
-git clone https://github.com/ObiVanBanan/rag_trend.git
-cd rag_trend
+git clone https://github.com/ObiVanBanan/rag_tender.git
+cd rag_tender
 git lfs install
 git lfs pull
 ```
@@ -24,8 +24,8 @@ git lfs pull
 Для Windows/PowerShell:
 
 ```powershell
-git clone https://github.com/ObiVanBanan/rag_trend.git
-Set-Location rag_trend
+git clone https://github.com/ObiVanBanan/rag_tender.git
+Set-Location rag_tender
 git lfs install
 git lfs pull
 Copy-Item .env.example .env
