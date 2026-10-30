@@ -28,11 +28,11 @@ services:
           exit 0
         fi
         SNAPSHOT="/snapshots/${QDRANT_COLLECTION_ALIAS:-steel_products_active}.snapshot"
-        if [ ! -f "$SNAPSHOT" ]; then
-          echo "Snapshot not found: $SNAPSHOT"
+        if [ ! -f "$$SNAPSHOT" ]; then
+          echo "Snapshot not found: $$SNAPSHOT"
           exit 1
         fi
-        if grep -q "git-lfs.github.com/spec" "$SNAPSHOT"; then
+        if grep -q "git-lfs.github.com/spec" "$$SNAPSHOT"; then
           echo "Snapshot is a Git LFS pointer. Run: git lfs pull"
           exit 1
         fi
