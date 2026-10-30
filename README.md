@@ -31,6 +31,8 @@
 | Возможность | Реализация |
 |---|---|
 | Пакетный подбор | `POST /v1/match`, вход — массив строк `products` |
+| Бизнес-демо | `/demo`: top-10 кандидатов LD, изменение характеристик, выбор/отклонение, полные слепки запросов и ответов в браузере |
+| Статистика демо | `/demo/stats`: четыре графика по реальным событиям PostgreSQL, отдельный доступ администратора |
 | Инженерный shortlist | `POST /v1/shortlist`: список кандидатов, характеристики, признаки блокировки и необходимость ручной проверки |
 | Распознавание технических параметров | DN/PN, материалы, присоединение, управление, проход, среда и идентичность модели — в пределах поддерживаемых правил |
 | Конкурентные обозначения | Каталог-ориентированный resolver и provenance-aware база знаний для MARSHAL / ALSO / TEMPER |
@@ -40,7 +42,7 @@
 | Аудит запросов | PostgreSQL хранит снимки полных запросов и ответов; `X-Request-ID` для корреляции |
 | Наблюдаемость | `/metrics` (Prometheus), структурированные stage traces для внешнего Grafana/Loki |
 
-**Чего пока нет в этой интеграционной ветке:** единого законченного веб-кабинета, интерактивного изменения top-10 и атрибутов, интегрированного CSV-first UI. Эти направления исследуются в отдельных ветках/PR; см. [план](docs/ROADMAP_RU.md). Не путать `CSV` товарного каталога (он уже используется для BM25) с отдельным режимом CSV-first matching.
+**В этой ветке есть бизнес-демо** с top-10, ручной коррекцией и событиями проверки. **Не интегрировано:** экспериментальное CSV-first → RAG сопоставление из отдельного PR. LD CSV для BM25 — не то же самое, что файлы CSV-маппингов.
 
 ## Как устроено решение
 
@@ -65,7 +67,7 @@ flowchart LR
 
 ## Демо
 
-Для быстрого знакомства без доступа к инфраструктуре: [пошаговый сценарий демонстрации, вопросы и ограничения](docs/DEMO_RU.md). Для live-демо требуются LD CSV, материализованный Qdrant snapshot и собственные OpenAI/DeepSeek ключи; без них готовый результат на API обещать нельзя. `/docs` показывает HTTP-контракт, но **веб-кабинет с выбором top-10 и CSV-first режим в эту ветку не интегрированы**.
+Для быстрого знакомства без доступа к инфраструктуре: [пошаговый сценарий демонстрации, вопросы и ограничения](docs/DEMO_RU.md). Для live-демо требуются LD CSV, материализованный Qdrant snapshot и собственные OpenAI/DeepSeek ключи; без них готовый результат на API обещать нельзя. Для показа откройте `http://127.0.0.1:8002/demo`, для статистики — `/demo/stats`. Настройте отдельные `PUBLIC_DEMO_PASSWORD` и `PUBLIC_DEMO_ADMIN_PASSWORD`. В браузере применяется HTTP Basic (публичный доступ только через HTTPS); `/v1/match` и `/v1/shortlist` по-прежнему требуют Bearer token. CSV-first fallback сюда не перенесён.
 
 ## Быстрый старт
 
@@ -78,7 +80,8 @@ git lfs install
 git lfs pull
 cp .env.example .env
 # Заполните .env: OPENAI_API_KEY, DEEPSEEK_API_KEY,
-# POSTGRES_PASSWORD, API_DATABASE_PASSWORD, API_AUTH_TOKEN.
+# POSTGRES_PASSWORD, API_DATABASE_PASSWORD, API_AUTH_TOKEN,
+# PUBLIC_DEMO_PASSWORD, PUBLIC_DEMO_ADMIN_PASSWORD.
 # Разместите ld_products_full_nomenclature.csv в корне.
 docker network create rag-observability-net
 docker compose up -d --build
@@ -134,7 +137,10 @@ curl -X POST http://127.0.0.1:8002/v1/match \
 
 ```text
 src/nomenclature_matcher/
-  api.py                # FastAPI, auth, request contracts
+  api.py                # FastAPI, API Bearer + demo Basic auth
+  business_demo.py      # бизнес-маршруты, top-10 и коррекции
+  business_demo*.html   # автономные страницы UI и статистики
+  demo_feedback.py      # audit trail решений в PostgreSQL
   application/          # use cases, selection, reranking, history
   domain/               # products, constraints, medium, identity
   infrastructure/       # Postgres, catalog KB, adapters
