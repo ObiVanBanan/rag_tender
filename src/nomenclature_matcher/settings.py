@@ -1,3 +1,5 @@
+from pydantic import Field, SecretStr
+
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except ImportError:  # pragma: no cover - only for a not-yet-installed environment
@@ -17,6 +19,23 @@ except ImportError:  # pragma: no cover - only for a not-yet-installed environme
 class Settings(BaseSettings):
     app_env: str = "development"
     log_level: str = "INFO"
+
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    api_max_batch_size: int = Field(default=100, ge=1)
+    # Process-local admission: one costly batch active by default, no more
+    # than 500 item attempts per rolling hour (not a monetary guarantee).
+    api_max_inflight_batches: int = Field(default=1, ge=1)
+    api_max_items_per_hour: int = Field(default=500, ge=1)
+    api_auth_token: SecretStr = SecretStr("")
+    product_csv_path: str = "ld_products_full_nomenclature.csv"
+    database_url: str = ""
+    db_pool_min_size: int = 1
+    db_pool_max_size: int = 5
+    db_connect_timeout_seconds: float = 10
+    match_trace_enabled: bool = True
+    match_trace_detailed_enabled: bool = False
+
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection_alias: str = "steel_products_active"
     qdrant_dense_vector_name: str = "dense"
@@ -35,9 +54,29 @@ class Settings(BaseSettings):
     deepseek_timeout_seconds: float = 20
     query_interpreter_enabled: bool = True
     query_interpreter_system_prompt_path: str = "src/nomenclature_matcher/prompts/query_interpreter_system.md"
+
+    web_search_enabled: bool = False
+    web_search_mcp_command: str = "duckduckgo-mcp-server"
+    web_search_mcp_package: str = "duckduckgo-mcp-server[browser]"
+    web_search_max_results: int = 6
+    web_search_fetch_pages: int = 3
+    web_search_fetch_chars: int = 5000
+    web_search_timeout_seconds: float = 8
+    web_search_startup_timeout_seconds: float = 30
+    web_search_region: str = "wt-wt"
+    web_search_proxy_url: str = ""
+    web_search_circuit_breaker_failures: int = 3
+    web_search_circuit_breaker_cooldown_seconds: float = 300
+
+    competitor_resolver_enabled: bool = True
+    competitor_decoder_baseline_enabled: bool = False
+    competitor_kb_path: str = ".rag_tender/competitor_kb.sqlite3"
+    competitor_catalog_registry_path: str = "data/competitor_catalogs/sources.json"
+
     reranker_system_prompt_path: str = "src/nomenclature_matcher/prompts/reranker_system.md"
     hybrid_dense_limit: int = 50
     hybrid_bm25_limit: int = 50
+    hybrid_prefilter_pool_limit: int = 200
     hybrid_rerank_limit: int = 20
     rrf_k: int = 60
     rerank_candidate_limit: int = 20

@@ -1,0 +1,70 @@
+# Overrides for the observability stack, so it can run side by side with the
+# rag_tender stack on the same host:
+#   - project-scoped container names so it can run beside the main stack
+#   - API published on 127.0.0.1:8002
+#   - PostgreSQL published on 127.0.0.1:5436
+#   - Qdrant snapshots dir mounted rw (Qdrant needs to write snapshot temp files)
+#   - qdrant-init script passed as a single argv entry (Compose v5 shlex-split
+#     breaks multi-line `command: |` scripts)
+#   - internal traffic uses Compose service DNS names
+services:
+  qdrant:
+    volumes: !override
+      - qdrant_storage:/qdrant/storage
+      - ./qdrant:/qdrant/snapshots:rw
+    networks: !override
+      backend: {}
+      observability:
+        aliases:
+          - rag-observability-qdrant
+
+  qdrant-init:
+    entrypoint: !override ["/bin/sh", "-ec"]
+    command: !override
+      - |
+        until curl -fsS http://qdrant:6333/collections >/dev/null; do sleep 2; done
+        if curl -fsS "http://qdrant:6333/collections/${QDRANT_COLLECTION_ALIAS:-steel_products_active}" >/dev/null 2>&1; then
+          echo "Qdrant collection already exists; snapshot restore skipped."
+          exit 0
+        fi
+        SNAPSHOT="/snapshots/${QDRANT_COLLECTION_ALIAS:-steel_products_active}.snapshot"
+        if [ ! -f "$$SNAPSHOT" ]; then
+          echo "Snapshot not found: $$SNAPSHOT"
+          exit 1
+        fi
+        if grep -q "git-lfs.github.com/spec" "$$SNAPSHOT"; then
+          echo "Snapshot is a Git LFS pointer. Run: git lfs pull"
+          exit 1
+        fi
+        curl -fsS -X PUT "http://qdrant:6333/collections/${QDRANT_COLLECTION_ALIAS:-steel_products_active}/snapshots/recover?wait=true" -H "Content-Type: application/json" -d "{\"location\":\"file:///qdrant/snapshots/${QDRANT_COLLECTION_ALIAS:-steel_products_active}.snapshot\"}"
+        echo "Qdrant snapshot restored."
+
+  postgres:
+    ports: !override
+      - "127.0.0.1:5436:5432"
+
+  api:
+    ports: !override
+      - "127.0.0.1:${API_PORT:-8002}:8000"
+    networks: !override
+      backend: {}
+      observability:
+        aliases:
+          - rag-observability-api
+    environment: !override
+      APP_ENV: production
+      API_AUTH_TOKEN: "${API_AUTH_TOKEN:?Set API_AUTH_TOKEN in .env}"
+      POSTGRES_USER: ""
+      POSTGRES_PASSWORD: ""
+      API_DATABASE_PASSWORD: ""
+      QDRANT_URL: http://qdrant:6333
+      PRODUCT_CSV_PATH: /data/ld_products_full_nomenclature.csv
+      DATABASE_URL: "postgresql://${API_DATABASE_USER:-rag_tender_api}:${API_DATABASE_PASSWORD:?Set API_DATABASE_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-rag_tender}"
+      COMPETITOR_KB_PATH: /app/.rag_tender/competitor_kb.sqlite3
+      COMPETITOR_CATALOG_REGISTRY_PATH: /app/data/competitor_catalogs/sources.json
+      WEB_SEARCH_ENABLED: ${WEB_SEARCH_ENABLED:-false}
+      HTTP_PROXY: ${OUTBOUND_PROXY_URL:-}
+      HTTPS_PROXY: ${OUTBOUND_PROXY_URL:-}
+      ALL_PROXY: ${OUTBOUND_PROXY_URL:-}
+      WEB_SEARCH_PROXY_URL: ${WEB_SEARCH_PROXY_URL:-}
+      NO_PROXY: localhost,127.0.0.1,postgres,qdrant,.local,172.16.0.0/12,10.0.0.0/8

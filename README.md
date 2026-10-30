@@ -1,251 +1,174 @@
-# Nomenclature Matcher MVP
+<div align="center">
 
-Сервис сопоставляет строки тендерной номенклатуры с товарами LD через hybrid retrieval: dense Qdrant + BM25 + RRF, затем LLM выбирает наиболее подходящий кандидат или возвращает `NOT_FOUND`.
+# RAG Tender
 
-1. Запустите Qdrant с volume: `docker run -d --name qdrant -p 6333:6333 -v qdrant_storage:/qdrant/storage qdrant/qdrant`
-2. Скопируйте `.env.example` в `.env` и задайте `OPENAI_API_KEY`.
-3. Постройте индекс: `python scripts/build_index.py --csv ld_products_full_nomenclature.csv`
-4. Проверьте dense baseline: `python scripts/search.py "Кран шаровой FF DN80 PN16" --mode dense`
-5. Проверьте основной MVP pipeline: `python scripts/search.py "Кран латунный шаровой муфтовый Д25" --mode hybrid-rerank`
-6. Batch JSON mapping: `printf '["Кран шаровой FF DN80 PN16", "Фланцы стальные"]' | python scripts/match_batch.py`
-7. Eval baseline: `python scripts/eval.py --experiment-name 2026-09-07-baseline`
-8. Тесты: `python -m pytest -q`
+**Поиск технически подходящих позиций каталога LD по строкам промышленных тендеров**
 
-## Golden 100: DeepSeek parser + strict deterministic silver labels
+*Industrial tender nomenclature matching · Catalog-first + Hybrid RAG*
 
-В `data/golden_queries_100.json` лежит набор из 100 тендероподобных запросов для harness/eval.
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Vector_DB-Qdrant-DC382D)
+![Status](https://img.shields.io/badge/status-Technical_Preview-orange)
 
-DeepSeek используется только как structured parser одной тендерной строки. Он извлекает известные ограничения, а строгий Python evaluator проверяет весь CSV-каталог LD.
+[Демонстрация](docs/DEMO_RU.md) · [Быстрый запуск](docs/GETTING_STARTED_RU.md) · [Архитектура](docs/ARCHITECTURE_RU.md) · [API](docs/API_RU.md) · [Качество](docs/QUALITY_RU.md) · [Roadmap](docs/ROADMAP_RU.md)
 
-Базовые правила:
+</div>
 
-- DN — exact;
-- PN — candidate PN >= query PN;
-- присоединение — exact;
-- направление резьбы — exact, если явно указано;
-- рабочая среда — exact, если явно указана;
-- тип товара — exact;
-- специальное исполнение шарового крана — exact; без специального типа нужен обычный `standard`;
-- точное LD-обозначение — exact, если оно явно указано;
-- материал корпуса и марка — exact, только если явно указаны;
-- проход — exact, если указан;
-- управление — exact, если указано.
+---
 
-Для golden truth действует дополнительное правило: если нужная характеристика товара отсутствует в каталоге, это `UNKNOWN`, а не автоматически подходящий/неподходящий товар. Поэтому `UNKNOWN` блокирует автоматическую разметку.
+## Задача
 
-Также parser возвращает `unsupported_constraints`. Температура, момент/напряжение привода, высота штока, ГОСТ, тип фланца, EPDM/NBR/PTFE, комплектность, референсная модель конкурента и другие пока не моделируемые требования автоматически отправляют query в `NEEDS_REVIEW`.
+В промышленном тендере товар часто описан свободным текстом: сокращения, ГОСТ, Ду/Ру, торговые обозначения, артикулы других производителей. Обычный семантический поиск может предложить похожий по названию, но **технически несовместимый** товар.
 
-### Повторный прогон после изменения schema/prompt
+**RAG Tender** принимает список таких строк и формирует предложения из каталога LD. В основе — разбор технических параметров, распознавание обозначений конкурентов, гибридный поиск и проверка ограничений. Для инженерной проверки предусмотрен отдельный маршрут с кандидатами и объясняющими атрибутами.
+
+> **Статус: Technical Preview.** Это рабочая кодовая база API и исследовательский прототип для подбора *с обязательной проверкой специалистом*, а не сертифицированный автоматический подбор промышленной арматуры. Не использовать ответ как разрешение на монтаж или закупку без инженерной верификации.
+
+## Возможности текущей ветки
+
+| Возможность | Реализация |
+|---|---|
+| Пакетный подбор | `POST /v1/match`, вход — массив строк `products` |
+| Инженерный shortlist | `POST /v1/shortlist`: список кандидатов, характеристики, признаки блокировки и необходимость ручной проверки |
+| Распознавание технических параметров | DN/PN, материалы, присоединение, управление, проход, среда и идентичность модели — в пределах поддерживаемых правил |
+| Конкурентные обозначения | Каталог-ориентированный resolver и provenance-aware база знаний для MARSHAL / ALSO / TEMPER |
+| Поиск | Dense embeddings (OpenAI) + BM25 + Reciprocal Rank Fusion + технический prefilter |
+| Выбор кандидата | DeepSeek-интерпретация запроса и reranking; second-chance retrieval при необходимости |
+| Надёжность API | Bearer token, лимит размера пакета, process-local admission/quota, health checks |
+| Аудит запросов | PostgreSQL хранит снимки полных запросов и ответов; `X-Request-ID` для корреляции |
+| Наблюдаемость | `/metrics` (Prometheus), структурированные stage traces для внешнего Grafana/Loki |
+
+**Чего пока нет в этой интеграционной ветке:** единого законченного веб-кабинета, интерактивного изменения top-10 и атрибутов, интегрированного CSV-first UI. Эти направления исследуются в отдельных ветках/PR; см. [план](docs/ROADMAP_RU.md). Не путать `CSV` товарного каталога (он уже используется для BM25) с отдельным режимом CSV-first matching.
+
+## Как устроено решение
+
+```mermaid
+flowchart LR
+    A["Тендерные строки"] --> B["FastAPI"]
+    B --> C["Интерпретация и ограничения"]
+    C --> D["Catalog-first resolver"]
+    D --> E["Hybrid retrieval"]
+    E --> F["Dense / Qdrant"]
+    E --> G["BM25 / LD CSV"]
+    F --> H["RRF + technical prefilter"]
+    G --> H
+    H --> I["DeepSeek rerank"]
+    I --> J["Compatibility / review policy"]
+    J --> K["Ответ API"]
+    B --> L[("PostgreSQL history")]
+    K --> L
+```
+
+Подробнее: [архитектурные слои, зависимости и sequence diagram](docs/ARCHITECTURE_RU.md).
+
+## Демо для коллеги
+
+Для быстрого знакомства без доступа к инфраструктуре: [пошаговый сценарий демонстрации, вопросы и ограничения](docs/DEMO_RU.md). Для live-демо требуются LD CSV, материализованный Qdrant snapshot и собственные OpenAI/DeepSeek ключи; без них готовый результат на API обещать нельзя. `/docs` показывает HTTP-контракт, но **веб-кабинет с выбором top-10 и CSV-first режим в эту ветку не интегрированы**.
+
+## Быстрый старт
+
+**Нужно:** Docker + Compose, Git LFS, Python 3.11+ (для локальной разработки), доступные OpenAI и DeepSeek API, оригинальный LD CSV с требуемой схемой. CSV **не входит в Git**. Подготовьте его до запуска в корне как `ld_products_full_nomenclature.csv`; Qdrant snapshot поставляется через Git LFS. Для демонстрации **без данных и API-ключей** подойдут только offline unit-тесты — API не запустится.
 
 ```bash
-python scripts/auto_label_golden.py --force-reparse --sync-labels
+git clone https://github.com/ObiVanBanan/rag_trend.git
+cd rag_trend
+git lfs install
+git lfs pull
+cp .env.example .env
+# Заполните .env: OPENAI_API_KEY, DEEPSEEK_API_KEY,
+# POSTGRES_PASSWORD, API_DATABASE_PASSWORD, API_AUTH_TOKEN.
+# Разместите ld_products_full_nomenclature.csv в корне.
+docker network create rag-observability-net
+docker compose up -d --build
+curl http://127.0.0.1:8002/health/ready
 ```
 
-Скрипт создаст/обновит:
+Команда `docker network create` выполняется один раз; если сеть уже существует, используйте её. Никаких реальных токенов или паролей в репозитории быть не должно. Для каждого из трёх локальных секретов используйте **разные** случайные значения; token не короче 32 символов. `.env` не коммитить.
 
-```text
-data/golden_100_query_constraints.json
-data/golden_100_auto_label_report.json
-data/golden_100_auto_labels.json
-data/golden_100_labels.json
-```
+Пошаговая установка для Windows/PowerShell и Linux/macOS, диагностика и безопасное развёртывание: **[GETTING_STARTED_RU.md](docs/GETTING_STARTED_RU.md)**. Полное описание production: [PRODUCTION.md](PRODUCTION.md).
 
-Кэш constraints versioned. После изменения parser schema старые constraints автоматически перестают считаться актуальными; `--force-reparse` можно использовать для явного полного перезапуска.
+## Пример API
 
-Decision policy:
-
-- `AUTO_MATCHED` — только строгие `PASS`, ноль `UNKNOWN`, нет unsupported constraints/ambiguity; записывается как `SILVER`, а не human GOLD;
-- `AUTO_NOT_FOUND` — только запросы, которые сам датасет помечает как synthetic negative и DeepSeek также считает out-of-scope;
-- `NEEDS_REVIEW` — ambiguity, parser warning, unsupported requirement, zero PASS, `UNKNOWN` product data или слишком широкий candidate set;
-- `PARSE_ERROR` — невалидный structured output.
-
-`data/golden_100_labels.json` хранит provenance:
-
-- human ручная разметка: `label_status=VERIFIED`, `label_source=HUMAN`;
-- auto matched: `label_status=SILVER`, `label_source=AUTO_RULE_V2`;
-- явные synthetic negatives: `label_status=VERIFIED`, `label_source=SYNTHETIC_NEGATIVE`.
-
-При `--sync-labels` старые записи, которые раньше были ошибочно записаны как `VERIFIED` с комментарием `AUTO: ...`, автоматически удаляются/пересчитываются. Human `VERIFIED` никогда не перезаписываются.
-
-Golden-specific parser prompt:
-
-```text
-src/nomenclature_matcher/prompts/golden_query_constraints_system.md
-```
-
-Golden-specific strict evaluator:
-
-```text
-src/nomenclature_matcher/golden_rules.py
-```
-
-Production query/matching helpers остаются отдельно в `src/nomenclature_matcher/query_constraints.py` и не меняются этим экспериментальным pipeline.
-
-## Harness GOLD: constraint-based hook dataset
-
-Для harness полный список всех допустимых `acceptable_ld_ids` не используется как ground truth. Ручные LD ID считаются только известными положительными примерами. Основной эталон — требования из тендерной строки.
-
-Построить hook-ready dataset из уже сохраненных parser/report/label artifacts:
+**Запрос** (с установленной переменной `API_AUTH_TOKEN`):
 
 ```bash
-python scripts/build_harness_gold.py
+curl -X POST http://127.0.0.1:8002/v1/match \
+  -H "Authorization: Bearer $API_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"products":["Кран шаровой стальной Ду50 Ру16 для воды"]}'
 ```
 
-DeepSeek при этом не вызывается. Создаются:
+**Структура ответа (иллюстрация, не результат реального прогона):**
+
+```json
+{
+  "request_id": "generated-id",
+  "results": [
+    {
+      "input": "Кран шаровой стальной Ду50 Ру16 для воды",
+      "status": "NOT_FOUND",
+      "matched_name": null,
+      "matched_article": null,
+      "score": null,
+      "confidence": null,
+      "error_code": null
+    }
+  ],
+  "latency_ms": 0.0
+}
+```
+
+В реальном ответе `status` может быть `MATCHED`, `NOT_FOUND` или `ERROR`. `matched_name` и `matched_article` заполняются только при подборе. `confidence` — оценка reranker, **не** подтверждённая вероятность инженерной совместимости. Для ревью используйте `/v1/shortlist`, а не автоматически принимайте `/v1/match`.
+
+Полный контракт: [docs/API_RU.md](docs/API_RU.md) · интерактивная OpenAPI: `http://127.0.0.1:8002/docs` после запуска.
+
+## Качество и ограничения
+
+Контрольный **DEV frozen-100, seed 53** на конфигурации от **20 октября 2026 г.**: **34/100 top-1 hit-any**, **92/100 acceptable в широком pool**, **83/100 в top-20 reranker**. Постфактум после корректировки эталонных меток — **39/100**, *без нового прогона модели*. Это показатели попаданий относительно GOLD, не сертификат безопасности и **не** финальный holdout/production SLA. Подробнее о методике и оговорках: [QUALITY_RU.md](docs/QUALITY_RU.md) и [эксперименты](docs/EXPERIMENTS.md).
+
+Критичные параметры — рабочая среда (газ/жидкость), DN, PN, присоединение, материалы, тип прохода, привод и исполнение. Неизвестные факты требуют дополнительного подтверждения. Строительная длина и виды газа намеренно не входили в отдельную метрику ревизии GOLD; это **не** освобождает от инженерной проверки.
+
+## Структура проекта
 
 ```text
-data/harness_gold.json
-data/harness_gold_core.json
-data/harness_gold_negative.json
-data/harness_gold_extended.json
+src/nomenclature_matcher/
+  api.py                # FastAPI, auth, request contracts
+  application/          # use cases, selection, reranking, history
+  domain/               # products, constraints, medium, identity
+  infrastructure/       # Postgres, catalog KB, adapters
+  matcher.py            # facade к конвейеру подбора
+  production.py         # composition root
+data/competitor_catalogs/ # правила и источники по конкурентам
+migrations/             # версия схемы истории
+qdrant/                 # snapshot в Git LFS
+scripts/                # batch, index, smoke и evaluation
+tests/                  # контрактные и регрессионные тесты
+docs/                   # руководство, архитектура, качество
 ```
 
-Разбиение:
-
-- `CORE` — hard-gate MATCHED cases: требования детерминированно проверяемы и auto-report подтверждает существование хотя бы одного strict PASS товара в текущем каталоге;
-- `NEGATIVE` — hard-gate явные out-of-scope `NOT_FOUND` cases;
-- `EXTENDED` — diagnostic-only: ambiguity, unsupported constraints, parser warnings или отсутствие доказанного strict catalog PASS.
-
-`known_positive_ids` содержит только human-confirmed примеры и всегда имеет `known_positive_ids_exhaustive=false`. Поэтому новый корректный LD товар может пройти hook даже если человек раньше его не видел.
-
-Запустить текущий hybrid+reranker на hard-gate части:
+## Разработка
 
 ```bash
-python scripts/eval_harness_gold.py
+uv sync --locked --extra test
+uv run python -m pytest -q tests
 ```
 
-Evaluator проверяет возвращенный LD товар по требованиям case. Для `CORE`:
+Тесты не заменяют full-stack проверку с настоящими поставщиками API, Qdrant и PostgreSQL. Перед production rollout проверьте [release gates](docs/ROADMAP_RU.md) и [security policy](SECURITY.md).
 
-- DN — exact;
-- PN — candidate PN >= query PN;
-- остальные явно заданные поддерживаемые поля — exact;
-- отсутствующее обязательное поле товара → `FAIL_UNKNOWN_PRODUCT_DATA`, а не PASS;
-- `NOT_FOUND` при доказанном существовании подходящего товара → `FAIL_WRONG_NOT_FOUND`.
+## Документация
 
-Для `NEGATIVE` любой `MATCHED` → `FAIL_FALSE_MATCH`.
+- [Сценарий демонстрации коллегам](docs/DEMO_RU.md)
+- [История изменений](CHANGELOG.md) · [Чеклист релиза](RELEASE_CHECKLIST.md)
+- [Установка и конфигурация](docs/GETTING_STARTED_RU.md)
+- [Архитектура и обработка запроса](docs/ARCHITECTURE_RU.md)
+- [API и примеры](docs/API_RU.md)
+- [Бенчмарки и политика технической совместимости](docs/QUALITY_RU.md)
+- [Roadmap / критерии релиза](docs/ROADMAP_RU.md)
+- [Эксплуатация](PRODUCTION.md) · [Observability](OBSERVABILITY.md)
+- [Вклад в проект](CONTRIBUTING.md) · [Уязвимости](SECURITY.md)
 
-Результат сохраняется в:
+**Default Compose port:** `8002` (из `docker-compose.override.yml`; при изменении `API_PORT` используйте новое значение). Если запускать только `docker-compose.yml` через `-f`, default — `8000`.
 
-```text
-data/harness_gold_eval.json
-```
+**License:** лицензия пока не выбрана; наличие публичного исходного кода само по себе не предоставляет разрешения на использование или распространение.
 
-Основные hook-метрики:
-
-```text
-hard_pass_rate
-core_pass_rate
-negative_pass_rate
-wrong_not_found_rate
-false_match_rate
-unknown_answer_rate
-known_positive_hit_rate
-```
-
-Пока champion baseline не зафиксирован, evaluator только считает метрики. После фиксации champion hook может передавать thresholds, например:
-
-```bash
-python scripts/eval_harness_gold.py \
-  --min-hard-pass-rate 0.85 \
-  --max-wrong-not-found-rate 0.10 \
-  --max-false-match-rate 0.00 \
-  --max-unknown-answer-rate 0.10
-```
-
-При нарушении заданного threshold скрипт завершится с exit code `1`, что позволяет использовать его напрямую из lifecycle hook harness.
-
-## ChatGPT first-pass GOLD + human verify only positives
-
-Чтобы быстро расширить human GOLD без ручного просмотра всех retrieval-кандидатов, используется отдельный workflow:
-
-```text
-100 queries
-  -> retrieval candidate pool
-  -> ChatGPT first-pass ACCEPT / REJECT / UNSURE
-  -> человек видит только ChatGPT ACCEPT
-  -> CONFIRM превращается в VERIFIED human label
-```
-
-Подготовить компактные batch-файлы для ChatGPT:
-
-```bash
-python scripts/prepare_chatgpt_gold_batches.py
-```
-
-По умолчанию создаются 10 файлов по 10 запросов в:
-
-```text
-data/chatgpt_gold_batches/
-```
-
-Для каждого query сохраняются максимум 20 наиболее полезных retrieval-кандидатов и их технические свойства. Это важно: ChatGPT должен видеть не только название, но и `Тип прохода`, DN/PN, материал, присоединение, управление и другие заполненные свойства.
-
-После генерации batch-файлы нужно закоммитить и запушить. ChatGPT читает их в репозитории и создаёт:
-
-```text
-data/golden_100_chatgpt_accepts.json
-```
-
-Файл содержит только кандидатов, которые ChatGPT считает подходящими. AI `REJECT` человеку не показываются.
-
-Проверка только положительных ответов:
-
-```bash
-pip install -e ".[review]"
-streamlit run scripts/verify_chatgpt_gold_accepts.py
-```
-
-UI показывает один ChatGPT ACCEPT за раз и три действия:
-
-```text
-Подтвердить / Отклонить / Не уверен
-```
-
-Состояние проверки сохраняется в:
-
-```text
-data/golden_100_chatgpt_accepts_human_review.json
-```
-
-А подтверждённые человеком positives автоматически экспортируются в:
-
-```text
-data/golden_100_chatgpt_verified_labels.json
-```
-
-`HUMAN_VERIFIED_CHATGPT` — это сильный human label. Отсутствие ChatGPT ACCEPT или отклонение всех его кандидатов НЕ превращает query автоматически в `NOT_FOUND`: для negative ground truth нужна отдельная проверка.
-
-## Golden dataset / manual annotation fallback
-
-При необходимости ручной проверки можно сгенерировать Dense + BM25 + Hybrid/RRF candidate pool:
-
-```bash
-python scripts/prepare_review_candidates.py
-```
-
-и открыть annotator:
-
-```bash
-pip install -e ".[review]"
-streamlit run scripts/annotate_golden.py
-```
-
-После генерации кандидатов в UI появится workflow `Golden 100`. Ручная разметка сохраняется в:
-
-```text
-data/golden_100_labels.json
-data/golden_100_human_review.json
-```
-
-UI также продолжает работать с уже существующими артефактами:
-
-- `Baseline q01-q11` — `data/eval_results.json` + `data/eval_labels.json`;
-- `Eval V2` — `data/eval_v2_review_candidates.json` + существующая human-review разметка;
-- `Eval V2 expanded` — расширенный пул retrieval-miss кандидатов;
-- `Golden generated (legacy)` — старый generic workflow.
-
-Production `ld_product` содержит только `name` и `article`. Расширенные поля LD, retrieval scores/ranks и LLM reason/confidence сохраняются в debug/eval payload для проверки качества.
-
-Цена и URL хранятся в payload Qdrant и не включаются в `search_text`. Sparse vectors, rule-based filtering и отдельные сервисы для BM25 не используются; hybrid retrieval строится in-memory через BM25 + RRF.
-
-Системный prompt LLM reranker хранится в `src/nomenclature_matcher/prompts/reranker_system.md`; путь можно переопределить через `RERANKER_SYSTEM_PROMPT_PATH`. Эксперименты сохраняются в `data/experiments/<run-name>/` и должны фиксировать гипотезу, настройки поиска, конфигурацию индекса Qdrant, версию prompt, метрики и вывод. На MVP этапе eval измеряет baseline без hard quality threshold; главный бизнес-риск в отчетах — `WRONG_NOT_FOUND`.

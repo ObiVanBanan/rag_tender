@@ -7,12 +7,38 @@ from pathlib import Path
 from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
-from .query_constraints import QueryConstraints
+from .competitor_decoding import decode_competitor_query
+from .query_canonicalization import build_constraint_rendered_query
+from .domain.constraints import QueryConstraints
+from .domain.query_signals import (
+    explicit_dn_from_query,
+    explicit_joining_type_from_query,
+    explicit_pn_mpa_from_query,
+    explicit_working_medium_from_query,
+    has_product_identity,
+)
 
 
 DEFAULT_QUERY_INTERPRETER_PROMPT = (
     Path(__file__).resolve().parent / "prompts" / "query_interpreter_system.md"
 )
+_ALNUM_RU = "0-9a-zа-я"
+_NATIVE_DESIGNATION_FAMILIES = ("КШЦФ", "КШЦП")
+_NATIVE_CONFIG_SUFFIX = r"\d{2,4}(?:[\s.\-]+\d{1,4}){1,4}"
+_DESIGNATION_PROVENANCE_MARKER = "designation_family_provenance:compact_native_config"
+_RESOLVER_FACT_FIELDS = {
+    "product_type",
+    "dn",
+    "pn_min_mpa",
+    "joining_type",
+    "thread_type",
+    "working_medium",
+    "valve_type",
+    "body_material",
+    "body_material_grade",
+    "bore_type",
+    "control",
+}
 
 
 class QueryInterpretation(BaseModel):
@@ -69,6 +95,14 @@ class DeepSeekQueryInterpreter:
         text = query.lower().replace("ё", "е")
         if "под электропривод" in text:
             return "electric_ready"
+        if "под редуктор" in text or "для установки редуктора" in text:
+            return "gearbox_ready"
+        if "под привод" in text or "для установки привода" in text:
+            return "actuator_ready"
+        if "пневмогидравл" in text:
+            return "pneumohydraulic"
+        if "гидропривод" in text:
+            return "hydraulic"
         if "электропривод" in text:
             return "electric"
         if "пневмопривод" in text or "пневматическ" in text:
@@ -92,17 +126,9 @@ class DeepSeekQueryInterpreter:
 
     @staticmethod
     def _has_model_token(query: str) -> bool:
-        text = query.lower().replace("ё", "е")
-        # Strip technical size/pressure notation before looking for mixed
-        # alpha-numeric model codes. Do not require a word boundary before
-        # Ду/DN/etc.: tender text often contains missing spaces, e.g.
-        # "Кран шаровыйДу50", which must not make "шаровыйду50" look like a model.
-        text = re.sub(r"(?:ду|dn|dy|du|ру|pn)\s*[-:]?\s*\d+(?:[.,]\d+)?", " ", text)
-        text = re.sub(r"\b[мm]\s*\d+\s*[xх]\s*\d+(?:[.,]\d+)?\b", " ", text)
-        for token in re.findall(r"[a-zа-я0-9][a-zа-я0-9._/-]{3,}", text):
-            if re.search(r"[a-zа-я]", token) and re.search(r"\d", token):
-                return True
-        return False
+        # Kept as a compatibility shim for callers/tests; identity detection is shared
+        # with the competitor lookup gate and includes long numeric articles.
+        return has_product_identity(query)
 
     @staticmethod
     def _specificity_score(constraints: dict) -> int:
@@ -124,54 +150,179 @@ class DeepSeekQueryInterpreter:
             score += 1
         return score
 
+    @staticmethod
+    def _resolver_attributes(competitor_context: dict | None) -> dict:
+        if not isinstance(competitor_context, dict):
+            return {}
+        if competitor_context.get("source") != "competitor_resolver":
+            return {}
+        profile = competitor_context.get("canonical_profile")
+        if not isinstance(profile, dict):
+            return {}
+        facts = profile.get("facts")
+        if not isinstance(facts, dict):
+            return {}
+        result = {}
+        for field, item in facts.items():
+            if not isinstance(item, dict):
+                continue
+            if item.get("status") not in {"VERIFIED", "SUPPORTED"}:
+                continue
+            value = item.get("value")
+            if value is not None:
+                result[field] = value
+        return result
+
+    @staticmethod
+    def _compact_designation(value: str | None) -> str:
+        if value in (None, ""):
+            return ""
+        text = str(value).lower().replace("ё", "е")
+        return re.sub(rf"[^{_ALNUM_RU}]+", "", text)
+
+    @classmethod
+    def _native_family_from_composite_designation(
+        cls,
+        query: str,
+        designation: str | None,
+    ) -> str | None:
+        emitted = cls._compact_designation(designation)
+        if not emitted:
+            return None
+
+        for family in _NATIVE_DESIGNATION_FAMILIES:
+            pattern = re.compile(
+                rf"(?<![{_ALNUM_RU}])(?P<family>{re.escape(family)})"
+                rf"[\s.\-]*(?P<suffix>{_NATIVE_CONFIG_SUFFIX})(?![{_ALNUM_RU}])",
+                re.IGNORECASE,
+            )
+            for match in pattern.finditer(query):
+                source_composite = f"{match.group('family')}{match.group('suffix')}"
+                if emitted == cls._compact_designation(source_composite):
+                    return family
+        return None
+
+    @staticmethod
+    def _append_comment_marker(constraints: dict, marker: str) -> None:
+        comment = str(constraints.get("comment") or "").strip()
+        if marker in comment:
+            return
+        constraints["comment"] = f"{comment}; {marker}" if comment else marker
+
     @classmethod
     def _has_specific_anchor(cls, query: str, constraints: dict) -> bool:
         return bool(
             constraints.get("dn") is not None
             or constraints.get("valve_designation")
-            or cls._has_model_token(query)
+            or has_product_identity(query)
         )
 
-    def _sanitize_payload(self, query: str, payload: dict) -> dict:
+    def _sanitize_payload(
+        self,
+        query: str,
+        payload: dict,
+        competitor_context: dict | None = None,
+    ) -> dict:
         constraints = payload.get("constraints")
         if not isinstance(constraints, dict):
             return payload
 
-        # DeepSeek occasionally returns null for an unknown product family even though
-        # QueryConstraints historically required a string. Keep the runtime robust:
-        # `other` means "no known supported family" and is harmless for rejected queries.
         if constraints.get("product_type") is None:
             constraints["product_type"] = "other"
 
-        # valve_type describes variants of ball valves only in our candidate normalizer.
-        # Applying `standard` to filters, butterfly valves, flanges, etc. makes every
-        # otherwise-valid candidate fail the deterministic hard filter.
         if constraints.get("product_type") != "ball_valve":
             constraints["valve_type"] = None
 
-        # Control is a hard constraint only when it is explicit in the source query.
-        # Do not let the LLM silently turn an ordinary product into `manual`.
-        constraints["control"] = self._explicit_control(query)
+        family_designation = self._native_family_from_composite_designation(
+            query,
+            constraints.get("valve_designation"),
+        )
+        if family_designation is not None:
+            constraints["valve_designation"] = family_designation
+            self._append_comment_marker(constraints, _DESIGNATION_PROVENANCE_MARKER)
 
-        # Explicit ВР/НР notation is deterministic and should override an occasional
-        # LLM orientation slip such as "вн.-вн." -> male_male.
+        # Apply facts from the persistent competitor resolver before the legacy
+        # manufacturer decoder. VERIFIED/SUPPORTED facts are source-backed
+        # context; explicit QUERY facts still win below.
+        resolver_attributes = self._resolver_attributes(competitor_context)
+        if resolver_attributes:
+            # A resolved canonical profile is evidence-bounded. Do not keep
+            # unrelated LLM guesses for fields the profile did not establish.
+            for field in _RESOLVER_FACT_FIELDS:
+                if field in constraints:
+                    constraints[field] = resolver_attributes.get(field)
+            constraints["catalog_scope"] = "in_scope"
+            constraints["ambiguous"] = False
+            self._append_comment_marker(
+                constraints,
+                "competitor_resolver:" + ",".join(sorted(resolver_attributes)),
+            )
+
+        # Legacy manufacturer decoding is retained only as an explicit
+        # benchmark control. Resolver-only production keeps this disabled.
+        decoded = (
+            decode_competitor_query(query)
+            if getattr(self.settings, "competitor_decoder_baseline_enabled", False)
+            else None
+        )
+        if decoded is not None:
+            for field, value in decoded.attributes.items():
+                if value is not None:
+                    constraints[field] = value
+            constraints["catalog_scope"] = "in_scope"
+            if (
+                decoded.attributes.get("dn") is not None
+                and decoded.attributes.get("pn_min_mpa") is not None
+            ):
+                constraints["ambiguous"] = False
+            decoded_fields = ",".join(
+                sorted(
+                    field
+                    for field, value in decoded.attributes.items()
+                    if value is not None
+                )
+            )
+            self._append_comment_marker(
+                constraints,
+                f"source_decode:{decoded.manufacturer}:{decoded_fields}",
+            )
+
+        # Direct source wording is even stronger than a designation decoder.
+        # Preserve the historical rule for non-decoded queries: control inferred
+        # only by the LLM/web is not trusted unless the user stated it.
+        explicit_control = self._explicit_control(query)
+        if explicit_control is not None:
+            constraints["control"] = explicit_control
+        elif decoded is None and "control" not in resolver_attributes:
+            constraints["control"] = None
+
         explicit_thread = self._explicit_thread_type(query)
         if explicit_thread is not None:
             constraints["thread_type"] = explicit_thread
 
-        # Eligibility has a deterministic floor and ceiling around the LLM decision.
-        # - Services and explicitly out-of-scope/ambiguous rows are never rescued.
-        # - A broad category remains rejected unless it has a concrete anchor plus
-        #   at least one additional technical discriminator.
-        # - Conversely, if DeepSeek is overly conservative but extracted enough
-        #   in-scope constraints, let the query reach retrieval.
+        explicit_dn = explicit_dn_from_query(query)
+        if explicit_dn is not None:
+            constraints["dn"] = explicit_dn
+
+        explicit_pn = explicit_pn_mpa_from_query(query)
+        if explicit_pn is not None:
+            constraints["pn_min_mpa"] = explicit_pn
+
+        explicit_joining = explicit_joining_type_from_query(query)
+        if explicit_joining is not None:
+            constraints["joining_type"] = explicit_joining
+
+        explicit_medium = explicit_working_medium_from_query(query)
+        if explicit_medium is not None:
+            constraints["working_medium"] = explicit_medium
+
         service_query = self._looks_like_service_query(query)
         score = self._specificity_score(constraints)
-        model_token = self._has_model_token(query)
+        identity_anchor = has_product_identity(query)
         anchored = self._has_specific_anchor(query, constraints)
         scope = constraints.get("catalog_scope")
         ambiguous = bool(constraints.get("ambiguous"))
-        sufficiently_specific = model_token or (anchored and score >= 2)
+        sufficiently_specific = identity_anchor or (anchored and score >= 2)
 
         if service_query:
             payload["searchable"] = False
@@ -182,7 +333,7 @@ class DeepSeekQueryInterpreter:
             payload["searchable"] = False
             payload["reason"] = (
                 "Недостаточно различающих характеристик для выбора конкретного LD-аналога: "
-                "нужны конкретный размер/обозначение и ещё один технический признак либо точная модель."
+                "нужны конкретный размер/обозначение и ещё один технический признак либо точная модель/артикул."
             )
         elif (
             not payload.get("searchable")
@@ -195,9 +346,40 @@ class DeepSeekQueryInterpreter:
                 "поиск разрешён deterministic eligibility gate."
             )
 
+        # Once either the resolver or the optional baseline decoder has a
+        # technical profile, remove competitor identity from retrieval text.
+        if (
+            (decoded is not None or resolver_attributes)
+            and constraints.get("catalog_scope") != "out_of_scope"
+        ):
+            try:
+                rendered = build_constraint_rendered_query(
+                    QueryConstraints.model_validate(constraints)
+                )
+            except ValidationError:
+                rendered = None
+            if rendered:
+                payload["normalized_query"] = rendered
+
         return payload
 
-    def _request(self, query: str, *, retry: bool = False) -> str:
+    @staticmethod
+    def _user_message(query: str, competitor_context: dict | None, suffix: str = "") -> str:
+        text = f"QUERY:\n{query}"
+        if competitor_context:
+            text += (
+                "\n\nCOMPETITOR_CONTEXT:\n"
+                + json.dumps(competitor_context, ensure_ascii=False, indent=2)
+            )
+        return text + suffix
+
+    def _request(
+        self,
+        query: str,
+        *,
+        competitor_context: dict | None = None,
+        retry: bool = False,
+    ) -> str:
         suffix = ""
         if retry:
             suffix = (
@@ -211,20 +393,35 @@ class DeepSeekQueryInterpreter:
             extra_body={"thinking": {"type": "disabled"}},
             messages=[
                 {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": f"QUERY:\n{query}{suffix}"},
+                {
+                    "role": "user",
+                    "content": self._user_message(query, competitor_context, suffix),
+                },
             ],
         )
         return response.choices[0].message.content or "{}"
 
-    def interpret(self, query: str) -> QueryInterpretation:
+    def interpret(
+        self,
+        query: str,
+        competitor_context: dict | None = None,
+    ) -> QueryInterpretation:
         last_error: Exception | None = None
         for attempt in range(2):
-            content = self._request(query, retry=attempt > 0)
+            content = self._request(
+                query,
+                competitor_context=competitor_context,
+                retry=attempt > 0,
+            )
             try:
                 payload = json.loads(content)
                 if not isinstance(payload, dict):
                     raise TypeError("Query interpreter response must be a JSON object")
-                payload = self._sanitize_payload(query, payload)
+                payload = self._sanitize_payload(
+                    query,
+                    payload,
+                    competitor_context=competitor_context,
+                )
                 result = QueryInterpretation.model_validate(payload)
                 if result.searchable and not result.normalized_query:
                     result.normalized_query = " ".join(query.split())

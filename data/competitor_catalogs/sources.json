@@ -1,0 +1,567 @@
+{
+  "version": 2,
+  "manufacturers": [
+    {
+      "name": "MARSHAL",
+      "aliases": [
+        "MARSHAL",
+        "МАРШАЛ"
+      ],
+      "sources": [
+        {
+          "url": "https://lztamarshal.ru/support/katalogi/",
+          "source_type": "official_catalog_index",
+          "trust": "official"
+        }
+      ]
+    },
+    {
+      "name": "ALSO",
+      "aliases": [
+        "ALSO",
+        "АЛСО"
+      ],
+      "sources": [
+        {
+          "url": "https://alsoarm.ru/catalog/dlya-gazoobraznykh-sred-seriya-gas/",
+          "source_type": "official_catalog",
+          "trust": "official"
+        },
+        {
+          "url": "https://alsoarm.ru/about/media/news/obnovlyen-katalog-also-dlya-gazoobraznykh-sred/",
+          "source_type": "official_catalog_release_note",
+          "trust": "official"
+        }
+      ]
+    },
+    {
+      "name": "TEMPER",
+      "aliases": [
+        "TEMPER",
+        "ТЕМПЕР"
+      ],
+      "sources": [
+        {
+          "url": "https://temper.ru/docs/af4af09985ca8f3a1cd3ae88d0d5f3ae.pdf",
+          "source_type": "official_catalog_pdf",
+          "trust": "official"
+        },
+        {
+          "url": "https://temper.ru/catalog/1-stalnaa-armatura-stal-vodnaa-seria?view=full",
+          "source_type": "official_catalog",
+          "trust": "official"
+        },
+        {
+          "url": "https://temper.ru/en/catalog/87-steel-reinforcement-gas-series-specialnaa-seria-max?view=full",
+          "source_type": "official_catalog",
+          "trust": "official"
+        },
+        {
+          "url": "https://temper.ru/en/catalog/86-steel-reinforcement-universal-series-specialnaa-seria-max?page=2&view=full",
+          "source_type": "official_catalog",
+          "trust": "official"
+        }
+      ]
+    },
+    {
+      "name": "BROEN",
+      "aliases": [
+        "BROEN",
+        "БРОЕН",
+        "BALLOMAX",
+        "БАЛЛОМАКС"
+      ],
+      "sources": [
+        {
+          "url": "https://broen.ru/produktsiya/sharovye-krany/broen-ballomaks/katalog/",
+          "source_type": "official_catalog_index",
+          "trust": "official"
+        },
+        {
+          "url": "https://broen.ru/produktsiya/sharovye-krany/broen-ballomaks/prays-list/",
+          "source_type": "official_price_list_index",
+          "trust": "official"
+        }
+      ]
+    }
+  ],
+  "products": [],
+  "catalog_schemas": [
+    {
+      "manufacturer": "TEMPER",
+      "article_regex": "^(?P<series>282|284|287|292|294|299)(?P<material>20|45|66)(?P<dn>\\d{3})$",
+      "material_codes": {
+        "20": "20",
+        "45": "09Г2С",
+        "66": "12Х18Н10Т"
+      },
+      "series_rules": {
+        "282": {
+          "product_type": "ball_valve",
+          "joining_type": "welded",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "pn_rules": [
+            {
+              "max_dn": 250,
+              "pn_min_mpa": 2.5
+            },
+            {
+              "min_dn": 300,
+              "pn_min_mpa": 1.6
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/docs/af4af09985ca8f3a1cd3ae88d0d5f3ae.pdf",
+            "source_type": "official_catalog_pdf",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER 282: standard-bore ball valve, welded connection; catalog product numbers encode series/material/DN and list PN by size."
+          }
+        },
+        "284": {
+          "product_type": "ball_valve",
+          "joining_type": "flanged",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "pn_min_mpa": 2.5,
+          "source": {
+            "url": "https://temper.ru/docs/af4af09985ca8f3a1cd3ae88d0d5f3ae.pdf",
+            "source_type": "official_catalog_pdf",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER 284: standard-bore ball valve, flanged PN25."
+          }
+        },
+        "287": {
+          "product_type": "ball_valve",
+          "joining_type": "flanged",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "pn_min_mpa": 2.5,
+          "source": {
+            "url": "https://temper.ru/docs/af4af09985ca8f3a1cd3ae88d0d5f3ae.pdf",
+            "source_type": "official_catalog_pdf",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER 287: short-length standard-bore flanged PN25 execution."
+          }
+        },
+        "292": {
+          "product_type": "ball_valve",
+          "joining_type": "welded",
+          "bore_type": "full",
+          "body_material": "steel",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "max_dn": 200,
+              "pn_min_mpa": 2.5
+            },
+            {
+              "min_dn": 250,
+              "pn_min_mpa": 1.6
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/docs/af4af09985ca8f3a1cd3ae88d0d5f3ae.pdf",
+            "source_type": "official_catalog_pdf",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER 292: full-bore ball valve, welded connection; PN depends on DN."
+          }
+        },
+        "294": {
+          "product_type": "ball_valve",
+          "joining_type": "flanged",
+          "bore_type": "full",
+          "body_material": "steel",
+          "pn_min_mpa": 2.5,
+          "source": {
+            "url": "https://temper.ru/docs/af4af09985ca8f3a1cd3ae88d0d5f3ae.pdf",
+            "source_type": "official_catalog_pdf",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER 294: full-bore ball valve, flanged PN25."
+          }
+        },
+        "299": {
+          "product_type": "ball_valve",
+          "joining_type": null,
+          "bore_type": "full",
+          "body_material": "steel",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "max_dn": 200,
+              "pn_min_mpa": 2.5
+            },
+            {
+              "min_dn": 250,
+              "pn_min_mpa": 1.6
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/docs/af4af09985ca8f3a1cd3ae88d0d5f3ae.pdf",
+            "source_type": "official_catalog_pdf",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER 299: full-bore flanged/welded execution derived from the 292 family."
+          }
+        }
+      }
+    },
+    {
+      "manufacturer": "TEMPER",
+      "article_regex": "^(?P<series>980|982|983|990|992|993)20(?P<dn>\\d{3})max$",
+      "series_rules": {
+        "980": {
+          "product_type": "ball_valve",
+          "joining_type": "threaded",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "max_dn": 100,
+              "pn_min_mpa": 2.5
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/product/kran-sarovoj-standartnoprohodnoj-specialnaa-seria-max-rezbovoj-3",
+            "source_type": "official_product_page",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 980: standard-bore threaded family; article contains series + fixed 20 + DN. Official table publishes DN/PN. Material grade is intentionally not inferred from the fixed 20 digits."
+          }
+        },
+        "982": {
+          "product_type": "ball_valve",
+          "joining_type": "welded",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "working_medium": "газ",
+          "valve_type": "gas",
+          "pn_rules": [
+            {
+              "max_dn": 32,
+              "pn_min_mpa": 4
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/2-gas-serie?page=6&per-page=15&view=full",
+            "source_type": "official_catalog",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 982: gas standard-bore welded family. Only PN ranges directly visible in the official source are encoded; other DN values remain PN-unknown."
+          }
+        },
+        "983": {
+          "product_type": "ball_valve",
+          "joining_type": "flanged",
+          "bore_type": "reduced",
+          "body_material": "steel",
+          "working_medium": "газ",
+          "valve_type": "gas",
+          "pn_rules": [
+            {
+              "max_dn": 25,
+              "pn_min_mpa": 4
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/2-gas-serie?page=6&per-page=15&view=full",
+            "source_type": "official_catalog",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 983: gas standard-bore flanged family. Conservative PN coverage is encoded only where the official table is explicit."
+          }
+        },
+        "990": {
+          "product_type": "ball_valve",
+          "joining_type": "threaded",
+          "bore_type": "full",
+          "body_material": "steel",
+          "working_medium": "газ",
+          "valve_type": "gas",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "max_dn": 100,
+              "pn_min_mpa": 2.5
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/product/kran-sarovoj-gazovyj-polnoprohodnoj-specialnaa-seria-max-rezbovoj",
+            "source_type": "official_product_page",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 990: gas full-bore threaded family. MAX is part of exact identity because the same numeric article also exists outside the MAX execution."
+          }
+        },
+        "992": {
+          "product_type": "ball_valve",
+          "joining_type": "welded",
+          "bore_type": "full",
+          "body_material": "steel",
+          "working_medium": "газ",
+          "valve_type": "gas",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "max_dn": 250,
+              "pn_min_mpa": 2.5
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/catalog/product/kran-sarovoj-gazovyj-polnoprohodnoj-specialnaa-seria-max-privarnoj",
+            "source_type": "official_product_page",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 992: gas full-bore welded family. DN300+ is published as PN16/25, so the schema deliberately leaves PN unknown there instead of inventing one value."
+          }
+        },
+        "993": {
+          "product_type": "ball_valve",
+          "joining_type": "flanged",
+          "bore_type": "full",
+          "body_material": "steel",
+          "pn_rules": [
+            {
+              "max_dn": 50,
+              "pn_min_mpa": 4
+            },
+            {
+              "min_dn": 65,
+              "pn_min_mpa": 1.6
+            }
+          ],
+          "source": {
+            "url": "https://temper.ru/en/catalog/1-universalnaa-seria?page=11&view=full",
+            "source_type": "official_catalog",
+            "identity_level": "FAMILY_LEVEL",
+            "evidence_scope": "nomenclature_schema",
+            "evidence_text": "TEMPER MAX 993: universal full-bore flanged family. Working medium and exact steel grade are not inferred from article digits."
+          }
+        }
+      }
+    }
+  ],
+  "designation_schemas": [
+    {
+      "manufacturer": "MARSHAL",
+      "query_regex": "11[сc]67[пp](?:\\s+GAS\\s+PRO)?\\s+(?P<model>(?P<family>[0-9]?[А-Яа-яЁё]+)\\.(?P<material>0[01])\\.(?P<execution>[^.\\s]+)\\.(?P<pn>\\d{3})\\.(?P<dn>\\d{2,4})(?:/\\d{2,4})?)",
+      "identity_group": "model",
+      "fixed_facts": {
+        "product_type": "ball_valve",
+        "body_material": "steel"
+      },
+      "field_extractors": {
+        "dn": {
+          "group": "dn",
+          "type": "int"
+        },
+        "pn_min_mpa": {
+          "group": "pn",
+          "type": "float_div",
+          "divisor": 10
+        },
+        "body_material_grade": {
+          "group": "material",
+          "map": {
+            "00": "20",
+            "01": "09Г2С"
+          }
+        },
+        "control": {
+          "group": "execution",
+          "map": {
+            "0": "actuator_ready",
+            "1": "manual",
+            "3": "gearbox",
+            "6": "pneumatic",
+            "7": "hydraulic",
+            "9": "electric",
+            "10": "t_key",
+            "6(7)": "pneumohydraulic"
+          },
+          "default": null
+        },
+        "joining_type": {
+          "group": "family",
+          "regex_map": [
+            {
+              "regex": "(?:ФП|ПФ)",
+              "value": "mixed_flange_weld"
+            },
+            {
+              "regex": "Ф$",
+              "value": "flanged"
+            },
+            {
+              "regex": "ЦР",
+              "value": "threaded"
+            },
+            {
+              "regex": "П$",
+              "value": "welded"
+            }
+          ],
+          "default": null
+        },
+        "bore_type": {
+          "group": "family",
+          "regex_map": [
+            {
+              "regex": "^(?:2ЦП|2ЦФ|2ЦПФ|2ЦФП)$",
+              "value": "reduced"
+            },
+            {
+              "regex": "^(?:ЦП|ЦФ|3ЦП)$",
+              "value": "full"
+            }
+          ],
+          "default": null
+        }
+      },
+      "query_fact_rules": [
+        {
+          "regex": "\\bGAS\\s+PRO\\b",
+          "facts": {
+            "working_medium": "газ",
+            "valve_type": "gas"
+          }
+        }
+      ],
+      "source": {
+        "url": "https://lztamarshal.ru/support/tekhnicheskaya-dokumentatsiya/struktura-oboznacheniy-sharovykh-kranov-marshal/",
+        "source_type": "official_nomenclature_page",
+        "identity_level": "FAMILY_LEVEL",
+        "evidence_scope": "nomenclature_schema",
+        "evidence_text": "Manufacturer's marking structure defines controls 0/1/3/6/7/6(7)/9/10, and welded/flanged ends. Schema decoding does not prove that every syntactically valid article was made."
+      }
+    },
+    {
+      "manufacturer": "ALSO",
+      "query_regex": "(?P<model>КШ[.\\s-]*(?P<body>[A-ZА-ЯЁ0-9.]+?)[.\\s-]+(?P<dn>\\d{2,3})[.\\s-]+(?P<pn>\\d{2})[.\\-–—](?P<variant>\\d{2}))",
+      "identity_group": "model",
+      "fixed_facts": {
+        "product_type": "ball_valve",
+        "body_material": "steel"
+      },
+      "field_extractors": {
+        "dn": {
+          "group": "dn",
+          "type": "int"
+        },
+        "pn_min_mpa": {
+          "group": "pn",
+          "type": "float_div",
+          "divisor": 10
+        },
+        "body_material_grade": {
+          "group": "variant",
+          "map": {
+            "01": "20",
+            "02": "09Г2С",
+            "03": "12Х18Н10Т"
+          }
+        },
+        "joining_type": {
+          "group": "body",
+          "regex_map": [
+            {
+              "regex": "^МФ",
+              "value": "wafer"
+            },
+            {
+              "regex": "^Ф",
+              "value": "flanged"
+            },
+            {
+              "regex": "^П",
+              "value": "welded"
+            },
+            {
+              "regex": "^[МР]",
+              "value": "threaded"
+            }
+          ],
+          "default": null
+        },
+        "bore_type": {
+          "group": "body",
+          "regex_map": [
+            {
+              "regex": "^Ф.*З",
+              "value": null
+            },
+            {
+              "regex": "^(?:ФПР|ФП|Ф[.]П(?:[.]Р)?)(?:[.]|$)",
+              "value": "full"
+            },
+            {
+              "regex": "^(?:ППТР|ПП)(?:[.]|$)",
+              "value": "full"
+            },
+            {
+              "regex": "^(?:Ф|П|ФР|ПР)(?:[.]|$)",
+              "value": "reduced"
+            },
+            {
+              "regex": ".*",
+              "value": null
+            }
+          ],
+          "default": null
+        },
+        "control": {
+          "group": "body",
+          "regex_map": [
+            {
+              "regex": "(?:^|[.])Р(?:[.]|$)|(?:ФПР|ФР|ПР|ФЗР|ППТР|ПТР)(?:[.]|$)",
+              "value": "gearbox_ready"
+            }
+          ],
+          "default": null
+        }
+      },
+      "query_fact_rules": [
+        {
+          "regex": "(?:^|[.\\s])GAS(?:[.\\s]|$)",
+          "facts": {
+            "working_medium": "газ",
+            "valve_type": "gas"
+          }
+        }
+      ],
+      "source": {
+        "url": "https://alsoarm.ru/series/gas-series/",
+        "source_type": "official_series_page",
+        "identity_level": "FAMILY_LEVEL",
+        "evidence_scope": "nomenclature_schema",
+        "evidence_text": "ALSO official product pages show Ф.П.Р full-bore gearbox-ready valves; readiness for a gearbox does not mean it is installed. Do not infer bore from unknown/З-series suffixes without exact SKU evidence."
+      }
+    }
+  ]
+}
