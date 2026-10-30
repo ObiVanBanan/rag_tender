@@ -10,10 +10,10 @@
 - [x] Composer override default API port documented as 8002; Qdrant LFS pointer rejection added to override.
 - [x] README distinguishes verified DEV observations from independently validated release performance.
 
-## Required before labeling this production-ready
+## Technical-preview checks and remaining production gates
 
-- [ ] `uv sync --locked --extra test` + `uv run python -m pytest -q tests` on the exact final commit (CI result recorded).
-- [ ] `docker compose config --quiet` and `docker build` on the exact final commit.
+- [x] `uv sync --locked --extra test` + `uv run python -m pytest -q tests`: **245 passed, 1 deprecation warning** on integrated release tree [CI run 40996468713](https://github.com/ObiVanBanan/rag_trend/actions/runs/40996468713).
+- [x] `docker compose config --quiet`, PostgreSQL 16 migration smoke and Docker image build passed in the same [CI run](https://github.com/ObiVanBanan/rag_trend/actions/runs/40996468713).
 - [ ] Live E2E with real OpenAI/DeepSeek/Qdrant/PostgreSQL and correctly materialized LFS snapshot.
 - [ ] `scripts/smoke_production_e2e.py --base-url http://127.0.0.1:8002 --verify-history` against authorized demo instance and read-only database DSN.
 - [ ] Untouched HOLDOUT benchmark and separate industrial-domain review of dangerous false matches.
@@ -22,6 +22,8 @@
 - [ ] Test PostgreSQL migration & rollback on a copy of target data; verify restores and persistence.
 - [ ] TLS reverse proxy, network ACL, external provider spending limits, log redaction and history retention policy.
 - [ ] Capture owner-approved demo evidence/screenshots from **actual** output, without client data or leaked credentials.
+
+**Note:** GitHub CI validates the source/build; it does not perform live calls to OpenAI/DeepSeek or verify the externally supplied LD CSV against a real index. A green badge does not certify industrial compatibility.
 
 ## Decisions / exclusions
 

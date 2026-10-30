@@ -10,6 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![Qdrant](https://img.shields.io/badge/Vector_DB-Qdrant-DC382D)
 ![Status](https://img.shields.io/badge/status-Technical_Preview-orange)
+[![CI](https://github.com/ObiVanBanan/rag_trend/actions/workflows/production-api.yml/badge.svg?branch=main)](https://github.com/ObiVanBanan/rag_trend/actions/workflows/production-api.yml)
 
 [Демонстрация](docs/DEMO_RU.md) · [Быстрый запуск](docs/GETTING_STARTED_RU.md) · [Архитектура](docs/ARCHITECTURE_RU.md) · [API](docs/API_RU.md) · [Качество](docs/QUALITY_RU.md) · [Roadmap](docs/ROADMAP_RU.md)
 
