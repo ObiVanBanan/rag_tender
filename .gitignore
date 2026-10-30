@@ -1,6 +1,23 @@
 .env
 __pycache__/
 .pytest_cache/
+.pytest_tmp/
+.tmp_pytest/
+.tmp/
 *.py[cod]
 
-santech_products_full.csv
+# Generated run artifacts
+mcp_web_search_only.json
+mcp_web_search_test.json
+
+
+# BananLoop evaluator evidence (kept across git clean -fd)
+.bananloop_eval/
+
+# Local secrets, exports and generated artifacts
+*.env.backup
+*.log
+*_smoke.json
+ld_products_full_nomenclature.csv
+*.egg-info/
+.rag_tender/

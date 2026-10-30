@@ -1,28 +1,57 @@
 from dataclasses import replace
+from typing import Any
 
-from .models import LDProduct, MatchResult, SearchCandidate, SelectedMatch
+from .application.query_preparation import QueryPreparationService
+from .application.candidate_selection import CandidateSelectionService
+from .application.candidate_reranking import CandidateRerankingService
+from .application.second_chance import SecondChanceCandidateRetriever
+from .application.hybrid_candidate_search import HybridCandidateSearchService
+from .application.ports import (
+    CompetitorLookupPort,
+    CompetitorResolverPort,
+    DenseStorePort,
+    EmbedderPort,
+    HybridRetrieverPort,
+    QueryInterpreterPort,
+    RerankerPort,
+    TelemetryPort,
+)
+from .application.telemetry import NullTelemetry
+from .domain.product import LDProduct
+from .models import MatchResult, SearchCandidate, SelectedMatch
 from .query_canonicalization import canonicalize_retrieval_query
-from .query_constraints import QueryConstraints, evaluate_product
 
 
 class NomenclatureMatcher:
     def __init__(
         self,
-        embedder,
-        store,
-        settings,
-        reranker=None,
-        hybrid_retriever=None,
-        query_interpreter=None,
+        embedder: EmbedderPort,
+        store: DenseStorePort,
+        settings: Any,
+        reranker: RerankerPort | None = None,
+        hybrid_retriever: HybridRetrieverPort | None = None,
+        query_interpreter: QueryInterpreterPort | None = None,
+        competitor_lookup: CompetitorLookupPort | None = None,
+        competitor_resolver: CompetitorResolverPort | None = None,
+        telemetry: TelemetryPort | None = None,
     ):
-        self.embedder, self.store, self.settings = embedder, store, settings
+        self.embedder = embedder
+        self.store = store
+        self.settings = settings
+        self.telemetry = telemetry or NullTelemetry()
+        self.candidate_selection = CandidateSelectionService()
         self.reranker = reranker
         self.hybrid_retriever = hybrid_retriever
-        if query_interpreter is None and getattr(settings, "query_interpreter_enabled", False):
-            from .query_interpreter import DeepSeekQueryInterpreter
-
-            query_interpreter = DeepSeekQueryInterpreter(settings)
         self.query_interpreter = query_interpreter
+        self.competitor_lookup = competitor_lookup
+        self.competitor_resolver = competitor_resolver
+        self.query_preparation = QueryPreparationService(
+            settings=settings,
+            interpreter=self.query_interpreter,
+            competitor_lookup=self.competitor_lookup,
+            competitor_resolver=self.competitor_resolver,
+            telemetry=self.telemetry,
+        )
 
     def _normalize_query(self, query: str) -> str:
         return " ".join(query.split())
@@ -51,29 +80,40 @@ class NomenclatureMatcher:
 
     @staticmethod
     def _candidate_as_product(candidate: SearchCandidate) -> LDProduct:
-        return LDProduct(
-            id=candidate.ld_id,
-            name=candidate.name,
-            article=candidate.article,
-            price=candidate.price,
-            dn=candidate.dn,
-            pn=candidate.pn,
-            joining_type=candidate.joining_type,
-            url=candidate.url,
-            properties=candidate.properties or [],
-        )
+        return CandidateSelectionService.candidate_as_product(candidate)
 
     def _eligible_candidates(
         self,
         candidates: list[SearchCandidate],
         constraints: dict,
     ) -> list[tuple[int, SearchCandidate]]:
-        parsed = QueryConstraints.model_validate(constraints)
-        return [
-            (index, candidate)
-            for index, candidate in enumerate(candidates, 1)
-            if evaluate_product(self._candidate_as_product(candidate), parsed).matches
-        ]
+        return self.candidate_selection.eligible_candidates(candidates, constraints)
+
+    def _technical_prefilter_candidates(
+        self,
+        candidates: list[SearchCandidate],
+        *,
+        soft_constraints: dict | None,
+        hard_constraints: dict | None,
+        limit: int,
+    ) -> tuple[list[SearchCandidate], dict]:
+        return self.candidate_selection.technical_prefilter_candidates(
+            candidates,
+            soft_constraints=soft_constraints,
+            hard_constraints=hard_constraints,
+            limit=limit,
+        )
+
+    def _second_chance_candidates(
+        self,
+        constraints: dict,
+    ) -> tuple[list[SearchCandidate], list[tuple[int, SearchCandidate]], dict | None] | None:
+        retriever = SecondChanceCandidateRetriever(
+            retriever=self.hybrid_retriever,
+            settings=self.settings,
+            candidate_selection=self.candidate_selection,
+        )
+        return retriever.retrieve(constraints)
 
     def _build_selected_match(
         self,
@@ -82,20 +122,8 @@ class NomenclatureMatcher:
         *,
         candidate_id: int | None = None,
     ) -> SelectedMatch:
-        return SelectedMatch(
-            candidate_id=candidate_id if candidate_id is not None else item.candidate_id,
-            article=candidate.article,
-            name=candidate.name,
-            llm_confidence=item.confidence,
-            reason=item.reason,
-            ld_id=candidate.ld_id,
-            dense_score=candidate.dense_score,
-            bm25_score=candidate.bm25_score,
-            rrf_score=candidate.rrf_score,
-            dn=candidate.dn,
-            pn=candidate.pn,
-            joining_type=candidate.joining_type,
-            url=candidate.url,
+        return CandidateRerankingService._build_selected_match(
+            candidate, item, candidate_id=candidate_id
         )
 
     def rerank_candidates(
@@ -105,69 +133,20 @@ class NomenclatureMatcher:
         *,
         constraints: dict | None = None,
         query_interpretation: dict | None = None,
+        rerank_query: str | None = None,
     ) -> MatchResult:
-        if not candidates:
-            return MatchResult(
-                query=query,
-                status="NOT_FOUND",
-                candidates=[],
-                query_interpretation=query_interpretation,
-            )
-        if self.reranker is None:
-            raise ValueError("Reranker is not configured")
-
-        indexed_candidates = list(enumerate(candidates, 1))
-        if constraints is not None:
-            indexed_candidates = self._eligible_candidates(candidates, constraints)
-            if not indexed_candidates:
-                return MatchResult(
-                    query=query,
-                    status="NOT_FOUND",
-                    candidates=candidates,
-                    reason="HARD_CONSTRAINT_FILTER: no retrieved candidate satisfies all QUERY_CONSTRAINTS",
-                    query_interpretation=query_interpretation,
-                )
-
-        rerank_input = [candidate for _, candidate in indexed_candidates]
-        try:
-            if constraints is None:
-                rerank_result = self.reranker.rerank(query, rerank_input)
-            else:
-                rerank_result = self.reranker.rerank(query, rerank_input, constraints=constraints)
-        except Exception as exc:
-            return MatchResult(
-                query=query,
-                status="RERANK_FAILED",
-                score=candidates[0].score,
-                ld_product=None,
-                candidates=candidates,
-                reason=str(exc),
-                query_interpretation=query_interpretation,
-            )
-
-        selected = []
-        selected_candidates: list[SearchCandidate] = []
-        for item in rerank_result.selected:
-            original_candidate_id, candidate = indexed_candidates[item.candidate_id - 1]
-            selected.append(
-                self._build_selected_match(
-                    candidate,
-                    item,
-                    candidate_id=original_candidate_id,
-                )
-            )
-            selected_candidates.append(candidate)
-
-        best = selected_candidates[0] if selected_candidates else None
-        return MatchResult(
-            query=query,
-            status=rerank_result.status,
-            score=best.score if best else None,
-            ld_product=best if rerank_result.status == "MATCHED" else None,
-            candidates=candidates,
-            selected=selected,
-            reason=rerank_result.reason,
+        service = CandidateRerankingService(
+            settings=self.settings,
+            reranker=self.reranker,
+            candidate_selection=self.candidate_selection,
+            second_chance=self._second_chance_candidates,
+        )
+        return service.rerank_candidates(
+            query,
+            candidates,
+            constraints=constraints,
             query_interpretation=query_interpretation,
+            rerank_query=rerank_query,
         )
 
     def match_one(self, query: str) -> MatchResult:
@@ -186,6 +165,12 @@ class NomenclatureMatcher:
         candidates = self._search_candidates(query, self.settings.rerank_candidate_limit)
         return self.rerank_candidates(query, candidates)
 
+    @staticmethod
+    def _hard_constraints(query: str, pre_interpretation, enriched_interpretation=None) -> dict:
+        from .application.query_policy import hard_constraints
+
+        return hard_constraints(query, pre_interpretation, enriched_interpretation)
+
     def match_one_hybrid_with_rerank(self, query: str) -> MatchResult:
         query = self._normalize_query(query)
         if not query:
@@ -194,36 +179,31 @@ class NomenclatureMatcher:
             raise ValueError("Hybrid retriever is not configured")
 
         if self.query_interpreter is not None:
-            try:
-                interpretation = self.query_interpreter.interpret(query)
-            except Exception as exc:
-                return MatchResult(
-                    query=query,
-                    status="RERANK_FAILED",
-                    reason=f"QUERY_INTERPRET_FAILED: {type(exc).__name__}: {exc}",
-                )
-
-            interpretation_payload = interpretation.model_dump()
-            if not interpretation.searchable:
-                return MatchResult(
-                    query=query,
-                    status="NOT_FOUND",
-                    reason=f"QUERY_REJECTED: {interpretation.reason}",
-                    query_interpretation=interpretation_payload,
-                )
-
-            normalized_query = self._normalize_query(interpretation.normalized_query) or query
-            canonical_query = normalized_query if normalized_query != query else None
-            candidates = self.hybrid_retriever.search(
-                query,
-                self.settings.hybrid_rerank_limit,
-                canonical_query=canonical_query,
+            prepared = self.query_preparation.prepare(query)
+            if isinstance(prepared, MatchResult):
+                return prepared
+            search = HybridCandidateSearchService(
+                settings=self.settings,
+                retriever=self.hybrid_retriever,
+                reranker=self.reranker,
+                telemetry=self.telemetry,
             )
-            return self.rerank_candidates(
-                query,
-                candidates,
-                constraints=interpretation.constraints.model_dump(),
-                query_interpretation=interpretation_payload,
+            return search.execute(
+                query=query,
+                retrieval_query=prepared.retrieval_query,
+                canonical_query=prepared.canonical_query,
+                retrieval_strategy=prepared.retrieval_strategy,
+                soft_constraints=prepared.interpretation.constraints.model_dump(),
+                hard_constraints=prepared.hard_constraints,
+                query_interpretation=prepared.interpretation_payload,
+                second_chance=self._second_chance_candidates,
+                prefilter_pool_limit=getattr(
+                    self.settings,
+                    "hybrid_prefilter_pool_limit",
+                    200
+                    if prepared.source_decode is not None
+                    else self.settings.hybrid_rerank_limit,
+                ),
             )
 
         canonicalization = canonicalize_retrieval_query(query)

@@ -1,0 +1,64 @@
+name: production-api
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+      - prod/rag-tender-api
+      - prod/rag-tender-observability
+  pull_request:
+    paths:
+      - "src/nomenclature_matcher/**"
+      - "tests/**"
+      - "migrations/**"
+      - "scripts/smoke_**"
+      - "scripts/eval_competitor_analogs.py"
+      - "data/competitor_catalogs/**"
+      - "Dockerfile"
+      - "docker-compose*.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "README.md"
+      - "docs/**"
+      - "RELEASE_CHECKLIST.md"
+      - ".github/workflows/production-api.yml"
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: python -m pip install uv
+
+      - name: Install test dependencies
+        run: uv sync --locked --extra test
+
+      - name: Run full test suite including domain/application regressions
+        run: uv run python -m pytest -q tests
+
+      - name: Validate smoke tooling
+        run: |
+          python -m py_compile scripts/smoke_production_e2e.py
+          bash -n scripts/smoke_history_migration.sh
+
+      - name: PostgreSQL 16 migration and duplicate-ID preservation smoke
+        run: bash scripts/smoke_history_migration.sh
+
+      - name: Validate Docker Compose
+        run: |
+          cp .env.example .env
+          docker network create rag-observability-net
+          POSTGRES_PASSWORD=ci-admin-password-not-a-secret \
+          API_DATABASE_PASSWORD=ci-app-password-not-a-secret \
+          API_AUTH_TOKEN=ci-token-for-compose-validation-only-000000 \
+          docker compose config --quiet
+
+      - name: Build API image
+        run: docker build -t rag-tender-api:test .
