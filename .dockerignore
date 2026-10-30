@@ -9,8 +9,6 @@ __pycache__
 data/*
 !data/competitor_catalogs/
 !data/competitor_catalogs/**
-harness_rag
-openspec
 scripts
 tests
 qdrant

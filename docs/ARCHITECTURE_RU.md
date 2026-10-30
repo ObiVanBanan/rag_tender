@@ -1,12 +1,14 @@
 # Архитектура RAG Tender
 
-[← README](../README.md) · [API](API_RU.md) · [Design notes](../design/architecture.md)
+[← README](../README.md) · [API](API_RU.md) · [Исторические архитектурные заметки](archive/legacy/architecture-refactoring.md)
 
 ## Системный контекст
 
 ```mermaid
 flowchart TB
     C["Клиент: ERP / скрипт / инженер"] -->|HTTPS через reverse proxy| API["FastAPI /v1/match, /v1/shortlist"]
+    U["Инженер в браузере /demo"] --> DEMO["Demo API: /v1/demo/*"]
+    DEMO --> ADM
     API --> ADM["Process-local admission gate"]
     ADM --> APP["Application use cases"]
     APP --> PREP["QueryPreparationService"]
@@ -22,6 +24,8 @@ flowchart TB
     PREF --> RER["DeepSeek reranker"]
     RER --> POL["Domain compatibility policy"]
     POL --> API
+    DEMO --> REVIEW["Human review / decisions"]
+    REVIEW --> PG
     API --> HIST["RequestHistoryRecorder"]
     HIST --> PG[("PostgreSQL: immutable snapshots")]
     API --> MET["Prometheus metrics / structured logs"]
@@ -68,7 +72,7 @@ sequenceDiagram
 
 | Слой | Папка / ключевые файлы | Ответственность |
 |---|---|---|
-| HTTP / transport | `src/nomenclature_matcher/api.py` | Входные модели, bearer auth, коды HTTP, health, metrics |
+| HTTP / transport | `src/nomenclature_matcher/api.py`, `business_demo.py` | Входные модели, Bearer API, Basic demo auth, human-review endpoints, health, metrics |
 | Application | `application/{matching,query_preparation,hybrid_candidate_search,candidate_selection,candidate_reranking,shortlist,...}.py` | Сценарии, управление конвейером, history recorder, admission |
 | Domain | `domain/{product,constraints,medium,competitor,query_signals}.py` | Товарные факты, технические ограничения, UNKNOWN, проверка среды |
 | Infrastructure | `infrastructure/{postgres_history,competitor_knowledge_store,competitor_catalog_registry,...}.py` | Доступ к хранилищам и внешним источникам |
@@ -90,9 +94,9 @@ sequenceDiagram
 - Если SQL history недоступна, readiness не пройдёт; проблемы persistence логируются, но ответ matching может быть сформирован отдельно.
 - Не реализованы гарантированный денежный budget провайдеров, многоарендность и RBAC.
 - Для реального production необходимы TLS, проверенный backup/restore, secret scanning, отдельные provider spend caps и end-to-end проверка на целевом окружении.
-- Режимы UI и CSV-first живут в других ветках; они **не входят** в этот deployable runtime.
+- Бизнес-интерфейс `/demo` и графики `/demo/stats` интегрированы в текущий runtime. История слепков UI хранится в браузере, решения инженера — в PostgreSQL. Экспериментальный CSV-first → RAG fallback остаётся вне `main`.
 
-Подробный рефакторинг и портовая архитектура — в [design/architecture.md](../design/architecture.md). Логи/метрики — в [OBSERVABILITY.md](../OBSERVABILITY.md).
+Актуальный системный дизайн описан здесь. [Старые проектные заметки](archive/README.md) сохранены только для истории и могут не соответствовать текущему коду. Логи/метрики — в [OBSERVABILITY.md](../OBSERVABILITY.md).
 
 
 ## Откуда берутся характеристики конкурентов

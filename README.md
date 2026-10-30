@@ -169,6 +169,7 @@ uv run python -m pytest -q tests
 - [История изменений](CHANGELOG.md) · [Чеклист релиза](RELEASE_CHECKLIST.md)
 - [Установка и конфигурация](docs/GETTING_STARTED_RU.md)
 - [Архитектура и обработка запроса](docs/ARCHITECTURE_RU.md)
+- [Архив ранних ТЗ и заметок по рефакторингу](docs/archive/README.md)
 - [API и примеры](docs/API_RU.md)
 - [Бенчмарки и политика технической совместимости](docs/QUALITY_RU.md)
 - [Roadmap / критерии релиза](docs/ROADMAP_RU.md)
