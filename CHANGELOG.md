@@ -18,9 +18,16 @@ This changelog describes **source-level release candidates**, not deployments. S
 - Corrected default Compose port (8002 with the committed override); restore script now rejects Git LFS pointer files before attempting snapshot recovery.
 - Enabled production API CI workflow for main and release branches (a configured workflow **does not** mean checks have passed).
 
+### Integrated business demo
+
+- Ported `/demo` and `/demo/stats` from `codex/demo-reference-ui-top10-v2` to the catalog-first runtime without overwriting DDD API, technical policy or admission control.
+- Added top-10 candidate review, editable technical constraints, manual decisions, local full-response snapshots and PostgreSQL-backed feedback charts.
+- Separate HTTP Basic access for demo/user and demo/admin; existing Bearer auth retained for production API.
+- Added versioned `0003_demo_feedback` SQL migration and least-privilege DB grants.
+
 ### Known limitations
 
-- No integrated business UI / CSV-first fallback in this candidate; see separate work in PRs #22 and #27.
+- Business UI integrated; experimental CSV-first fallback from PR #27 is **not** integrated. Browser snapshots are local to one device.
 - No verified provider-backed E2E, independent final holdout or production rollout in this preparation session.
 - Required LD catalog export is not distributed in this candidate; Qdrant binary snapshot must be obtained via LFS with appropriate rights.
 - Public source code has no chosen OSS license; copying/redistribution may require separate approval.

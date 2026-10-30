@@ -7,13 +7,17 @@
 - [x] API and catalog-first runtime code exists in the integration source branch.
 - [x] Source registry and schema descriptions for MARSHAL / ALSO / TEMPER present.
 - [x] README / architecture / API / quality and demonstration docs are aligned with selected branch capabilities.
+- [x] Business UI transferred from `codex/demo-reference-ui-top10-v2` and routed through existing catalog-first matcher, preserving Bearer API authentication and admission control.
+- [x] Schema for review audit migrated via `0003_demo_feedback.sql` and demo DB grants added to Compose.
 - [x] Composer override default API port documented as 8002; Qdrant LFS pointer rejection added to override.
 - [x] README distinguishes verified DEV observations from independently validated release performance.
 
 ## Technical-preview checks and remaining production gates
 
-- [x] `uv sync --locked --extra test` + `uv run python -m pytest -q tests`: **245 passed, 1 deprecation warning** on integrated release tree [CI run 40996468713](https://github.com/ObiVanBanan/rag_trend/actions/runs/40996468713).
-- [x] `docker compose config --quiet`, PostgreSQL 16 migration smoke and Docker image build passed in the same [CI run](https://github.com/ObiVanBanan/rag_trend/actions/runs/40996468713).
+- [ ] Verify complete CI on this **UI-integrated commit**; previously recorded passes apply to the old catalog-first baseline, not this integration.
+
+- [x] Previous catalog-first baseline: `uv sync --locked --extra test` + `uv run python -m pytest -q tests`: **245 passed, 1 deprecation warning** before UI integration [CI run 40996468713](https://github.com/ObiVanBanan/rag_trend/actions/runs/40996468713).
+- [x] Previous catalog-first baseline: `docker compose config --quiet`, PostgreSQL 16 migration smoke and Docker image build passed in the same [CI run](https://github.com/ObiVanBanan/rag_trend/actions/runs/40996468713).
 - [ ] Live E2E with real OpenAI/DeepSeek/Qdrant/PostgreSQL and correctly materialized LFS snapshot.
 - [ ] `scripts/smoke_production_e2e.py --base-url http://127.0.0.1:8002 --verify-history` against authorized demo instance and read-only database DSN.
 - [ ] Untouched HOLDOUT benchmark and separate industrial-domain review of dangerous false matches.
@@ -27,7 +31,7 @@
 
 ## Decisions / exclusions
 
-- No silent merge of the separate UI/CSV-first experiments; they require contract and end-to-end integration tests.
+- UI from PR #22 integrated in this candidate; CSV-first from PR #27 remains isolated. Full-stack demo E2E and human review are still release gates.
 - Never present a retrieval confidence number as physical suitability or gas certification.
 - No tag / GitHub Release with `production-ready` wording until the gates above are complete.
 

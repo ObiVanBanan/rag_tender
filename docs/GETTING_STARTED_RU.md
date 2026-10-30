@@ -46,6 +46,10 @@ POSTGRES_PASSWORD=<unique-random-password>
 API_DATABASE_USER=rag_tender_api
 API_DATABASE_PASSWORD=<different-unique-random-password>
 API_AUTH_TOKEN=<different-random-token-at-least-32-chars>
+PUBLIC_DEMO_USERNAME=demo
+PUBLIC_DEMO_PASSWORD=<separate-random-password>
+PUBLIC_DEMO_ADMIN_USERNAME=ld-admin
+PUBLIC_DEMO_ADMIN_PASSWORD=<another-separate-random-password>
 WEB_SEARCH_ENABLED=false
 ```
 
@@ -84,7 +88,7 @@ Invoke-RestMethod http://127.0.0.1:8002/health/ready
 
 Запуск с `.env.example` предполагает `API_PORT=8002`. Compose автоматически читает `docker-compose.override.yml`; этот файл меняет некоторые порты и конфигурацию для совместного размещения с мониторингом. При изменении `API_PORT` проверьте итоговую конфигурацию через `docker compose config`.
 
-По умолчанию автоматический `docker-compose.override.yml` задаёт порт `8002`; базовый Compose без override использует `8000`. Все команды ниже предполагают обычный запуск с override. После старта: Swagger UI — `http://127.0.0.1:8002/docs`. Health checks публичные; matching и metrics требуют Bearer token. **Не публикуйте порт API напрямую**: для удалённого доступа необходимы TLS reverse proxy, сетевые ограничения и управление секретами.
+По умолчанию автоматический `docker-compose.override.yml` задаёт порт `8002`; базовый Compose без override использует `8000`. Все команды ниже предполагают обычный запуск с override. После старта: Swagger UI — `http://127.0.0.1:8002/docs`. Бизнес-демо — `http://127.0.0.1:8002/demo` (Basic), приватные графики — `/demo/stats` (admin Basic). Health checks публичные, основной matching API и metrics требуют Bearer token. **Не публикуйте порт API напрямую**: для удалённого доступа необходимы TLS reverse proxy, сетевые ограничения и управление секретами.
 
 ## 5. Первый запрос
 

@@ -23,6 +23,7 @@ done
 
 docker cp migrations/0001_request_history.sql "$container":/tmp/0001.sql
 docker cp migrations/0002_request_history_surrogate_id.sql "$container":/tmp/0002.sql
+docker cp migrations/0003_demo_feedback.sql "$container":/tmp/0003.sql
 docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d rag_tender -f /tmp/0001.sql >/dev/null
 
 # Preserve a legacy row with a caller-supplied correlation ID.
@@ -79,7 +80,22 @@ END;
 $check$;
 SQL
 
+docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d rag_tender -f /tmp/0003.sql >/dev/null
+# All three tables must exist on PostgreSQL 16.
+docker exec -i "$container" psql -v ON_ERROR_STOP=1 -U postgres -d rag_tender >/dev/null <<'SQL'
+DO $check$
+BEGIN
+    IF to_regclass('public.demo_review_sessions') IS NULL
+       OR to_regclass('public.demo_review_rows') IS NULL
+       OR to_regclass('public.demo_review_events') IS NULL THEN
+        RAISE EXCEPTION 'Demo review schema was not created';
+    END IF;
+END;
+$check$;
+SQL
+
 # Rerunning after an interrupted version-marker write is safe.
 docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d rag_tender -f /tmp/0002.sql >/dev/null
+docker exec "$container" psql -v ON_ERROR_STOP=1 -U postgres -d rag_tender -f /tmp/0003.sql >/dev/null
 
 echo "PASS: migration preserves legacy snapshot and accepts duplicate X-Request-ID."

@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     api_max_inflight_batches: int = Field(default=1, ge=1)
     api_max_items_per_hour: int = Field(default=500, ge=1)
     api_auth_token: SecretStr = SecretStr("")
+    public_demo_username: str = "demo"
+    public_demo_password: str = ""
+    public_demo_admin_username: str = "ld-admin"
+    public_demo_admin_password: str = ""
+    public_demo_max_batch_size: int = Field(default=10, ge=1, le=100)
     product_csv_path: str = "ld_products_full_nomenclature.csv"
     database_url: str = ""
     db_pool_min_size: int = 1

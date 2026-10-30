@@ -2,7 +2,7 @@
 
 [← README](../README.md) · [Качество](QUALITY_RU.md)
 
-Состояние по осмотру кода ветки `codex/catalog-first-technical-compatibility-v2` на **29.10.2026**. Это не обязательства по датам.
+Состояние интеграционной ветки на **30.10.2026**. Это не обязательства по датам; фактическая эксплуатационная готовность зависит от сквозных проверок.
 
 ## Реализовано в выбранной интеграционной ветке
 
@@ -11,6 +11,7 @@
 - Hybrid retrieval, technical prefilter, DeepSeek reranker, optional web search.
 - PostgreSQL history с `history_id`, migrations, bearer auth, health, metrics.
 - Compose и отдельные операционные smoke-скрипты; регрессионные тесты.
+- Бизнес-демо `/demo`: top-10 кандидатов, редактирование технических параметров, выбор человеком, браузерные слепки и серверные feedback events; `/demo/stats` с графиками.
 
 ## Отдельные/незавершённые направления
 
@@ -20,14 +21,14 @@
 | P0 | Безопасность публикации | Secret scan по текущему дереву и истории, rotation подозрительных секретов, проверка происхождения данных |
 | P0 | Live end-to-end | Переход через реальные OpenAI/DeepSeek/Qdrant/Postgres, корректная обработка ошибок и лимитов |
 | P0 | Независимая оценка | Зафиксированный holdout; повторяемые metrics + статистика причин несовпадений |
-| P1 | Свести business UI | Разбор атрибутов, top-10 для выбора, ручная коррекция, добавление одного товара в текущую партию |
+| P1 | Проверка интеграции business UI | Live-демо на реальных данных, тест совместимости со всеми catalog-first ограничениями и доступами |
 | P1 | CSV-first → RAG fallback | Единый поддерживаемый контракт и тест на промах CSV; не смешивать с CSV для BM25 |
-| P1 | Полная история UI | Сохранение и просмотр **снимка запроса и ответа**, не только названия товара |
+| P1 | История UI между устройствами | Браузерные слепки реализованы; для синхронизации потребуется учётная запись и безопасное серверное хранение |
 | P1 | Визуализация статистики | Top-1, pool recall, ошибки по техническим атрибутам, latency и стоимость |
 | P1 | Безопасная публикация | TLS proxy, provider spend cap, секреты вне репо, мониторинг и backup/restore |
 | P2 | Deployment/scale | Нагрузочные тесты, общая quota при multi-worker, отдельный deploy наблюдаемости |
 
-Работы по UI/CSV-first существуют в отдельных PR/ветках и **не считаются внедрёнными** в эту ветку до фактического объединения и тестирования. Ссылки для навигации: [PR #15 business demo](https://github.com/ObiVanBanan/rag_trend/pull/15), [PR #27 CSV-first](https://github.com/ObiVanBanan/rag_trend/pull/27), [PR #32 verified catalog constraints](https://github.com/ObiVanBanan/rag_trend/pull/32).
+UI перенесён из [PR #22](https://github.com/ObiVanBanan/rag_trend/pull/22); CSV-first из PR #27 намеренно не перенесён. Перенос исходного кода ещё не подтверждает успешный live E2E. Ссылки для навигации: [PR #15 business demo](https://github.com/ObiVanBanan/rag_trend/pull/15), [PR #27 CSV-first](https://github.com/ObiVanBanan/rag_trend/pull/27), [PR #32 verified catalog constraints](https://github.com/ObiVanBanan/rag_trend/pull/32).
 
 ## Release gates
 
@@ -45,7 +46,7 @@
 
 - [ ] Инженерный gate и источник документов для критичных сред / сертификатов.
 - [ ] Проверенный независимый holdout и регрессионный набор по DN/PN/connection/medium/control.
-- [ ] Backup + rehearsal миграций `0001`/`0002` на копии БД, rollback plan.
+- [ ] Backup + rehearsal миграций `0001`/`0002`/`0003` на копии БД, rollback plan.
 - [ ] TLS, network rules, rate/budget caps по внешним провайдерам, секреты через секрет-хранилище.
 - [ ] Наблюдаемость на целевом окружении и измеренные стоимость, p50/p95.
 - [ ] Уточнить лицензию репозитория и права на каталожные данные.

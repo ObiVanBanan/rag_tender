@@ -29,6 +29,7 @@ from .observability import (
     set_request_id,
 )
 from .domain.medium import CatalogMedium, WorkingMedium, classify_medium_text
+from .public_auth import valid_basic_auth
 from .application.admission import AdmissionRejected, RequestAdmission
 from .application.matching import match_products
 from .application.request_history import RequestHistoryRecorder, RequestHistoryRecord
@@ -203,16 +204,16 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
             description=app.description,
             routes=app.routes,
         )
-        schema.setdefault("components", {}).setdefault("securitySchemes", {})[
-            "BearerAuth"
-        ] = {"type": "http", "scheme": "bearer"}
+        schemes = schema.setdefault("components", {}).setdefault("securitySchemes", {})
+        schemes["BearerAuth"] = {"type": "http", "scheme": "bearer"}
+        schemes["DemoBasicAuth"] = {"type": "http", "scheme": "basic"}
         for path, path_item in schema.get("paths", {}).items():
             for operation in path_item.values():
                 if not isinstance(operation, dict):
                     continue
                 operation["security"] = (
-                    []
-                    if path in {"/health/live", "/health/ready"}
+                    [] if path in {"/health/live", "/health/ready"}
+                    else [{"DemoBasicAuth": []}] if path.startswith("/v1/demo/")
                     else [{"BearerAuth": []}]
                 )
         app.openapi_schema = schema
@@ -234,7 +235,11 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
                 response = JSONResponse(
                     status_code=401,
                     content={"detail": "unauthorized"},
-                    headers={"WWW-Authenticate": "Bearer"},
+                    headers={"WWW-Authenticate": (
+                        'Basic realm="RAG Tender Admin"' if request.url.path in {"/demo/stats", "/v1/demo/stats"}
+                        else 'Basic realm="RAG Tender Demo"' if request.url.path == "/demo" or request.url.path.startswith("/v1/demo/")
+                        else "Bearer"
+                    )},
                 )
                 status_code = response.status_code
                 return response
@@ -495,6 +500,8 @@ def create_app(runtime_factory: RuntimeFactory | None = None) -> FastAPI:
         )
         return response
 
+    from .business_demo import router as business_demo_router
+    app.include_router(business_demo_router)
     return app
 
 
@@ -511,6 +518,21 @@ def _is_authorized(request: Request) -> bool:
         return True
     runtime = getattr(request.app.state, "runtime", None)
     settings = getattr(runtime, "settings", None)
+    path = request.url.path
+    is_demo = path == "/demo" or path.startswith("/v1/demo/") or path.startswith("/demo/")
+    if is_demo:
+        is_stats = path in {"/demo/stats", "/v1/demo/stats"}
+        user = str(getattr(settings, "public_demo_username", "demo") or "demo")
+        password = str(getattr(settings, "public_demo_password", "") or "")
+        admin = str(getattr(settings, "public_demo_admin_username", "ld-admin") or "ld-admin")
+        admin_password = str(getattr(settings, "public_demo_admin_password", "") or "")
+        header = request.headers.get("Authorization")
+        is_admin = bool(admin_password) and valid_basic_auth(header, username=admin, password=admin_password)
+        if is_stats:
+            return is_admin
+        if password:
+            return is_admin or valid_basic_auth(header, username=user, password=password)
+        return str(getattr(settings, "app_env", "development")).lower() not in {"production", "prod"}
     configured = getattr(settings, "api_auth_token", "")
     token = (
         configured.get_secret_value()

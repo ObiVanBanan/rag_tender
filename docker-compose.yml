@@ -129,6 +129,8 @@ services:
       GRANT USAGE ON SCHEMA public TO :"app_user";
       GRANT SELECT ON TABLE rag_schema_migrations TO :"app_user";
       GRANT INSERT ON TABLE rag_match_requests TO :"app_user";
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE demo_review_sessions, demo_review_rows, demo_review_events TO :"app_user";
+      GRANT USAGE, SELECT ON SEQUENCE demo_review_events_id_seq TO :"app_user";
       SQL
     restart: "no"
     networks:
