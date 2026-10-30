@@ -8,6 +8,7 @@
 
 - `GET /health/live` и `GET /health/ready` — публичные проверки; ready возвращает `503` при недоступности зависимостей.
 - `POST /v1/match`, `POST /v1/shortlist` и `GET /metrics` — Bearer авторизация. При отсутствующем/неверном токене `401`.
+- Браузерное демо `/demo` и `/v1/demo/*` использует отдельную HTTP Basic авторизацию (пользователь `PUBLIC_DEMO_USERNAME`, пароль `PUBLIC_DEMO_PASSWORD`); `/demo/stats` и `/v1/demo/stats` требуют отдельную администраторскую пару. В production без пароля демо закрыто. HTTP Basic допускается только за HTTPS reverse proxy.
 - Заголовок `X-Request-ID` может быть передан клиентом; иначе API генерирует значение. Это **не** уникальный ключ записи истории.
 - Ограничения размера: от 1 до `API_MAX_BATCH_SIZE` элементов (по умолчанию 100), каждая строка до 4000 символов. Для превышения числа элементов API возвращает `413`; пустое/неверное тело валидируется как `422`.
 - Оба match-маршрута делят process-local admission: `429` (`MATCHER_BUSY` или `HOURLY_ITEM_LIMIT_REACHED`) и `Retry-After`. Лимит не является денежной гарантией.
@@ -47,7 +48,7 @@
 
 Массив `results` соответствует каждой входной строке. `status`: `MATCHED` / `NOT_FOUND` / `ERROR`. Для `MATCHED` возвращаются `matched_name` и `matched_article` (если в каталоге), а также скоринг. `score` — поисковый сигнал, `confidence` — заявленная оценка reranker, не калиброванная вероятность.
 
-**Важно:** отдельный статус `INSUFFICIENT_PARAMETERS` и формат top-10 выбора **не входят** в контракт этой production-ветки.
+**Важно:** `INSUFFICIENT_PARAMETERS`, top-10 и действия пользователя являются частью отдельного **демо-контракта** `/v1/demo/*`, а не ответом `/v1/match`.
 
 ## `POST /v1/shortlist`
 
@@ -80,6 +81,16 @@
 | `candidate_count` / `blocked_candidate_count` / `candidate_pool_truncated` | Диагностика полноты shortlist |
 
 Каждый кандидат содержит `working_medium` (requested/catalog classification/disposition), `gas_certification=UNVERIFIED` и признаки обязательного человеческого ревью. В частности, `UNKNOWN` и `BOTH` не доказывают допуск для газа. `max_candidates` в диапазоне 1–20.
+
+## Бизнес-интерфейс и review API
+
+- `GET /demo` — HTML-интерфейс для инженера с импортом текстовых строк, просмотром кандидатов и сохранением локальных слепков запроса и ответа.
+- `POST /v1/demo/match` — `{"products":["Фланец стальной DN50 PN16"]}`. Возвращает `request_id`, одноразовый `review_token`, `results`, список реально найденных кандидатов (до 10) и объяснения технической проверки. Лимит по умолчанию — 10 строк, длина строки — до 2000 символов.
+- `POST /v1/demo/correct` — пересчитывает **одну позицию** после правки `changes`. Нужны `request_id`, `review_token`, `item_index`, `revision`. Повторный запрос использует ту же catalog-first цепочку и общий admission budget.
+- `POST /v1/demo/decision` — фиксирует `ACCEPTED`, `REJECTED` или `SELECTED_OTHER`; для выбора альтернативы также передаётся `selected_ld_id`. Несовпадение технических требований или неизвестные данные требуют отдельных признаков ручного подтверждения, не считаются автоматическим approval.
+- `GET /demo/stats` и `GET /v1/demo/stats?days=30` — приватная статистика на PostgreSQL с отдельными правами администратора.
+
+Основной Bearer API и HTML-демо имеют разные контракты и логины. `review_token` не следует записывать в URL или `localStorage`: история браузера содержит только снимки для чтения, без сессионного доступа на изменение. Подробный сценарий: [DEMO_RU.md](DEMO_RU.md).
 
 ## Диагностика
 
