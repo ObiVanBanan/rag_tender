@@ -127,6 +127,7 @@ class Runtime:
             api_max_batch_size=10,public_demo_max_batch_size=10,
             match_trace_enabled=False)
         self.demo_feedback=FeedbackFake()
+        self.history=SimpleNamespace()  # only needed for current API history recorder
         self.matcher=self
         self.queries=[]
     def close(self): pass

@@ -30,6 +30,7 @@ class Runtime:
     settings = SimpleNamespace(api_max_batch_size=2, match_trace_enabled=False)
     def __init__(self):
         self.matcher = self
+        self.history = SimpleNamespace()  # modern API lifespan requires history port
     def close(self): pass
     def ready(self): return True
     def match_one_hybrid_with_rerank(self, query):
